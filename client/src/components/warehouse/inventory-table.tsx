@@ -17,35 +17,21 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
   const { data: transactions = [] } = useTransactions(selectedItemCode);
 
   const filteredInventory = useMemo(() => {
-    // 제품코드별로 그룹화하여 재고 합산
-    const groupedInventory = inventory.reduce((acc, item) => {
-      if (item.stock <= 0) return acc; // 재고가 없는 제품은 제외
-      
-      const existing = acc.find(group => group.code === item.code);
-      if (existing) {
-        // 동일 제품코드가 있으면 재고 합산
-        existing.stock += item.stock;
-        // 위치 정보 병합 (여러 위치가 있는 경우)
-        if (item.location && existing.location !== item.location) {
-          const locations = existing.location ? existing.location.split(', ') : [];
-          if (!locations.includes(item.location)) {
-            locations.push(item.location);
-            existing.location = locations.join(', ');
-          }
+    return inventory
+      .filter(item => item.stock > 0) // 재고가 있는 제품만 표시
+      .filter(item =>
+        item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.manufacturer || '').toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => {
+        // 제품코드 순으로 정렬한 후 위치별로 정렬
+        if (a.code !== b.code) {
+          return a.code.localeCompare(b.code);
         }
-      } else {
-        // 새로운 제품코드면 추가
-        acc.push({ ...item });
-      }
-      return acc;
-    }, [] as typeof inventory);
-
-    return groupedInventory.filter(item =>
-      item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.manufacturer || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        return (a.location || '').localeCompare(b.location || '');
+      });
   }, [inventory, searchTerm]);
 
   const getStatusBadge = (item: InventoryItem) => {
