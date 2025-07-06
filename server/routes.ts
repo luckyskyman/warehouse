@@ -144,11 +144,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Insufficient stock" });
         }
       } else if (validatedData.type === "move") {
-        const item = await storage.getInventoryItem(validatedData.itemCode);
-        if (item) {
-          await storage.updateInventoryItem(validatedData.itemCode, {
-            location: validatedData.toLocation || item.location
-          });
+        // 이동 처리: 특정 위치의 재고를 새 위치로 이동
+        const allItems = await storage.getInventoryItems();
+        const sourceItem = allItems.find(item => 
+          item.code === validatedData.itemCode && 
+          item.location === validatedData.fromLocation &&
+          item.stock >= validatedData.quantity
+        );
+        
+        if (sourceItem) {
+          // 이동할 수량이 전체 재고와 같다면 위치만 변경
+          if (sourceItem.stock === validatedData.quantity) {
+            await storage.updateInventoryItemById(sourceItem.id, {
+              location: validatedData.toLocation
+            });
+          } else {
+            // 일부 수량만 이동하는 경우: 기존 아이템에서 차감하고 새 위치에 아이템 생성
+            await storage.updateInventoryItemById(sourceItem.id, {
+              stock: sourceItem.stock - validatedData.quantity
+            });
+            
+            // 목표 위치에 동일한 제품이 있는지 확인
+            const targetItem = allItems.find(item => 
+              item.code === validatedData.itemCode && 
+              item.location === validatedData.toLocation
+            );
+            
+            if (targetItem) {
+              // 기존 아이템에 수량 추가
+              await storage.updateInventoryItemById(targetItem.id, {
+                stock: targetItem.stock + validatedData.quantity
+              });
+            } else {
+              // 새 아이템 생성
+              await storage.createInventoryItem({
+                code: sourceItem.code,
+                name: sourceItem.name,
+                category: sourceItem.category,
+                manufacturer: sourceItem.manufacturer,
+                stock: validatedData.quantity,
+                minStock: sourceItem.minStock,
+                unit: sourceItem.unit,
+                location: validatedData.toLocation,
+                boxSize: sourceItem.boxSize
+              });
+            }
+          }
+        } else {
+          return res.status(400).json({ message: "Source item not found or insufficient stock" });
         }
       } else if (validatedData.type === "adjustment") {
         const item = await storage.getInventoryItem(validatedData.itemCode);
