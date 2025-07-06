@@ -55,20 +55,12 @@ export function MoveForm() {
     .find(layout => layout.zoneName === selectedZone && layout.subZoneName === selectedSubZone)
     ?.floors || [];
 
-  // 검색어에 따른 제품 필터링 및 정렬 (재고가 있는 제품만, 제품코드별 고유화)
+  // 검색어에 따른 제품 필터링 및 정렬 (재고가 있는 제품만, 위치별 개별 표시)
   const filteredInventory = React.useMemo(() => {
     // 재고가 있는 제품만 필터링
     const stockedItems = inventory.filter(item => item.stock > 0);
-    
-    // 제품코드별로 고유화 (첫 번째 항목만 선택)
-    const uniqueItems = stockedItems.reduce((acc, item) => {
-      if (!acc.find(existing => existing.code === item.code)) {
-        acc.push(item);
-      }
-      return acc;
-    }, [] as typeof stockedItems);
 
-    return uniqueItems.filter(item => {
+    return stockedItems.filter(item => {
       if (!searchValue) return true;
       
       const searchLower = searchValue.toLowerCase();
@@ -80,7 +72,13 @@ export function MoveForm() {
              codeString.includes(searchLower) || 
              nameString.includes(searchLower);
     }).sort((a, b) => {
-      if (!searchValue) return 0;
+      if (!searchValue) {
+        // 검색어가 없을 때는 제품코드순으로 정렬한 후 위치별 정렬
+        if (a.code !== b.code) {
+          return String(a.code).localeCompare(String(b.code));
+        }
+        return (a.location || '').localeCompare(b.location || '');
+      }
       
       const searchLower = searchValue.toLowerCase();
       const aCodeString = String(a.code).toLowerCase();
