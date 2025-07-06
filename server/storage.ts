@@ -300,21 +300,28 @@ export class MemStorage implements IStorage {
     const item = this.exchangeQueue.find(item => item.id === id);
     if (!item) return false;
     
+    console.log(`교환 처리 시작: ${item.itemCode}, 수량: ${item.quantity}`);
+    
     // 교환 처리 시 새 제품으로 재고 가산
     const allItems = Array.from(this.inventoryItems.values());
     const itemsWithCode = allItems.filter(inventoryItem => 
       inventoryItem.code === item.itemCode
     );
     
+    console.log(`해당 제품 코드 재고 항목 수: ${itemsWithCode.length}`);
+    
     if (itemsWithCode.length > 0) {
       // 기존 재고가 있으면 첫 번째 항목에 가산
       const firstItem = itemsWithCode[0];
+      console.log(`기존 재고: ${firstItem.stock}, 가산 후: ${firstItem.stock + item.quantity}`);
       await this.updateInventoryItemById(firstItem.id, {
         stock: firstItem.stock + item.quantity
       });
+      console.log(`재고 가산 완료`);
     } else {
       // 기존 재고가 없으면 마스터 데이터를 찾아서 새 재고 생성
       const masterItem = allItems.find(inventoryItem => inventoryItem.code === item.itemCode);
+      console.log(`마스터 항목 찾음: ${masterItem ? 'Yes' : 'No'}`);
       if (masterItem) {
         await this.createInventoryItem({
           code: masterItem.code,
@@ -327,10 +334,12 @@ export class MemStorage implements IStorage {
           location: null, // 교환품은 기본 위치
           boxSize: masterItem.boxSize
         });
+        console.log(`새 재고 항목 생성 완료`);
       }
     }
     
     item.processed = true;
+    console.log(`교환 처리 완료`);
     return true;
   }
 }
