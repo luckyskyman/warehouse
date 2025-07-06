@@ -248,6 +248,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Excel upload routes
+  app.post("/api/upload/master", async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ message: "Items must be an array" });
+      }
+
+      const createdItems = [];
+      for (const item of items) {
+        const inventoryItem = {
+          code: String(item['제품코드'] || item.code || ''),
+          name: String(item['품명'] || item.name || ''),
+          category: String(item['카테고리'] || item.category || '기타'),
+          manufacturer: String(item['제조사'] || item.manufacturer || ''),
+          stock: 0, // Initial stock is 0 for master items
+          minStock: Number(item['최소재고'] || item.minStock || 0),
+          unit: String(item['단위'] || item.unit || 'ea'),
+          location: null,
+          boxSize: Number(item['박스당수량'] || item.boxSize || 1),
+        };
+        
+        if (inventoryItem.code) {
+          const created = await storage.createInventoryItem(inventoryItem);
+          createdItems.push(created);
+        }
+      }
+
+      res.json({ created: createdItems.length, items: createdItems });
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/upload/bom", async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ message: "Items must be an array" });
+      }
+
+      const createdBoms = [];
+      for (const item of items) {
+        const bomItem = {
+          guideName: String(item['설치가이드명'] || item.guideName || ''),
+          itemCode: String(item['필요부품코드'] || item.itemCode || ''),
+          requiredQuantity: Number(item['필요수량'] || item.requiredQuantity || 0),
+        };
+        
+        if (bomItem.guideName && bomItem.itemCode) {
+          const created = await storage.createBomGuide(bomItem);
+          createdBoms.push(created);
+        }
+      }
+
+      res.json({ created: createdBoms.length, items: createdBoms });
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/upload/inventory-add", async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ message: "Items must be an array" });
+      }
+
+      const updatedItems = [];
+      for (const item of items) {
+        const code = String(item['제품코드'] || item.code || '');
+        const quantity = Number(item['수량'] || item.quantity || 0);
+        const location = `${item['구역'] || item.zone || 'A구역'}-${String(item['세부구역'] || item.subZone || 'A-1').split('-')[1] || '1'}-${String(item['층수'] || item.floor || '1층').replace('층', '')}`;
+        
+        if (code && quantity > 0) {
+          const existingItem = await storage.getInventoryItem(code);
+          if (existingItem) {
+            // Add to existing stock
+            const updated = await storage.updateInventoryItem(code, {
+              stock: existingItem.stock + quantity,
+              location: location,
+            });
+            if (updated) updatedItems.push(updated);
+          } else {
+            // Create new item
+            const newItem = {
+              code: code,
+              name: String(item['품명'] || item.name || code),
+              category: String(item['카테고리'] || item.category || '기타'),
+              manufacturer: String(item['제조사'] || item.manufacturer || ''),
+              stock: quantity,
+              minStock: Number(item['최소재고'] || item.minStock || 0),
+              unit: String(item['단위'] || item.unit || 'ea'),
+              location: location,
+              boxSize: Number(item['박스당수량'] || item.boxSize || 1),
+            };
+            const created = await storage.createInventoryItem(newItem);
+            updatedItems.push(created);
+          }
+        }
+      }
+
+      res.json({ updated: updatedItems.length, items: updatedItems });
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/upload/inventory-sync", async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ message: "Items must be an array" });
+      }
+
+      // Clear existing inventory
+      const existingItems = await storage.getInventoryItems();
+      for (const item of existingItems) {
+        await storage.deleteInventoryItem(item.code);
+      }
+
+      // Add new items
+      const createdItems = [];
+      for (const item of items) {
+        const code = String(item['제품코드'] || item.code || '');
+        if (code) {
+          const newItem = {
+            code: code,
+            name: String(item['품명'] || item.name || code),
+            category: String(item['카테고리'] || item.category || '기타'),
+            manufacturer: String(item['제조사'] || item.manufacturer || ''),
+            stock: Number(item['현재고'] || item.stock || 0),
+            minStock: Number(item['최소재고'] || item.minStock || 0),
+            unit: String(item['단위'] || item.unit || 'ea'),
+            location: String(item['위치'] || item.location || ''),
+            boxSize: Number(item['박스당수량'] || item.boxSize || 1),
+          };
+          const created = await storage.createInventoryItem(newItem);
+          createdItems.push(created);
+        }
+      }
+
+      res.json({ synced: createdItems.length, items: createdItems });
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

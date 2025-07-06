@@ -93,143 +93,8 @@ export class MemStorage implements IStorage {
     this.users.set(adminUser.id, adminUser);
     this.users.set(viewerUser.id, viewerUser);
 
-    // Create sample inventory
-    const sampleItems: InventoryItem[] = [
-      {
-        id: this.currentItemId++,
-        code: "SP-300W",
-        name: "300W 태양광 패널",
-        category: "전자제품",
-        manufacturer: "SolarTech",
-        stock: 15,
-        minStock: 10,
-        unit: "ea",
-        location: "A-1-1",
-        boxSize: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: this.currentItemId++,
-        code: "SP-500W",
-        name: "500W 태양광 패널",
-        category: "전자제품",
-        manufacturer: "SolarTech",
-        stock: 18,
-        minStock: 8,
-        unit: "ea",
-        location: "A-1-2",
-        boxSize: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: this.currentItemId++,
-        code: "INV-5KW",
-        name: "5KW 인버터",
-        category: "전자제품",
-        manufacturer: "PowerCorp",
-        stock: 3,
-        minStock: 2,
-        unit: "ea",
-        location: "B-1-1",
-        boxSize: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: this.currentItemId++,
-        code: "INV-10KW",
-        name: "10KW 인버터",
-        category: "전자제품",
-        manufacturer: "PowerCorp",
-        stock: 1,
-        minStock: 1,
-        unit: "ea",
-        location: "B-1-2",
-        boxSize: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: this.currentItemId++,
-        code: "INV-50KW",
-        name: "50KW 인버터",
-        category: "전자제품",
-        manufacturer: "PowerCorp",
-        stock: 0,
-        minStock: 1,
-        unit: "ea",
-        location: "B-2-1",
-        boxSize: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: this.currentItemId++,
-        code: "CABLE-4MM",
-        name: "4mm² DC 케이블",
-        category: "산업자재",
-        manufacturer: "CableCo",
-        stock: 25,
-        minStock: 20,
-        unit: "roll",
-        location: "C-1-1",
-        boxSize: 10,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: this.currentItemId++,
-        code: "CABLE-6MM",
-        name: "6mm² DC 케이블",
-        category: "산업자재",
-        manufacturer: "CableCo",
-        stock: 80,
-        minStock: 50,
-        unit: "roll",
-        location: "C-1-2",
-        boxSize: 10,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: this.currentItemId++,
-        code: "CABLE-10MM",
-        name: "10mm² DC 케이블",
-        category: "산업자재",
-        manufacturer: "CableCo",
-        stock: 200,
-        minStock: 100,
-        unit: "roll",
-        location: "C-2-1",
-        boxSize: 10,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
-
-    sampleItems.forEach(item => {
-      this.inventoryItems.set(item.code, item);
-    });
-
-    // Create sample BOM guides
-    const sampleBomGuides: BomGuide[] = [
-      { id: this.currentBomId++, guideName: "가정용 태양광 설치 가이드", itemCode: "SP-300W", requiredQuantity: 12, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "가정용 태양광 설치 가이드", itemCode: "INV-5KW", requiredQuantity: 1, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "가정용 태양광 설치 가이드", itemCode: "CABLE-4MM", requiredQuantity: 50, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "상업용 태양광 설치 가이드", itemCode: "SP-500W", requiredQuantity: 20, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "상업용 태양광 설치 가이드", itemCode: "INV-10KW", requiredQuantity: 2, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "상업용 태양광 설치 가이드", itemCode: "CABLE-6MM", requiredQuantity: 100, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "산업용 태양광 설치 가이드", itemCode: "SP-500W", requiredQuantity: 100, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "산업용 태양광 설치 가이드", itemCode: "INV-50KW", requiredQuantity: 2, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "산업용 태양광 설치 가이드", itemCode: "CABLE-10MM", requiredQuantity: 500, createdAt: new Date() },
-    ];
-
-    this.bomGuides = sampleBomGuides;
-
-    // Create sample warehouse layout
-    const sampleLayout: WarehouseLayout[] = [
+    // Create basic warehouse layout only
+    const basicLayout: WarehouseLayout[] = [
       { id: this.currentLayoutId++, zoneName: "A구역", subZoneName: "A-1", floors: ["1층", "2층", "3층"], createdAt: new Date() },
       { id: this.currentLayoutId++, zoneName: "A구역", subZoneName: "A-2", floors: ["1층", "2층", "3층"], createdAt: new Date() },
       { id: this.currentLayoutId++, zoneName: "B구역", subZoneName: "B-1", floors: ["1층", "2층", "3층"], createdAt: new Date() },
@@ -240,7 +105,7 @@ export class MemStorage implements IStorage {
       { id: this.currentLayoutId++, zoneName: "D구역", subZoneName: "D-2", floors: ["1층", "2층", "3층"], createdAt: new Date() },
     ];
 
-    this.warehouseLayout = sampleLayout;
+    this.warehouseLayout = basicLayout;
   }
 
   // User methods
