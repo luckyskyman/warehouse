@@ -108,40 +108,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 입고 처리: 입고 폼에서 이미 새로운 재고 항목을 생성했으므로 추가 처리 불필요
         // 각 입고마다 새로운 항목이 생성되어 위치별/카테고리별 관리 가능
       } else if (validatedData.type === "outbound") {
-        // 출고 처리: 위치별 재고에서 차감
+        // 출고 처리: 사유별로 다른 처리
         const allItems = await storage.getInventoryItems();
         const itemsWithCode = allItems.filter(item => item.code === validatedData.itemCode && item.stock > 0);
         
-        // 총 재고 확인
-        const totalStock = itemsWithCode.reduce((sum, item) => sum + item.stock, 0);
-        
-        if (totalStock >= validatedData.quantity) {
-          let remainingQuantity = validatedData.quantity;
+        if (validatedData.reason === "조립장 이동") {
+          // 조립장 이동: 재고에서 차감만
+          const totalStock = itemsWithCode.reduce((sum, item) => sum + item.stock, 0);
           
-          // 위치별로 재고 차감 (FIFO 방식)
-          for (const item of itemsWithCode) {
-            if (remainingQuantity <= 0) break;
+          if (totalStock >= validatedData.quantity) {
+            let remainingQuantity = validatedData.quantity;
             
-            const deductAmount = Math.min(item.stock, remainingQuantity);
-            
-            await storage.updateInventoryItemById(item.id, {
-              stock: item.stock - deductAmount
-            });
-            
-            remainingQuantity -= deductAmount;
+            // 위치별로 재고 차감 (FIFO 방식)
+            for (const item of itemsWithCode) {
+              if (remainingQuantity <= 0) break;
+              
+              const deductAmount = Math.min(item.stock, remainingQuantity);
+              
+              await storage.updateInventoryItemById(item.id, {
+                stock: item.stock - deductAmount
+              });
+              
+              remainingQuantity -= deductAmount;
+            }
+          } else {
+            return res.status(400).json({ message: "Insufficient stock" });
           }
-          
-          // Add to exchange queue if it's a defective item exchange
-          if (validatedData.reason === "불량품 교환 출고") {
-            await storage.createExchangeQueueItem({
-              itemCode: validatedData.itemCode,
-              itemName: validatedData.itemName,
-              quantity: validatedData.quantity,
-              outboundDate: new Date()
+        } else if (validatedData.reason === "출고 반환") {
+          // 출고 반환: 재고에 가산
+          const firstItem = itemsWithCode[0];
+          if (firstItem) {
+            await storage.updateInventoryItemById(firstItem.id, {
+              stock: firstItem.stock + validatedData.quantity
             });
+          } else {
+            // 기존 재고가 없으면 새로 생성
+            const masterItem = allItems.find(item => item.code === validatedData.itemCode);
+            if (masterItem) {
+              await storage.createInventoryItem({
+                code: masterItem.code,
+                name: masterItem.name,
+                category: masterItem.category,
+                manufacturer: masterItem.manufacturer,
+                stock: validatedData.quantity,
+                minStock: masterItem.minStock,
+                unit: masterItem.unit,
+                location: validatedData.fromLocation || null,
+                boxSize: masterItem.boxSize
+              });
+            }
           }
+        } else if (validatedData.reason === "불량품 교환 출고") {
+          // 불량품 교환 출고: 교환 대기 목록에만 추가, 재고 차감은 교환 처리 시
+          await storage.createExchangeQueueItem({
+            itemCode: validatedData.itemCode,
+            itemName: validatedData.itemName,
+            quantity: validatedData.quantity,
+            outboundDate: new Date()
+          });
         } else {
-          return res.status(400).json({ message: "Insufficient stock" });
+          // 기타 출고: 기존 로직대로 재고 차감
+          const totalStock = itemsWithCode.reduce((sum, item) => sum + item.stock, 0);
+          
+          if (totalStock >= validatedData.quantity) {
+            let remainingQuantity = validatedData.quantity;
+            
+            for (const item of itemsWithCode) {
+              if (remainingQuantity <= 0) break;
+              
+              const deductAmount = Math.min(item.stock, remainingQuantity);
+              
+              await storage.updateInventoryItemById(item.id, {
+                stock: item.stock - deductAmount
+              });
+              
+              remainingQuantity -= deductAmount;
+            }
+          } else {
+            return res.status(400).json({ message: "Insufficient stock" });
+          }
         }
       } else if (validatedData.type === "move") {
         // 이동 처리: 특정 위치의 재고를 새 위치로 이동
