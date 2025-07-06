@@ -119,6 +119,20 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
                                       {new Date(tx.createdAt).toLocaleString('ko-KR')}
                                     </span>
                                   </div>
+                                  
+                                  {/* 위치 정보 표시 */}
+                                  <div className="text-sm text-blue-600 mt-1">
+                                    {tx.type === 'inbound' && tx.toLocation && (
+                                      <span>→ {tx.toLocation} 입고</span>
+                                    )}
+                                    {tx.type === 'outbound' && tx.fromLocation && (
+                                      <span>{tx.fromLocation} →</span>
+                                    )}
+                                    {tx.type === 'move' && (
+                                      <span>{tx.fromLocation} → {tx.toLocation}</span>
+                                    )}
+                                  </div>
+                                  
                                   {(tx.reason || tx.memo) && (
                                     <p className="text-sm text-gray-600 mt-1">
                                       {tx.reason || tx.memo}
