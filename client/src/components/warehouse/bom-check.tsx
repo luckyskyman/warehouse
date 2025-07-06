@@ -1,0 +1,90 @@
+import { useState, useMemo } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { useBomGuides, useBomGuidesByName, useInventory } from '@/hooks/use-inventory';
+import { BomCheckResult } from '@/types/warehouse';
+
+export function BomCheck() {
+  const [selectedGuide, setSelectedGuide] = useState('');
+  const { data: bomGuides = [] } = useBomGuides();
+  const { data: bomItems = [] } = useBomGuidesByName(selectedGuide);
+  const { data: inventory = [] } = useInventory();
+
+  const guideNames = useMemo(() => {
+    return [...new Set(bomGuides.map(bom => bom.guideName))];
+  }, [bomGuides]);
+
+  const bomCheckResults = useMemo((): BomCheckResult[] => {
+    return bomItems.map(bomItem => {
+      const inventoryItem = inventory.find(item => item.code === bomItem.itemCode);
+      const currentStock = inventoryItem?.stock || 0;
+      
+      return {
+        code: bomItem.itemCode,
+        name: inventoryItem?.name || bomItem.itemCode,
+        needed: bomItem.requiredQuantity,
+        current: currentStock,
+        status: currentStock >= bomItem.requiredQuantity ? 'ok' : 'shortage'
+      };
+    });
+  }, [bomItems, inventory]);
+
+  return (
+    <div className="warehouse-content">
+      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+        ⚙️ 설치가이드별 자재 확인
+      </h2>
+      
+      <div className="mb-6">
+        <Label htmlFor="guideSelect">설치가이드 선택</Label>
+        <Select value={selectedGuide} onValueChange={setSelectedGuide}>
+          <SelectTrigger className="w-full mt-2">
+            <SelectValue placeholder="선택하세요" />
+          </SelectTrigger>
+          <SelectContent>
+            {guideNames.map(guideName => (
+              <SelectItem key={guideName} value={guideName}>{guideName}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {selectedGuide && (
+        <div className="overflow-x-auto">
+          <table className="warehouse-table">
+            <thead>
+              <tr>
+                <th>필요 부품코드</th>
+                <th>품명</th>
+                <th>필요수량</th>
+                <th>현재고</th>
+                <th>상태</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bomCheckResults.map((result) => (
+                <tr key={result.code}>
+                  <td className="font-mono">{result.code}</td>
+                  <td>{result.name}</td>
+                  <td>{result.needed.toLocaleString()}</td>
+                  <td>{result.current.toLocaleString()}</td>
+                  <td>
+                    <span className={result.status === 'ok' ? 'status-ok' : 'status-shortage'}>
+                      {result.status === 'ok' ? '충분' : '부족'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedGuide && bomCheckResults.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          선택한 가이드에 대한 BOM 데이터가 없습니다.
+        </div>
+      )}
+    </div>
+  );
+}
