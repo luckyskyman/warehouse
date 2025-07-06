@@ -66,7 +66,7 @@ export function InboundForm() {
     .find(layout => layout.zoneName === selectedZone && layout.subZoneName === selectedSubZone)
     ?.floors || [];
 
-  // 검색어에 따른 제품 필터링
+  // 검색어에 따른 제품 필터링 및 정렬
   const filteredInventory = inventory.filter(item => {
     if (!searchValue) return true;
     
@@ -74,8 +74,25 @@ export function InboundForm() {
     const codeString = String(item.code).toLowerCase();
     const nameString = item.name.toLowerCase();
     
-    // 제품코드는 시작 부분 매칭, 품명은 포함 매칭
-    return codeString.startsWith(searchLower) || nameString.includes(searchLower);
+    // 제품코드는 시작 부분 매칭 또는 포함 매칭, 품명은 포함 매칭
+    return codeString.startsWith(searchLower) || 
+           codeString.includes(searchLower) || 
+           nameString.includes(searchLower);
+  }).sort((a, b) => {
+    if (!searchValue) return 0;
+    
+    const searchLower = searchValue.toLowerCase();
+    const aCodeString = String(a.code).toLowerCase();
+    const bCodeString = String(b.code).toLowerCase();
+    
+    // 우선순위: 1) 시작 매칭 2) 완전 매칭 3) 포함 매칭
+    const aStartsWithSearch = aCodeString.startsWith(searchLower);
+    const bStartsWithSearch = bCodeString.startsWith(searchLower);
+    
+    if (aStartsWithSearch && !bStartsWithSearch) return -1;
+    if (!aStartsWithSearch && bStartsWithSearch) return 1;
+    
+    return 0;
   });
 
   // 제품코드 선택 시 자동으로 품명 설정
