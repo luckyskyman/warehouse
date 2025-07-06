@@ -288,6 +288,7 @@ export class MemStorage implements IStorage {
     const item: ExchangeQueue = {
       id: this.currentExchangeId++,
       createdAt: new Date(),
+      processed: false,
       ...insertItem,
     };
     this.exchangeQueue.push(item);
