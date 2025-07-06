@@ -105,19 +105,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update inventory based on transaction type
       if (validatedData.type === "inbound") {
-        const item = await storage.getInventoryItem(validatedData.itemCode);
-        if (item) {
-          await storage.updateInventoryItem(validatedData.itemCode, {
-            stock: item.stock + validatedData.quantity,
-            location: validatedData.toLocation || item.location
+        // 입고 처리: 동일 위치에 있는 재고와 합산하거나 새로운 위치별 재고 생성
+        const allItems = await storage.getInventoryItems();
+        const existingItem = allItems.find(item => 
+          item.code === validatedData.itemCode && 
+          item.location === validatedData.toLocation
+        );
+        
+        if (existingItem) {
+          // 동일 위치에 재고가 있으면 합산
+          await storage.updateInventoryItemByLocation(validatedData.itemCode, validatedData.toLocation || '', {
+            stock: existingItem.stock + validatedData.quantity
           });
         }
+        // 새로운 위치거나 재고가 없으면 입고 폼에서 이미 새로 생성함
       } else if (validatedData.type === "outbound") {
-        const item = await storage.getInventoryItem(validatedData.itemCode);
-        if (item && item.stock >= validatedData.quantity) {
-          await storage.updateInventoryItem(validatedData.itemCode, {
-            stock: item.stock - validatedData.quantity
-          });
+        // 출고 처리: 위치별 재고에서 차감
+        const allItems = await storage.getInventoryItems();
+        const itemsWithCode = allItems.filter(item => item.code === validatedData.itemCode && item.stock > 0);
+        
+        // 총 재고 확인
+        const totalStock = itemsWithCode.reduce((sum, item) => sum + item.stock, 0);
+        
+        if (totalStock >= validatedData.quantity) {
+          let remainingQuantity = validatedData.quantity;
+          
+          // 위치별로 재고 차감 (FIFO 방식)
+          for (const item of itemsWithCode) {
+            if (remainingQuantity <= 0) break;
+            
+            const deductAmount = Math.min(item.stock, remainingQuantity);
+            const key = item.location ? `${item.code}@${item.location}` : item.code;
+            
+            await storage.updateInventoryItemByLocation(item.code, item.location || '', {
+              stock: item.stock - deductAmount
+            });
+            
+            remainingQuantity -= deductAmount;
+          }
           
           // Add to exchange queue if it's a defective item exchange
           if (validatedData.reason === "불량품 교환 출고") {
