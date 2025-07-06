@@ -57,7 +57,7 @@ export function InboundForm() {
     }
   });
 
-  const zones = [...new Set(warehouseLayout.map(layout => layout.zoneName))];
+  const zones = Array.from(new Set(warehouseLayout.map(layout => layout.zoneName)));
   const subZones = warehouseLayout
     .filter(layout => layout.zoneName === selectedZone)
     .map(layout => layout.subZoneName);
