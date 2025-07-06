@@ -232,9 +232,101 @@ export function ExcelManagement() {
       const backup = await parseBackupFile(file);
       console.log('복원 데이터:', backup);
       
+      // 백업 데이터를 현재 시스템 형식으로 변환
+      const convertedInventory = backup.inventory?.map((item: any) => ({
+        code: item.productCode || item.code,
+        name: item.productName || item.name,
+        category: item.category,
+        manufacturer: item.manufacturer || null,
+        stock: item.quantity || item.stock || 0,
+        minStock: item.minStock || 10,
+        unit: item.unit || "개",
+        location: item.location || `${item.zone}-${item.subZone}-${item.floor}`,
+        boxSize: item.boxSize || 1
+      })) || [];
+
+      // 백업 파일에 거래내역이 없다면 재고 이동내역으로부터 생성
+      let convertedTransactions = backup.transactions?.map((trans: any) => ({
+        type: trans.type,
+        itemCode: trans.itemCode,
+        itemName: trans.itemName,
+        quantity: trans.quantity,
+        fromLocation: trans.fromLocation || null,
+        toLocation: trans.toLocation || null,
+        reason: trans.reason || null,
+        memo: trans.memo || null,
+        userId: trans.userId || null
+      })) || [];
+
+      // 거래내역이 없으면 재고 moveHistory에서 생성
+      if (convertedTransactions.length === 0 && backup.inventory) {
+        convertedTransactions = [];
+        backup.inventory.forEach((item: any) => {
+          if (item.moveHistory && Array.isArray(item.moveHistory)) {
+            item.moveHistory.forEach((move: any) => {
+              if (move.type === 'outbound') {
+                convertedTransactions.push({
+                  type: 'outbound',
+                  itemCode: item.productCode || item.code,
+                  itemName: item.productName || item.name,
+                  quantity: move.qty || move.quantity,
+                  fromLocation: move.from || null,
+                  toLocation: move.to || null,
+                  reason: move.to || '이동',
+                  memo: null,
+                  userId: null
+                });
+              } else if (move.from === '신규입고') {
+                convertedTransactions.push({
+                  type: 'inbound',
+                  itemCode: item.productCode || item.code,
+                  itemName: item.productName || item.name,
+                  quantity: move.qty || move.quantity,
+                  fromLocation: null,
+                  toLocation: move.to || null,
+                  reason: '신규입고',
+                  memo: null,
+                  userId: null
+                });
+              }
+            });
+          }
+        });
+      }
+
+      const convertedBomGuides = backup.bomGuides?.map((bom: any) => ({
+        guideName: bom.guideName,
+        itemCode: bom.itemCode,
+        requiredQuantity: bom.requiredQuantity
+      })) || [];
+
+      // 서버에 복원 데이터 전송
+      const response = await fetch('/api/restore-backup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inventory: convertedInventory,
+          transactions: convertedTransactions,
+          bomGuides: convertedBomGuides
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('복원 실패');
+      }
+
+      const result = await response.json();
+      
+      // 캐시 새로고침
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
+      
       toast({
         title: "데이터 복원 완료",
-        description: "백업 파일로부터 모든 데이터가 복원되었습니다.",
+        description: `재고 ${result.inventoryCount}개, 거래내역 ${result.transactionCount}개, BOM ${result.bomCount}개가 복원되었습니다.`,
       });
     } catch (error) {
       toast({
