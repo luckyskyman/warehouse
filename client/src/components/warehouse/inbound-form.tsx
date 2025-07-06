@@ -9,6 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useCreateInventoryItem, useCreateTransaction, useInventory, useWarehouseLayout } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -33,6 +37,8 @@ export function InboundForm() {
   const [unitType, setUnitType] = useState<'box' | 'ea'>('ea');
   const [selectedZone, setSelectedZone] = useState('');
   const [selectedSubZone, setSelectedSubZone] = useState('');
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [selectedCode, setSelectedCode] = useState('');
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -58,6 +64,24 @@ export function InboundForm() {
   const floors = warehouseLayout
     .find(layout => layout.zoneName === selectedZone && layout.subZoneName === selectedSubZone)
     ?.floors || [];
+
+  // 제품코드 선택 시 자동으로 품명 설정
+  const handleCodeSelect = (code: string) => {
+    setSelectedCode(code);
+    setValue('code', code);
+    
+    // 기존 재고에서 해당 제품 찾기
+    const existingItem = inventory.find(item => item.code === code);
+    if (existingItem) {
+      setValue('name', existingItem.name);
+      setValue('category', existingItem.category);
+      setValue('manufacturer', existingItem.manufacturer || '');
+      setValue('unit', existingItem.unit);
+      setValue('minStock', existingItem.minStock);
+      setValue('boxSize', existingItem.boxSize || 1);
+    }
+    setCodeOpen(false);
+  };
 
   const boxSize = watch('boxSize') || 1;
   const quantityBoxes = watch('quantity') || 0;
@@ -115,6 +139,8 @@ export function InboundForm() {
       reset();
       setSelectedZone('');
       setSelectedSubZone('');
+      setSelectedCode('');
+      setCodeOpen(false);
     } catch (error) {
       toast({
         title: "입고 실패",
@@ -135,12 +161,56 @@ export function InboundForm() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="code">제품코드</Label>
-                <Input
-                  id="code"
-                  {...register('code')}
-                  placeholder="제품코드 입력"
-                />
+                <Label>제품코드</Label>
+                <Popover open={codeOpen} onOpenChange={setCodeOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={codeOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedCode
+                        ? inventory.find((item) => item.code === selectedCode)?.code
+                        : "제품코드 선택 또는 직접 입력"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput 
+                        placeholder="제품코드 검색..." 
+                        onValueChange={(value) => {
+                          setValue('code', value);
+                          setSelectedCode(value);
+                        }}
+                      />
+                      <CommandList>
+                        <CommandEmpty>해당 제품코드를 찾을 수 없습니다.</CommandEmpty>
+                        <CommandGroup>
+                          {inventory.map((item) => (
+                            <CommandItem
+                              key={item.code}
+                              value={item.code}
+                              onSelect={() => handleCodeSelect(item.code)}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedCode === item.code ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span className="font-medium">{item.code}</span>
+                                <span className="text-sm text-gray-500">{item.name}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 {errors.code && <p className="text-sm text-red-500">{errors.code.message}</p>}
               </div>
 
