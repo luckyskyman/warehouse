@@ -303,7 +303,7 @@ export class MemStorage implements IStorage {
     // 교환 처리 시 새 제품으로 재고 가산
     const allItems = Array.from(this.inventoryItems.values());
     const itemsWithCode = allItems.filter(inventoryItem => 
-      inventoryItem.code === item.itemCode && inventoryItem.stock > 0
+      inventoryItem.code === item.itemCode
     );
     
     if (itemsWithCode.length > 0) {
