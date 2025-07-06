@@ -39,6 +39,7 @@ export function InboundForm() {
   const [selectedSubZone, setSelectedSubZone] = useState('');
   const [codeOpen, setCodeOpen] = useState(false);
   const [selectedCode, setSelectedCode] = useState('');
+  const [searchValue, setSearchValue] = useState('');
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -65,6 +66,18 @@ export function InboundForm() {
     .find(layout => layout.zoneName === selectedZone && layout.subZoneName === selectedSubZone)
     ?.floors || [];
 
+  // 검색어에 따른 제품 필터링
+  const filteredInventory = inventory.filter(item => {
+    if (!searchValue) return true;
+    
+    const searchLower = searchValue.toLowerCase();
+    const codeString = String(item.code).toLowerCase();
+    const nameString = item.name.toLowerCase();
+    
+    // 제품코드는 시작 부분 매칭, 품명은 포함 매칭
+    return codeString.startsWith(searchLower) || nameString.includes(searchLower);
+  });
+
   // 제품코드 선택 시 자동으로 품명 설정
   const handleCodeSelect = (code: string) => {
     setSelectedCode(code);
@@ -81,6 +94,7 @@ export function InboundForm() {
       setValue('boxSize', existingItem.boxSize || 1);
     }
     setCodeOpen(false);
+    setSearchValue('');
   };
 
   const boxSize = watch('boxSize') || 1;
@@ -141,6 +155,7 @@ export function InboundForm() {
       setSelectedSubZone('');
       setSelectedCode('');
       setCodeOpen(false);
+      setSearchValue('');
     } catch (error) {
       toast({
         title: "입고 실패",
@@ -177,18 +192,16 @@ export function InboundForm() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
-                    <Command>
+                    <Command shouldFilter={false}>
                       <CommandInput 
-                        placeholder="제품코드 검색..." 
-                        onValueChange={(value) => {
-                          setValue('code', value);
-                          setSelectedCode(value);
-                        }}
+                        placeholder="제품코드 또는 품명 검색..." 
+                        value={searchValue}
+                        onValueChange={setSearchValue}
                       />
                       <CommandList>
-                        <CommandEmpty>해당 제품코드를 찾을 수 없습니다.</CommandEmpty>
+                        <CommandEmpty>해당 제품을 찾을 수 없습니다.</CommandEmpty>
                         <CommandGroup>
-                          {inventory.map((item) => (
+                          {filteredInventory.map((item) => (
                             <CommandItem
                               key={item.code}
                               value={item.code}

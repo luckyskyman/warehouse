@@ -29,6 +29,7 @@ export function OutboundForm() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [codeOpen, setCodeOpen] = useState(false);
   const [selectedCodeState, setSelectedCodeState] = useState('');
+  const [searchValue, setSearchValue] = useState('');
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: inventory = [] } = useInventory();
@@ -46,6 +47,20 @@ export function OutboundForm() {
 
   const selectedCodeValue = watch('code');
 
+  // 검색어에 따른 제품 필터링 (재고가 있는 제품만)
+  const filteredInventory = inventory
+    .filter(item => item.stock > 0)
+    .filter(item => {
+      if (!searchValue) return true;
+      
+      const searchLower = searchValue.toLowerCase();
+      const codeString = String(item.code).toLowerCase();
+      const nameString = item.name.toLowerCase();
+      
+      // 제품코드는 시작 부분 매칭, 품명은 포함 매칭
+      return codeString.startsWith(searchLower) || nameString.includes(searchLower);
+    });
+
   // 제품코드 선택 시 자동으로 재고 아이템 설정
   const handleCodeSelect = (code: string) => {
     setSelectedCodeState(code);
@@ -55,6 +70,7 @@ export function OutboundForm() {
     const item = inventory.find(item => item.code === code);
     setSelectedItem(item);
     setCodeOpen(false);
+    setSearchValue('');
   };
 
   const onSubmit = async (data: OutboundFormData) => {
@@ -97,6 +113,7 @@ export function OutboundForm() {
       setSelectedItem(null);
       setSelectedCodeState('');
       setCodeOpen(false);
+      setSearchValue('');
     } catch (error) {
       toast({
         title: "출고 실패",
@@ -203,20 +220,16 @@ export function OutboundForm() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
-                    <Command>
+                    <Command shouldFilter={false}>
                       <CommandInput 
                         placeholder="제품코드 또는 품명 검색..." 
-                        onValueChange={(value) => {
-                          setValue('code', value);
-                          setSelectedCodeState(value);
-                        }}
+                        value={searchValue}
+                        onValueChange={setSearchValue}
                       />
                       <CommandList>
                         <CommandEmpty>해당 제품을 찾을 수 없습니다.</CommandEmpty>
                         <CommandGroup>
-                          {inventory
-                            .filter(item => item.stock > 0) // 재고가 있는 제품만 출고 가능
-                            .map((item) => (
+                          {filteredInventory.map((item) => (
                             <CommandItem
                               key={item.code}
                               value={item.code}
