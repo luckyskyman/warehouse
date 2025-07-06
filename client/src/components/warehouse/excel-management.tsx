@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Upload, Download, FileSpreadsheet, Database, AlertTriangle } from 'lucide-react';
 import { useInventory, useTransactions, useBomGuides, useWarehouseLayout, useExchangeQueue } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
 import { 
   exportInventoryToExcel, 
   exportTransactionsToExcel, 
@@ -36,9 +37,27 @@ export function ExcelManagement() {
       const data = await parseExcelFile(file);
       console.log('BOM 데이터:', data);
       
+      // Send to server
+      const response = await fetch('/api/upload/bom', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: data }),
+      });
+
+      if (!response.ok) {
+        throw new Error('서버 업로드 실패');
+      }
+
+      const result = await response.json();
+      
+      // Refresh cache
+      queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
+      
       toast({
         title: "BOM 업로드 완료",
-        description: `${data.length}개의 BOM 항목이 업로드되었습니다.`,
+        description: `${result.created}개의 BOM 항목이 업로드되었습니다.`,
       });
     } catch (error) {
       toast({
@@ -61,9 +80,27 @@ export function ExcelManagement() {
       const data = await parseExcelFile(file);
       console.log('마스터 데이터:', data);
       
+      // Send to server
+      const response = await fetch('/api/upload/master', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: data }),
+      });
+
+      if (!response.ok) {
+        throw new Error('서버 업로드 실패');
+      }
+
+      const result = await response.json();
+      
+      // Refresh cache
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      
       toast({
         title: "마스터 목록 업로드 완료",
-        description: `${data.length}개의 제품이 등록되었습니다.`,
+        description: `${result.created}개의 제품이 등록되었습니다.`,
       });
     } catch (error) {
       toast({
@@ -86,9 +123,27 @@ export function ExcelManagement() {
       const data = await parseExcelFile(file);
       console.log('추가/보충 데이터:', data);
       
+      // Send to server
+      const response = await fetch('/api/upload/inventory-add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: data }),
+      });
+
+      if (!response.ok) {
+        throw new Error('서버 업로드 실패');
+      }
+
+      const result = await response.json();
+      
+      // Refresh cache
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      
       toast({
         title: "재고 추가/보충 완료",
-        description: `${data.length}개 항목의 재고가 추가/보충되었습니다.`,
+        description: `${result.updated}개 항목의 재고가 추가/보충되었습니다.`,
       });
     } catch (error) {
       toast({
@@ -111,9 +166,27 @@ export function ExcelManagement() {
       const data = await parseExcelFile(file);
       console.log('동기화 데이터:', data);
       
+      // Send to server
+      const response = await fetch('/api/upload/inventory-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: data }),
+      });
+
+      if (!response.ok) {
+        throw new Error('서버 업로드 실패');
+      }
+
+      const result = await response.json();
+      
+      // Refresh cache
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      
       toast({
         title: "재고 전체 동기화 완료",
-        description: "재고가 업로드된 파일로 전체 동기화되었습니다.",
+        description: `${result.synced}개 항목으로 재고가 전체 동기화되었습니다.`,
       });
     } catch (error) {
       toast({
