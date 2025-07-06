@@ -17,12 +17,14 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
   const { data: transactions = [] } = useTransactions(selectedItemCode);
 
   const filteredInventory = useMemo(() => {
-    return inventory.filter(item =>
-      item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.manufacturer || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return inventory
+      .filter(item => item.stock > 0) // 재고가 있는 제품만 표시
+      .filter(item =>
+        item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.manufacturer || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
   }, [inventory, searchTerm]);
 
   const getStatusBadge = (item: InventoryItem) => {

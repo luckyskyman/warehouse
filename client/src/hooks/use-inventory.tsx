@@ -142,11 +142,14 @@ export function useInventoryStats() {
   const { data: inventory = [] } = useInventory();
   const { data: warehouseLayout = [] } = useWarehouseLayout();
   
+  // 재고가 있는 제품만 통계에 포함
+  const inventoryWithStock = inventory.filter(item => item.stock > 0);
+  
   const stats: InventoryStats = {
-    totalStock: inventory.reduce((sum, item) => sum + item.stock, 0),
-    totalItems: inventory.length,
-    shortageItems: inventory.filter(item => item.stock <= item.minStock).length,
-    warehouseZones: [...new Set(warehouseLayout.map(layout => layout.zoneName))].length || 4,
+    totalStock: inventoryWithStock.reduce((sum, item) => sum + item.stock, 0),
+    totalItems: inventoryWithStock.length,
+    shortageItems: inventoryWithStock.filter(item => item.stock <= item.minStock).length,
+    warehouseZones: Array.from(new Set(warehouseLayout.map(layout => layout.zoneName))).length || 4,
   };
   
   return stats;
