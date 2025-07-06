@@ -113,82 +113,8 @@ export class MemStorage implements IStorage {
   }
 
   private initializeBomGuides() {
-    const bomGuides: BomGuide[] = [
-      // MK3-TS-2X-2Y-S (60016611) BOM items
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "30011554", requiredQuantity: 8, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "60010149", requiredQuantity: 10, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "60010152", requiredQuantity: 2, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "60008595", requiredQuantity: 2, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "60011075", requiredQuantity: 2, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "60007659", requiredQuantity: 2, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "60008594", requiredQuantity: 2, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "30015819", requiredQuantity: 8, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "60007657", requiredQuantity: 2, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-2X-2Y-S (60016611)", itemCode: "60014483", requiredQuantity: 2, createdAt: new Date() },
-
-      // MK3-TS-3X-3Y-S (60016595) BOM items
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "30011554", requiredQuantity: 18, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "60010149", requiredQuantity: 22, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "60010152", requiredQuantity: 3, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "60008595", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "60011075", requiredQuantity: 3, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "60007659", requiredQuantity: 3, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "60008594", requiredQuantity: 6, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "30015819", requiredQuantity: 18, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "60007657", requiredQuantity: 3, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-3Y-S (60016595)", itemCode: "60014483", requiredQuantity: 3, createdAt: new Date() },
-
-      // MK3-TS-4X-4Y-S (60016550) BOM items 
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "30011554", requiredQuantity: 28, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "60010149", requiredQuantity: 32, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "60010152", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "60015814", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "60008595", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "60011059", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "60011060", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "60008594", requiredQuantity: 8, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "30015819", requiredQuantity: 24, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-4Y-S (60016550)", itemCode: "60018450", requiredQuantity: 4, createdAt: new Date() },
-
-      // MK3-TS-4X-3Y-S-O (60016558) BOM items
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "30011554", requiredQuantity: 29, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "60010149", requiredQuantity: 39, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "60010152", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "60008595", requiredQuantity: 8, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "60011059", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "60007659", requiredQuantity: 5, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "60008594", requiredQuantity: 6, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "30015819", requiredQuantity: 28, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "60007657", requiredQuantity: 7, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-4X-3Y-S-O (60016558)", itemCode: "60014483", requiredQuantity: 7, createdAt: new Date() },
-
-      // MK3-TS-3X-4Y-S-O (60016574) BOM items
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "30011554", requiredQuantity: 30, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "60010149", requiredQuantity: 38, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "60010152", requiredQuantity: 5, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "60008595", requiredQuantity: 6, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "60011075", requiredQuantity: 5, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "60011060", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "60008594", requiredQuantity: 8, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "30015819", requiredQuantity: 28, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "60007657", requiredQuantity: 7, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3-TS-3X-4Y-S-O (60016574)", itemCode: "60014483", requiredQuantity: 7, createdAt: new Date() },
-
-      // 기존 샘플 가이드들도 유지
-      { id: this.currentBomId++, guideName: "MK3 Basic Grid Setup", itemCode: "60011059", requiredQuantity: 8, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3 Basic Grid Setup", itemCode: "60007659", requiredQuantity: 6, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3 Basic Grid Setup", itemCode: "60008594", requiredQuantity: 12, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3 Basic Grid Setup", itemCode: "60010149", requiredQuantity: 24, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "MK3 Basic Grid Setup", itemCode: "30011554", requiredQuantity: 16, createdAt: new Date() },
-
-      { id: this.currentBomId++, guideName: "Standard Frame Assembly", itemCode: "60011775", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "Standard Frame Assembly", itemCode: "60016181", requiredQuantity: 2, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "Standard Frame Assembly", itemCode: "60016278", requiredQuantity: 4, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "Standard Frame Assembly", itemCode: "60011464", requiredQuantity: 8, createdAt: new Date() },
-      { id: this.currentBomId++, guideName: "Standard Frame Assembly", itemCode: "60014483", requiredQuantity: 6, createdAt: new Date() }
-    ];
-
-    this.bomGuides = bomGuides;
+    // BOM 데이터 초기화 - 빈 상태로 시작
+    this.bomGuides = [];
   }
 
   private initializeSampleInventory() {
