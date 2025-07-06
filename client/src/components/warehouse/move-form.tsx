@@ -95,14 +95,15 @@ export function MoveForm() {
     });
   }, [inventory, searchValue]);
 
-  // 제품코드 선택 시 자동으로 재고 아이템 설정
-  const handleCodeSelect = (code: string) => {
-    setSelectedCodeState(code);
-    setValue('code', code);
-    
-    // 기존 재고에서 해당 제품 찾기
-    const item = inventory.find(item => item.code === code);
-    setSelectedItem(item);
+  // 특정 재고 항목 선택 시 자동으로 재고 아이템 설정
+  const handleItemSelect = (itemId: number) => {
+    // ID로 정확한 재고 항목 찾기
+    const item = inventory.find(item => item.id === itemId);
+    if (item) {
+      setSelectedCodeState(item.code);
+      setValue('code', item.code);
+      setSelectedItem(item);
+    }
     setCodeOpen(false);
     setSearchValue('');
   };
@@ -210,7 +211,7 @@ export function MoveForm() {
                             <CommandItem
                               key={`${item.code}-${item.location || 'no-location'}-${item.id}`}
                               value={`${item.code}@${item.location || ''}`}
-                              onSelect={() => handleCodeSelect(item.code)}
+                              onSelect={() => handleItemSelect(item.id)}
                             >
                               <Check
                                 className={cn(
