@@ -14,6 +14,38 @@ export function BomCheck() {
     return Array.from(new Set(bomGuides.map(bom => bom.guideName)));
   }, [bomGuides]);
 
+  // 부품 코드별 기본 품명 매핑
+  const getItemName = (itemCode: string): string => {
+    const partNameMap: Record<string, string> = {
+      // Fasteners
+      '30011554': 'SET - M12x40 BOLT/NUT/WASHER',
+      '30015819': 'STARLOCK WASHER, 12 DIA SHAFT',
+      
+      // Grid Components
+      '60007657': 'MK3 GRID, TRACK SUPPORT, STUB',
+      '60007658': 'MK3 GRID, TRACK SUPPORT, 2W, Y',
+      '60007659': 'MK3 GRID, TRACK SUPPORT, 3W, Y',
+      '60008594': 'MK3 GRID, ANTI-CRUSH BLOCK 561',
+      '60008595': 'MK3 GRID, ANTI-CRUSH BLOCK 761',
+      '60010149': 'MK3 GRID, TS SPREADER PLATE, 1 HOLE',
+      '60010152': 'MK3 GRID, MOVEMENT JOINT, SHELF TYPE',
+      '60011059': 'MK3 GRID, T/S SPREADER PLATE, 3 HOLE',
+      '60011060': 'MK3 GRID, TRACK SUPPORT, 4W, Y',
+      '60011064': 'MK3 GRID, T/S SPREADER PLATE, 4 HOLE',
+      '60011074': 'MK3 GRID, TRACK SUPPORT, 2W, X',
+      '60011075': 'MK3 GRID, TRACK SUPPORT, 3W, X',
+      '60011464': 'MK3 GRID, TOTE GUIDE, CHANNEL 1H VAR3',
+      '60011775': 'MK3B GRID, FRAME, 1&8H, 3-4W, Y',
+      '60014483': 'MK3 GRID, PERIMETER CONNECTION',
+      '60015814': 'MK3 GRID, TS SPREADER PLATE, 2 HOLE',
+      '60016181': 'MK3B, FRAME, BRACE INSERT, 1H, X, 2W',
+      '60016278': 'MK3B GRID, FRAME, 1H, 2W, X',
+      '60018450': 'MK3 GRID, MOVEMENT JOINT, LATCH TYPE'
+    };
+    
+    return partNameMap[itemCode] || `부품 ${itemCode}`;
+  };
+
   const bomCheckResults = useMemo((): BomCheckResult[] => {
     // 부품별로 필요 수량을 합산
     const aggregatedBom = bomItems.reduce((acc, bomItem) => {
@@ -39,7 +71,7 @@ export function BomCheck() {
       
       return {
         code: bomItem.itemCode,
-        name: inventoryItem?.name || bomItem.itemCode,
+        name: inventoryItem?.name || getItemName(bomItem.itemCode),
         needed: bomItem.requiredQuantity,
         current: totalStock,
         status: (totalStock >= bomItem.requiredQuantity ? 'ok' : 'shortage') as 'ok' | 'shortage'
