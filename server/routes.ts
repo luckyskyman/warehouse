@@ -159,13 +159,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         } else if (validatedData.reason === "불량품 교환 출고") {
-          // 불량품 교환 출고: 교환 대기 목록에만 추가, 재고 차감은 교환 처리 시
-          await storage.createExchangeQueueItem({
-            itemCode: validatedData.itemCode,
-            itemName: validatedData.itemName,
-            quantity: validatedData.quantity,
-            outboundDate: new Date()
-          });
+          // 불량품 교환 출고: 먼저 재고에서 차감하고 교환 대기 목록에 추가
+          const totalStock = itemsWithCode.reduce((sum, item) => sum + item.stock, 0);
+          
+          if (totalStock >= validatedData.quantity) {
+            let remainingQuantity = validatedData.quantity;
+            
+            // 위치별로 재고 차감 (FIFO 방식)
+            for (const item of itemsWithCode) {
+              if (remainingQuantity <= 0) break;
+              
+              const deductAmount = Math.min(item.stock, remainingQuantity);
+              
+              await storage.updateInventoryItemById(item.id, {
+                stock: item.stock - deductAmount
+              });
+              
+              remainingQuantity -= deductAmount;
+            }
+            
+            // 교환 대기 목록에 추가
+            await storage.createExchangeQueueItem({
+              itemCode: validatedData.itemCode,
+              itemName: validatedData.itemName,
+              quantity: validatedData.quantity,
+              outboundDate: new Date()
+            });
+          } else {
+            return res.status(400).json({ message: "Insufficient stock" });
+          }
         } else {
           // 기타 출고: 기존 로직대로 재고 차감
           const totalStock = itemsWithCode.reduce((sum, item) => sum + item.stock, 0);
