@@ -1,5 +1,4 @@
 import { 
-  users, inventoryItems, transactions, bomGuides, warehouseLayout, exchangeQueue,
   type User, type InsertUser, 
   type InventoryItem, type InsertInventoryItem,
   type Transaction, type InsertTransaction,
@@ -7,8 +6,6 @@ import {
   type WarehouseLayout, type InsertWarehouseLayout,
   type ExchangeQueue, type InsertExchangeQueue
 } from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -43,132 +40,6 @@ export interface IStorage {
   getExchangeQueue(): Promise<ExchangeQueue[]>;
   createExchangeQueueItem(item: InsertExchangeQueue): Promise<ExchangeQueue>;
   processExchangeQueueItem(id: number): Promise<boolean>;
-}
-
-export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
-  }
-
-  async getInventoryItems(): Promise<InventoryItem[]> {
-    return await db.select().from(inventoryItems);
-  }
-
-  async getInventoryItem(code: string): Promise<InventoryItem | undefined> {
-    const [item] = await db.select().from(inventoryItems).where(eq(inventoryItems.code, code));
-    return item || undefined;
-  }
-
-  async createInventoryItem(insertItem: InsertInventoryItem): Promise<InventoryItem> {
-    const [item] = await db
-      .insert(inventoryItems)
-      .values(insertItem)
-      .returning();
-    return item;
-  }
-
-  async updateInventoryItem(code: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
-    const [item] = await db
-      .update(inventoryItems)
-      .set(updates)
-      .where(eq(inventoryItems.code, code))
-      .returning();
-    return item || undefined;
-  }
-
-  async deleteInventoryItem(code: string): Promise<boolean> {
-    const result = await db.delete(inventoryItems).where(eq(inventoryItems.code, code));
-    return result.rowCount > 0;
-  }
-
-  async getTransactions(): Promise<Transaction[]> {
-    return await db.select().from(transactions);
-  }
-
-  async getTransactionsByItemCode(itemCode: string): Promise<Transaction[]> {
-    return await db.select().from(transactions).where(eq(transactions.itemCode, itemCode));
-  }
-
-  async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
-    const [transaction] = await db
-      .insert(transactions)
-      .values(insertTransaction)
-      .returning();
-    return transaction;
-  }
-
-  async getBomGuides(): Promise<BomGuide[]> {
-    return await db.select().from(bomGuides);
-  }
-
-  async getBomGuidesByName(guideName: string): Promise<BomGuide[]> {
-    return await db.select().from(bomGuides).where(eq(bomGuides.guideName, guideName));
-  }
-
-  async createBomGuide(insertBom: InsertBomGuide): Promise<BomGuide> {
-    const [bom] = await db
-      .insert(bomGuides)
-      .values(insertBom)
-      .returning();
-    return bom;
-  }
-
-  async deleteBomGuidesByName(guideName: string): Promise<boolean> {
-    const result = await db.delete(bomGuides).where(eq(bomGuides.guideName, guideName));
-    return result.rowCount > 0;
-  }
-
-  async getWarehouseLayout(): Promise<WarehouseLayout[]> {
-    return await db.select().from(warehouseLayout);
-  }
-
-  async createWarehouseZone(insertLayout: InsertWarehouseLayout): Promise<WarehouseLayout> {
-    const [layout] = await db
-      .insert(warehouseLayout)
-      .values(insertLayout)
-      .returning();
-    return layout;
-  }
-
-  async deleteWarehouseZone(id: number): Promise<boolean> {
-    const result = await db.delete(warehouseLayout).where(eq(warehouseLayout.id, id));
-    return result.rowCount > 0;
-  }
-
-  async getExchangeQueue(): Promise<ExchangeQueue[]> {
-    return await db.select().from(exchangeQueue);
-  }
-
-  async createExchangeQueueItem(insertItem: InsertExchangeQueue): Promise<ExchangeQueue> {
-    const [item] = await db
-      .insert(exchangeQueue)
-      .values(insertItem)
-      .returning();
-    return item;
-  }
-
-  async processExchangeQueueItem(id: number): Promise<boolean> {
-    const [item] = await db
-      .update(exchangeQueue)
-      .set({ processed: true })
-      .where(eq(exchangeQueue.id, id))
-      .returning();
-    return !!item;
-  }
 }
 
 export class MemStorage implements IStorage {
@@ -232,31 +103,32 @@ export class MemStorage implements IStorage {
       { id: this.currentLayoutId++, zoneName: "D구역", subZoneName: "D-1", floors: ["1층", "2층", "3층"], createdAt: new Date() },
       { id: this.currentLayoutId++, zoneName: "D구역", subZoneName: "D-2", floors: ["1층", "2층", "3층"], createdAt: new Date() },
     ];
-
     this.warehouseLayout = basicLayout;
   }
 
-  // User methods
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+    for (const user of this.users.values()) {
+      if (user.username === username) {
+        return user;
+      }
+    }
+    return undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
     const user: User = {
-      ...insertUser,
-      id,
+      id: this.currentUserId++,
       createdAt: new Date(),
+      ...insertUser,
     };
-    this.users.set(id, user);
+    this.users.set(user.id, user);
     return user;
   }
 
-  // Inventory methods
   async getInventoryItems(): Promise<InventoryItem[]> {
     return Array.from(this.inventoryItems.values());
   }
@@ -266,12 +138,11 @@ export class MemStorage implements IStorage {
   }
 
   async createInventoryItem(insertItem: InsertInventoryItem): Promise<InventoryItem> {
-    const id = this.currentItemId++;
     const item: InventoryItem = {
-      ...insertItem,
-      id,
+      id: this.currentItemId++,
       createdAt: new Date(),
       updatedAt: new Date(),
+      ...insertItem,
     };
     this.inventoryItems.set(item.code, item);
     return item;
@@ -280,12 +151,8 @@ export class MemStorage implements IStorage {
   async updateInventoryItem(code: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
     const item = this.inventoryItems.get(code);
     if (!item) return undefined;
-
-    const updatedItem = {
-      ...item,
-      ...updates,
-      updatedAt: new Date(),
-    };
+    
+    const updatedItem = { ...item, ...updates, updatedAt: new Date() };
     this.inventoryItems.set(code, updatedItem);
     return updatedItem;
   }
@@ -294,9 +161,8 @@ export class MemStorage implements IStorage {
     return this.inventoryItems.delete(code);
   }
 
-  // Transaction methods
   async getTransactions(): Promise<Transaction[]> {
-    return this.transactions;
+    return [...this.transactions];
   }
 
   async getTransactionsByItemCode(itemCode: string): Promise<Transaction[]> {
@@ -304,19 +170,17 @@ export class MemStorage implements IStorage {
   }
 
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
-    const id = this.currentTransactionId++;
     const transaction: Transaction = {
-      ...insertTransaction,
-      id,
+      id: this.currentTransactionId++,
       createdAt: new Date(),
+      ...insertTransaction,
     };
     this.transactions.push(transaction);
     return transaction;
   }
 
-  // BOM methods
   async getBomGuides(): Promise<BomGuide[]> {
-    return this.bomGuides;
+    return [...this.bomGuides];
   }
 
   async getBomGuidesByName(guideName: string): Promise<BomGuide[]> {
@@ -324,11 +188,10 @@ export class MemStorage implements IStorage {
   }
 
   async createBomGuide(insertBom: InsertBomGuide): Promise<BomGuide> {
-    const id = this.currentBomId++;
     const bom: BomGuide = {
-      ...insertBom,
-      id,
+      id: this.currentBomId++,
       createdAt: new Date(),
+      ...insertBom,
     };
     this.bomGuides.push(bom);
     return bom;
@@ -340,17 +203,15 @@ export class MemStorage implements IStorage {
     return this.bomGuides.length < initialLength;
   }
 
-  // Warehouse layout methods
   async getWarehouseLayout(): Promise<WarehouseLayout[]> {
-    return this.warehouseLayout;
+    return [...this.warehouseLayout];
   }
 
   async createWarehouseZone(insertLayout: InsertWarehouseLayout): Promise<WarehouseLayout> {
-    const id = this.currentLayoutId++;
     const layout: WarehouseLayout = {
-      ...insertLayout,
-      id,
+      id: this.currentLayoutId++,
       createdAt: new Date(),
+      ...insertLayout,
     };
     this.warehouseLayout.push(layout);
     return layout;
@@ -362,18 +223,15 @@ export class MemStorage implements IStorage {
     return this.warehouseLayout.length < initialLength;
   }
 
-  // Exchange queue methods
   async getExchangeQueue(): Promise<ExchangeQueue[]> {
-    return this.exchangeQueue.filter(item => !item.processed);
+    return [...this.exchangeQueue];
   }
 
   async createExchangeQueueItem(insertItem: InsertExchangeQueue): Promise<ExchangeQueue> {
-    const id = this.currentExchangeId++;
     const item: ExchangeQueue = {
-      ...insertItem,
-      id,
-      processed: false,
+      id: this.currentExchangeId++,
       createdAt: new Date(),
+      ...insertItem,
     };
     this.exchangeQueue.push(item);
     return item;
