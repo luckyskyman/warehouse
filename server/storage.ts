@@ -300,6 +300,36 @@ export class MemStorage implements IStorage {
     const item = this.exchangeQueue.find(item => item.id === id);
     if (!item) return false;
     
+    // 교환 처리 시 새 제품으로 재고 가산
+    const allItems = Array.from(this.inventoryItems.values());
+    const itemsWithCode = allItems.filter(inventoryItem => 
+      inventoryItem.code === item.itemCode && inventoryItem.stock > 0
+    );
+    
+    if (itemsWithCode.length > 0) {
+      // 기존 재고가 있으면 첫 번째 항목에 가산
+      const firstItem = itemsWithCode[0];
+      await this.updateInventoryItemById(firstItem.id, {
+        stock: firstItem.stock + item.quantity
+      });
+    } else {
+      // 기존 재고가 없으면 마스터 데이터를 찾아서 새 재고 생성
+      const masterItem = allItems.find(inventoryItem => inventoryItem.code === item.itemCode);
+      if (masterItem) {
+        await this.createInventoryItem({
+          code: masterItem.code,
+          name: masterItem.name,
+          category: masterItem.category,
+          manufacturer: masterItem.manufacturer,
+          stock: item.quantity,
+          minStock: masterItem.minStock,
+          unit: masterItem.unit,
+          location: null, // 교환품은 기본 위치
+          boxSize: masterItem.boxSize
+        });
+      }
+    }
+    
     item.processed = true;
     return true;
   }
