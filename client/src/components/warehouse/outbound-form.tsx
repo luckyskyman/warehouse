@@ -9,6 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useInventory, useCreateTransaction, useExchangeQueue, useProcessExchangeQueueItem } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -23,6 +27,8 @@ const outboundSchema = z.object({
 
 export function OutboundForm() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [selectedCodeState, setSelectedCodeState] = useState('');
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: inventory = [] } = useInventory();
@@ -38,12 +44,17 @@ export function OutboundForm() {
     }
   });
 
-  const selectedCode = watch('code');
+  const selectedCodeValue = watch('code');
 
-  const handleCodeChange = (code: string) => {
+  // 제품코드 선택 시 자동으로 재고 아이템 설정
+  const handleCodeSelect = (code: string) => {
+    setSelectedCodeState(code);
+    setValue('code', code);
+    
+    // 기존 재고에서 해당 제품 찾기
     const item = inventory.find(item => item.code === code);
     setSelectedItem(item);
-    setValue('code', code);
+    setCodeOpen(false);
   };
 
   const onSubmit = async (data: OutboundFormData) => {
@@ -84,6 +95,8 @@ export function OutboundForm() {
 
       reset();
       setSelectedItem(null);
+      setSelectedCodeState('');
+      setCodeOpen(false);
     } catch (error) {
       toast({
         title: "출고 실패",
@@ -174,19 +187,56 @@ export function OutboundForm() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="code">제품 선택</Label>
-                <Select onValueChange={handleCodeChange} value={selectedCode}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="제품 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {inventory.map(item => (
-                      <SelectItem key={item.code} value={item.code}>
-                        {item.code} - {item.name} (재고: {item.stock})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>제품 선택</Label>
+                <Popover open={codeOpen} onOpenChange={setCodeOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={codeOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedCodeState
+                        ? inventory.find((item) => item.code === selectedCodeState)?.code
+                        : "제품코드 선택 또는 검색"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput 
+                        placeholder="제품코드 또는 품명 검색..." 
+                        onValueChange={(value) => {
+                          setValue('code', value);
+                          setSelectedCodeState(value);
+                        }}
+                      />
+                      <CommandList>
+                        <CommandEmpty>해당 제품을 찾을 수 없습니다.</CommandEmpty>
+                        <CommandGroup>
+                          {inventory.map((item) => (
+                            <CommandItem
+                              key={item.code}
+                              value={item.code}
+                              onSelect={() => handleCodeSelect(item.code)}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedCodeState === item.code ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span className="font-medium">{item.code} - {item.name}</span>
+                                <span className="text-sm text-gray-500">재고: {item.stock.toLocaleString()} {item.unit}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 {errors.code && <p className="text-sm text-red-500">{errors.code.message}</p>}
               </div>
 
