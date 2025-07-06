@@ -134,7 +134,14 @@ export class MemStorage implements IStorage {
   }
 
   async getInventoryItem(code: string): Promise<InventoryItem | undefined> {
-    return this.inventoryItems.get(code);
+    // 제품코드로 첫 번째 찾은 항목 반환 (하위호환성)
+    return Array.from(this.inventoryItems.values()).find(item => item.code === code);
+  }
+
+  // 제품코드와 위치로 특정 재고 항목 찾기
+  getInventoryItemByCodeAndLocation(code: string, location: string): InventoryItem | undefined {
+    const key = `${code}@${location}`;
+    return this.inventoryItems.get(key);
   }
 
   async createInventoryItem(insertItem: InsertInventoryItem): Promise<InventoryItem> {
@@ -144,16 +151,34 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
       ...insertItem,
     };
-    this.inventoryItems.set(item.code, item);
+    
+    // 제품코드-위치별 고유 키 생성
+    const key = insertItem.location ? `${item.code}@${insertItem.location}` : item.code;
+    this.inventoryItems.set(key, item);
     return item;
   }
 
   async updateInventoryItem(code: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
-    const item = this.inventoryItems.get(code);
+    // 제품코드로 모든 위치의 재고 찾기
+    const items = Array.from(this.inventoryItems.entries()).filter(([key, item]) => item.code === code);
+    
+    if (items.length === 0) return undefined;
+    
+    // 첫 번째 항목 업데이트 (하위호환성)
+    const [key, item] = items[0];
+    const updatedItem = { ...item, ...updates, updatedAt: new Date() };
+    this.inventoryItems.set(key, updatedItem);
+    return updatedItem;
+  }
+
+  // 특정 위치의 재고 항목 업데이트
+  async updateInventoryItemByLocation(code: string, location: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
+    const key = `${code}@${location}`;
+    const item = this.inventoryItems.get(key);
     if (!item) return undefined;
     
     const updatedItem = { ...item, ...updates, updatedAt: new Date() };
-    this.inventoryItems.set(code, updatedItem);
+    this.inventoryItems.set(key, updatedItem);
     return updatedItem;
   }
 

@@ -123,17 +123,18 @@ export function InboundForm() {
       const location = `${data.zone}-${data.subZone.split('-')[1]}-${data.floor.replace('층', '')}`;
       const finalQuantity = unitType === 'box' ? data.quantity * boxSize : data.quantity;
 
-      // Check if item already exists
-      const existingItem = inventory.find(item => item.code === data.code);
+      // Check if item already exists at this specific location
+      const existingItem = inventory.find(item => 
+        item.code === data.code && item.location === location
+      );
       
       if (existingItem) {
-        // Update existing item with new category and location info
+        // Update existing item at same location - just add quantity
         await updateInventoryItem.mutateAsync({
           code: data.code,
           updates: {
             category: data.category,
             manufacturer: data.manufacturer,
-            location: location, // 새로운 위치로 업데이트
             stock: existingItem.stock + finalQuantity,
           }
         });
