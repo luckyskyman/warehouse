@@ -34,6 +34,13 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
       });
   }, [inventory, searchTerm]);
 
+  // 제품코드별 총 재고량 계산
+  const getTotalStockByCode = (code: string) => {
+    return inventory
+      .filter(item => item.code === code)
+      .reduce((total, item) => total + item.stock, 0);
+  };
+
   const getStatusBadge = (item: InventoryItem) => {
     if (item.stock <= item.minStock) {
       return <span className="status-badge-out-of-stock">부족</span>;
@@ -69,6 +76,7 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
               <th>카테고리</th>
               <th>제조사</th>
               <th>현재고</th>
+              <th>총재고</th>
               <th>최소재고</th>
               <th>단위</th>
               <th>위치</th>
@@ -84,6 +92,7 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
                 <td>{item.category}</td>
                 <td>{item.manufacturer || '-'}</td>
                 <td className="font-semibold">{item.stock.toLocaleString()}</td>
+                <td className="font-semibold text-blue-600">{getTotalStockByCode(item.code).toLocaleString()}</td>
                 <td>{item.minStock.toLocaleString()}</td>
                 <td>{item.unit}</td>
                 <td>{item.location || '-'}</td>

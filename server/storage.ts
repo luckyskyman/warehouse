@@ -140,8 +140,9 @@ export class MemStorage implements IStorage {
 
   // 제품코드와 위치로 특정 재고 항목 찾기
   getInventoryItemByCodeAndLocation(code: string, location: string): InventoryItem | undefined {
-    const key = `${code}@${location}`;
-    return this.inventoryItems.get(key);
+    return Array.from(this.inventoryItems.values()).find(item => 
+      item.code === code && item.location === location
+    );
   }
 
   async createInventoryItem(insertItem: InsertInventoryItem): Promise<InventoryItem> {
@@ -152,8 +153,8 @@ export class MemStorage implements IStorage {
       ...insertItem,
     };
     
-    // 제품코드-위치별 고유 키 생성
-    const key = insertItem.location ? `${item.code}@${insertItem.location}` : item.code;
+    // 각 입고마다 고유한 ID를 키로 사용 (항상 새로운 항목 생성)
+    const key = `${item.id}`;
     this.inventoryItems.set(key, item);
     return item;
   }
@@ -171,9 +172,24 @@ export class MemStorage implements IStorage {
     return updatedItem;
   }
 
-  // 특정 위치의 재고 항목 업데이트
+  // 특정 위치의 재고 항목 업데이트 (ID로 찾아서 업데이트)
   async updateInventoryItemByLocation(code: string, location: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
-    const key = `${code}@${location}`;
+    // 해당 코드와 위치의 첫 번째 항목 찾기
+    const itemEntry = Array.from(this.inventoryItems.entries()).find(([key, item]) => 
+      item.code === code && item.location === location
+    );
+    
+    if (!itemEntry) return undefined;
+    
+    const [key, item] = itemEntry;
+    const updatedItem = { ...item, ...updates, updatedAt: new Date() };
+    this.inventoryItems.set(key, updatedItem);
+    return updatedItem;
+  }
+
+  // ID로 특정 재고 항목 업데이트
+  async updateInventoryItemById(id: number, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
+    const key = `${id}`;
     const item = this.inventoryItems.get(key);
     if (!item) return undefined;
     
