@@ -130,6 +130,10 @@ export function useProcessExchangeQueueItem() {
   return useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest('POST', `/api/exchange-queue/${id}/process`);
+      // 204 응답은 내용이 없으므로 JSON 파싱하지 않음
+      if (response.status === 204) {
+        return { success: true };
+      }
       return response.json();
     },
     onSuccess: () => {
