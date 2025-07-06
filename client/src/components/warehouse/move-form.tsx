@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useInventory, useCreateTransaction, useWarehouseLayout } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -26,6 +30,9 @@ export function MoveForm() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [selectedZone, setSelectedZone] = useState('');
   const [selectedSubZone, setSelectedSubZone] = useState('');
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [selectedCodeState, setSelectedCodeState] = useState('');
+  const [searchValue, setSearchValue] = useState('');
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -40,7 +47,7 @@ export function MoveForm() {
     }
   });
 
-  const zones = [...new Set(warehouseLayout.map(layout => layout.zoneName))];
+  const zones = Array.from(new Set(warehouseLayout.map(layout => layout.zoneName)));
   const subZones = warehouseLayout
     .filter(layout => layout.zoneName === selectedZone)
     .map(layout => layout.subZoneName);
@@ -48,10 +55,48 @@ export function MoveForm() {
     .find(layout => layout.zoneName === selectedZone && layout.subZoneName === selectedSubZone)
     ?.floors || [];
 
-  const handleCodeChange = (code: string) => {
+  // 검색어에 따른 제품 필터링 및 정렬 (재고가 있는 제품만)
+  const filteredInventory = inventory
+    .filter(item => item.stock > 0)
+    .filter(item => {
+      if (!searchValue) return true;
+      
+      const searchLower = searchValue.toLowerCase();
+      const codeString = String(item.code).toLowerCase();
+      const nameString = item.name.toLowerCase();
+      
+      // 제품코드는 시작 부분 매칭 또는 포함 매칭, 품명은 포함 매칭
+      return codeString.startsWith(searchLower) || 
+             codeString.includes(searchLower) || 
+             nameString.includes(searchLower);
+    })
+    .sort((a, b) => {
+      if (!searchValue) return 0;
+      
+      const searchLower = searchValue.toLowerCase();
+      const aCodeString = String(a.code).toLowerCase();
+      const bCodeString = String(b.code).toLowerCase();
+      
+      // 우선순위: 1) 시작 매칭 2) 완전 매칭 3) 포함 매칭
+      const aStartsWithSearch = aCodeString.startsWith(searchLower);
+      const bStartsWithSearch = bCodeString.startsWith(searchLower);
+      
+      if (aStartsWithSearch && !bStartsWithSearch) return -1;
+      if (!aStartsWithSearch && bStartsWithSearch) return 1;
+      
+      return 0;
+    });
+
+  // 제품코드 선택 시 자동으로 재고 아이템 설정
+  const handleCodeSelect = (code: string) => {
+    setSelectedCodeState(code);
+    setValue('code', code);
+    
+    // 기존 재고에서 해당 제품 찾기
     const item = inventory.find(item => item.code === code);
     setSelectedItem(item);
-    setValue('code', code);
+    setCodeOpen(false);
+    setSearchValue('');
   };
 
   const onSubmit = async (data: MoveFormData) => {
@@ -105,6 +150,9 @@ export function MoveForm() {
       setSelectedItem(null);
       setSelectedZone('');
       setSelectedSubZone('');
+      setSelectedCodeState('');
+      setCodeOpen(false);
+      setSearchValue('');
     } catch (error) {
       toast({
         title: "이동 실패",
@@ -125,19 +173,54 @@ export function MoveForm() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="code">제품 선택</Label>
-                <Select onValueChange={handleCodeChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="제품 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {inventory.map(item => (
-                      <SelectItem key={item.code} value={item.code}>
-                        {item.code} - {item.name} (재고: {item.stock})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>제품 선택</Label>
+                <Popover open={codeOpen} onOpenChange={setCodeOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={codeOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedCodeState
+                        ? inventory.find((item) => item.code === selectedCodeState)?.code
+                        : "제품코드 선택 또는 검색"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command shouldFilter={false}>
+                      <CommandInput 
+                        placeholder="제품코드 또는 품명 검색..." 
+                        value={searchValue}
+                        onValueChange={setSearchValue}
+                      />
+                      <CommandList>
+                        <CommandEmpty>해당 제품을 찾을 수 없습니다.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredInventory.map((item) => (
+                            <CommandItem
+                              key={item.code}
+                              value={item.code}
+                              onSelect={() => handleCodeSelect(item.code)}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedCodeState === item.code ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span className="font-medium">{item.code} - {item.name}</span>
+                                <span className="text-sm text-gray-500">재고: {item.stock.toLocaleString()} {item.unit} | 위치: {item.location || '미지정'}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 {errors.code && <p className="text-sm text-red-500">{errors.code.message}</p>}
               </div>
 
