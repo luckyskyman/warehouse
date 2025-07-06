@@ -396,6 +396,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Backup restore endpoint
+  app.post("/api/restore-backup", async (req, res) => {
+    try {
+      const { inventory, transactions, bomGuides } = req.body;
+      
+      let inventoryCount = 0;
+      let transactionCount = 0;
+      let bomCount = 0;
+
+      // Clear existing data
+      const existingItems = await storage.getInventoryItems();
+      for (const item of existingItems) {
+        await storage.deleteInventoryItem(item.code);
+      }
+
+      const existingBomGuides = await storage.getBomGuides();
+      const uniqueGuideNames = [...new Set(existingBomGuides.map(bom => bom.guideName))];
+      for (const guideName of uniqueGuideNames) {
+        await storage.deleteBomGuidesByName(guideName);
+      }
+
+      // Restore inventory
+      if (Array.isArray(inventory)) {
+        for (const item of inventory) {
+          try {
+            await storage.createInventoryItem(item);
+            inventoryCount++;
+          } catch (error) {
+            console.error('Failed to create inventory item:', error);
+          }
+        }
+      }
+
+      // Restore transactions
+      if (Array.isArray(transactions)) {
+        for (const transaction of transactions) {
+          try {
+            await storage.createTransaction(transaction);
+            transactionCount++;
+          } catch (error) {
+            console.error('Failed to create transaction:', error);
+          }
+        }
+      }
+
+      // Restore BOM guides
+      if (Array.isArray(bomGuides)) {
+        for (const bom of bomGuides) {
+          try {
+            await storage.createBomGuide(bom);
+            bomCount++;
+          } catch (error) {
+            console.error('Failed to create BOM guide:', error);
+          }
+        }
+      }
+
+      res.json({ 
+        inventoryCount, 
+        transactionCount, 
+        bomCount,
+        message: "백업 복원 완료"
+      });
+    } catch (error) {
+      console.error('Backup restore error:', error);
+      res.status(500).json({ message: "백업 복원 중 오류가 발생했습니다." });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
