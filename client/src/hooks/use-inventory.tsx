@@ -138,6 +138,7 @@ export function useProcessExchangeQueueItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/exchange-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
     },
   });
 }
