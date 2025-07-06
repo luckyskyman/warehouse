@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>창고 물품재고관리시스템</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .hidden { display: none !important; }
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: rgba(255,255,255,0.95); padding: 40px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); text-align: center; width: 90%; max-width: 400px; }
+        .login-box h2 { margin-bottom: 20px; }
+        .login-box .form-group { text-align: left; margin-bottom: 15px; }
+        .login-box input { width: 100%; padding: 12px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; }
+        .login-box button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        #login-error { color: red; margin-top: 10px; height: 1.2em; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { position: relative; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
+        .header h1 { color: #333; text-align: center; font-size: 2.2em; margin-bottom: 10px; }
+        #logout-button { position: absolute; top: 15px; right: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; background: rgba(255, 255, 255, 0.8); border: none; border-radius: 25px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; backdrop-filter: blur(5px); }
+        .tab:hover { background: rgba(255, 255, 255, 0.9); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
+        .tab.active { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4); }
+        .content { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 15px; padding: 30px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-group input, .form-group select, .form-group button, .form-group textarea { padding: 12px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: all 0.3s ease; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #4facfe; box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1); }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s ease; margin: 5px; }
+        .btn-primary, .btn-success, .btn-warning, .btn-danger, .btn-info { color: white; }
+        .btn-primary { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .btn-success { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .btn-info { background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%); }
+        .btn-warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .btn-danger { background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); }
+        .btn-danger-sm { padding: 4px 10px; font-size: 12px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+        .btn-edit-master { background: none; border: none; cursor: pointer; font-size: 1em; margin-left: 8px; padding: 0 5px; vertical-align: middle; opacity: 0.6; }
+        .btn-edit-master:hover { opacity: 1; transform: scale(1.2); }
+        .search-container { position: relative; margin-bottom: 20px; }
+        .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; width: 20px; height: 20px; }
+        .search-bar { width: 100%; padding: 15px 15px 15px 45px; border: 2px solid #e1e5e9; border-radius: 25px; font-size: 16px; background: rgba(255, 255, 255, 0.9); transition: all 0.3s ease; }
+        .search-bar:focus { outline: none; border-color: #4facfe; box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.2); }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e5e9; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tfoot tr { background-color: #f8f9fa; font-weight: bold; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-in-stock { background: #d4edda; color: #155724; }
+        .status-out-of-stock { background: #f8d7da; color: #721c24; }
+        .status-ok { color: green; font-weight: bold; }
+        .status-shortage { color: red; font-weight: bold; }
+        .file-upload { border: 2px dashed #4facfe; border-radius: 10px; padding: 20px; text-align: center; margin: 10px 0; cursor: pointer; transition: all 0.3s ease; }
+        .file-upload:hover { background: rgba(79, 172, 254, 0.1); }
+        .file-upload h3 { margin-bottom: 8px; color: #333;}
+        .file-upload p { font-size: 0.9em; color: #666; }
+        .excel-section { background-color: rgba(255,255,255,0.2); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .excel-section h2 { margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid rgba(255,255,255,0.5); padding-bottom: 10px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
+        .stat-number { font-size: 2em; font-weight: 700; color: #333; }
+        .stat-label { font-size: 0.9em; color: #666; margin-top: 5px; }
+        .warehouse-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .zone-card { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .zone-title { font-size: 1.4em; font-weight: 700; margin-bottom: 20px; color: #333; padding-bottom: 10px; border-bottom: 2px solid #ddd; }
+        .subzone-item { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .subzone-title { font-weight: 600; }
+        .floor-badges { display: flex; gap: 8px; }
+        .floor-badge { padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 2px solid transparent; }
+        .floor-badge.occupied { background: #ffcdd2; color: #b71c1c; border-color: #ef9a9a; }
+        .floor-badge.vacant { background: #e0e0e0; color: #616161; }
+        #warehouseLayoutContainer .zone-management { background-color: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e1e5e9; }
+        #warehouseLayoutContainer h3 { margin-top: 0; display: flex; justify-content: space-between; align-items: center; }
+        #warehouseLayoutContainer .subzone-list { list-style-type: none; padding: 0; margin-top: 10px; }
+        #warehouseLayoutContainer .subzone-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; }
+        #warehouseLayoutContainer .subzone-list li:last-child { border-bottom: none; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); width: 90%; max-width: 600px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; }
+        .modal-close { font-size: 2em; font-weight: 200; cursor: pointer; border: none; background: none; }
+        .modal-body .form-group { margin-bottom: 15px; }
+        .modal-body #historyList { list-style-type: none; max-height: 300px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 8px; }
+        .modal-body #historyList li { padding: 8px; border-bottom: 1px solid #eee; }
+        .modal-body #historyList li:last-child { border-bottom: none; }
+        .modal-footer { text-align: right; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>재고관리시스템 로그인</h2>
+            <form id="loginForm"><div class="form-group"><label for="username">아이디</label><input type="text" id="username" required></div><div class="form-group"><label for="password">비밀번호</label><input type="password" id="password" required></div><div id="login-error"></div><button type="submit" class="btn btn-primary">로그인</button></form>
+        </div>
+    </div>
+
+    <div class="container hidden" id="main-container">
+        <div class="header"><h1>🏭 창고 물품재고관리시스템</h1><div id="logout-button"><button class="btn btn-danger" onclick="logout()">로그아웃</button></div><div class="stats-grid"><div class="stat-card"><div class="stat-number" id="totalItems">0</div><div class="stat-label">총 재고량 (ea)</div></div><div class="stat-card"><div class="stat-number" id="inStockItems">0</div><div class="stat-label">총 품목 수</div></div><div class="stat-card"><div class="stat-number" id="outStockCount">0</div><div class="stat-label">출고 완료 건</div></div><div class="stat-card"><div class="stat-number" id="occupiedLocations">0</div><div class="stat-label">사용 중인 위치</div></div></div></div>
+        
+        <div class="tabs">
+            <button class="tab" data-tab="bomCheck" data-role="admin viewer">⚙️ 설치가이드별 자재 확인</button>
+            <button class="tab" data-tab="inventory" data-role="admin viewer">📦 재고관리</button>
+            <button class="tab" data-tab="inbound" data-role="admin">📥 입고관리</button>
+            <button class="tab" data-tab="outbound" data-role="admin">📤 출고관리</button>
+            <button class="tab" data-tab="move" data-role="admin">🔄 이동관리</button>
+            <button class="tab" data-tab="warehouse" data-role="admin viewer">🏪 창고현황</button>
+            <button class="tab" data-tab="layout" data-role="admin">🔧 창고 구조 관리</button>
+            <button class="tab" data-tab="excel" data-role="admin viewer">📊 엑셀관리</button>
+        </div>
+        
+        <div id="bomCheck" class="content hidden">
+            <h2>⚙️ 설치가이드별 자재 확인</h2>
+            <div class="form-group">
+                <label for="guideSelect">설치가이드 선택</label>
+                <select id="guideSelect" onchange="checkBom()">
+                    <option value="">선택하세요</option>
+                </select>
+            </div>
+            <div class="table-container">
+                <table id="bomTable">
+                    <thead><tr><th>필요 부품코드</th><th>품명</th><th>필요수량</th><th>현재고</th><th>상태</th></tr></thead>
+                    <tbody id="bomBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="inventory" class="content hidden"><h2>📦 재고 현황</h2><div class="search-container"><svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/><path d="M21,22a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,22Z"/></svg><input type="text" class="search-bar" id="searchInput" placeholder="제품코드, 품명, 카테고리로 검색..."></div><div class="table-container"><table id="inventoryTable"><thead><tr><th>제품코드</th><th>품명</th><th>카테고리</th><th>수량</th><th>위치</th><th>상태</th><th>입고일</th><th>이력</th><th>관리</th></tr></thead><tbody id="inventoryBody"></tbody><tfoot id="inventoryTfoot"></tfoot></table></div></div>
+        
+        <div id="inbound" class="content hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>📥 입고 관리</h2>
+                <button class="btn btn-info" onclick="openExchangeModal()">📦 교환 대기 목록 보기</button>
+            </div>
+            <form id="inboundForm"><div class="form-grid"><div class="form-group"><label>제품코드</label><input type="text" id="inProductCode" list="product_code_list" required><datalist id="product_code_list"></datalist></div><div class="form-group"><label>품명</label><input type="text" id="inProductName" list="product_name_list" required><datalist id="product_name_list"></datalist></div><div class="form-group"><label>카테고리</label><select id="inCategory" required><option value="">선택하세요</option><option value="전자제품">전자제품</option><option value="의류">의류</option><option value="식품">식품</option><option value="생활용품">생활용품</option><option value="산업자재">산업자재</option><option value="기타">기타</option></select></div><div class="form-group"><label id="inboundQuantityLabel">수량</label><div style="display: flex; gap: 20px; margin-bottom: 10px;"><label style="cursor:pointer; display:flex; align-items:center;"><input type="radio" name="inboundUnitType" value="box" onchange="updateInboundQuantityUI()" style="width:auto; margin-right:5px;"> 박스로 입력</label><label style="cursor:pointer; display:flex; align-items:center;"><input type="radio" name="inboundUnitType" value="ea" checked onchange="updateInboundQuantityUI()" style="width:auto; margin-right:5px;"> 낱개(EA)로 입력</label></div><div id="inboundQuantityInputsContainer"></div></div><div class="form-group"><label>구역</label><select id="inZone" required></select></div><div class="form-group"><label>세부구역</label><select id="inSubZone" required></select></div><div class="form-group"><label>층수</label><select id="inFloor" required></select></div><div class="form-group"><label>입고일</label><input type="date" id="inDate" required></div></div><button type="submit" class="btn btn-primary">입고 등록</button></form>
+        </div>
+
+        <div id="outbound" class="content hidden"><h2>📤 출고 관리</h2><div class="form-grid"><div class="form-group"><label>제품 선택</label><input type="text" id="outProductSelect" list="outbound_item_list" required><datalist id="outbound_item_list"></datalist></div><div class="form-group"><label>출고 수량 (ea)</label><input type="number" id="outQuantity" min="1"></div>
+        <div class="form-group"><label>출고 사유</label><select id="outReason"><option value="조립장 이동">조립장 이동</option><option value="출고 반환">출고 반환</option><option value="불량품 교환 출고">불량품 교환 출고</option></select></div><div class="form-group"><label>출고일</label><input type="date" id="outDate" required></div></div><button onclick="processOutbound()" class="btn btn-warning">출고 처리</button></div>
+        <div id="move" class="content hidden"><h2>🔄 이동 관리</h2><div class="form-grid"><div class="form-group"><label>제품 선택</label><input type="text" id="moveProductSelect" list="move_item_list" required><datalist id="move_item_list"></datalist></div><div class="form-group"><label>이동 수량 (ea)</label><input type="number" id="moveQuantity" min="1"></div><div class="form-group"><label>새 구역</label><select id="moveZone"></select></div><div class="form-group"><label>새 세부구역</label><select id="moveSubZone"></select></div><div class="form-group"><label>새 층수</label><select id="moveFloor"></select></div><div class="form-group"><label>이동일</label><input type="date" id="moveDate" required></div></div><button onclick="processMove()" class="btn btn-success">이동 처리</button></div>
+        <div id="warehouse" class="content hidden"><h2>🏪 창고 현황</h2><div class="warehouse-grid" id="warehouseStatusGrid"></div></div>
+        <div id="layout" class="content hidden"><h2>🔧 창고 구조 관리</h2><div class="form-grid"><div class="form-group"><label for="newZoneName">새 구역 이름</label><input type="text" id="newZoneName" placeholder="예: E구역"><button onclick="addZone()" class="btn btn-primary" style="margin-top:10px;">구역 추가</button></div></div><hr style="margin: 20px 0;"><div id="warehouseLayoutContainer"></div></div>
+        
+        <div id="excel" class="content hidden">
+            <div class="excel-section" data-role="admin">
+                <h2>1. 자재 명세서(BOM) 관리</h2>
+                <div class="file-upload" onclick="document.getElementById('bomFileInput').click()">
+                    <h3>📋 자재 명세서(BOM) 업로드</h3>
+                    <p>A열: 설치가이드명, B열: 필요부품코드, C열: 필요수량 형식의 엑셀 파일을 올립니다.</p>
+                    <input type="file" id="bomFileInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="uploadBom(event)">
+                </div>
+            </div>
+
+            <div class="excel-section" data-role="admin">
+                <h2>2. 제품 마스터 관리</h2>
+                <div class="file-upload" onclick="document.getElementById('masterFileInput').click()">
+                    <h3>📋 제품 마스터 목록 업로드</h3>
+                    <p>시스템에 등록할 제품의 기본 정보(제품코드, 품명, 박스당수량)를 올립니다.</p>
+                    <input type="file" id="masterFileInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="uploadMasterList(event)">
+                </div>
+            </div>
+
+            <div class="excel-section" data-role="admin">
+                <h2>3. 재고 추가 / 보충 (안전)</h2>
+                <div class="file-upload" onclick="downloadBlankTemplate()">
+                    <h3>📄 빈 양식 다운로드</h3>
+                    <p>새로 입고된 품목을 추가하기 위한 빈 템플릿을 받습니다.</p>
+                </div>
+                <div class="file-upload" onclick="document.getElementById('addOrUpdateFileInput').click()">
+                    <h3>🚚 파일로 추가/보충</h3>
+                    <p>빈 양식에 작성한 재고를 현재고에 **더합니다.** 기존 재고는 유지됩니다.</p>
+                    <input type="file" id="addOrUpdateFileInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="uploadForAddOrUpdate(event)">
+                </div>
+            </div>
+
+            <div class="excel-section" data-role="admin viewer">
+                <h2>4. 재고 전체 동기화 (주의)</h2>
+                <div class="file-upload" data-role="admin viewer" onclick="downloadCurrentInventory()">
+                    <h3>📊 현재고 전체 다운로드</h3>
+                    <p>재고 실사 등을 위해 현재 시스템의 모든 재고 목록을 다운로드합니다.</p>
+                </div>
+                <div class="file-upload" data-role="admin" onclick="document.getElementById('syncFileInput').click()">
+                    <h3>🔄 파일로 전체 동기화</h3>
+                    <p>현재고 목록을 수정한 파일로 재고 전체를 **덮어씁니다.** (엑셀에 없는 품목은 0처리)</p>
+                    <input type="file" id="syncFileInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="uploadForSync(event)">
+                </div>
+            </div>
+             <hr style="margin: 30px 0; border-color: rgba(255,255,255,0.3);">
+             <div class="excel-section" style="background-color: rgba(0,0,0,0.1);" data-role="admin">
+                <h2>5. 시스템 데이터 관리</h2>
+                 <div class="file-upload" onclick="backupData()" style="border-color: #ffc107;">
+                    <h3>💾 전체 데이터 백업</h3>
+                    <p>현재 시스템의 모든 데이터(재고,창고구조,마스터)를 JSON 파일로 백업합니다.</p>
+                </div>
+                <div class="file-upload" onclick="document.getElementById('restoreFile').click()">
+                    <h3>📂 전체 데이터 복구</h3>
+                    <p>백업 파일을 선택하여 모든 데이터를 복원합니다. 현재 데이터는 모두 사라집니다.</p>
+                    <input type="file" id="restoreFile" accept=".json" class="hidden" onchange="restoreData(event)">
+                </div>
+             </div>
+            <div id="uploadResult" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <div id="adjustmentModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>재고 수량 조정</h2>
+                <button class="modal-close" onclick="closeAdjustmentModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>제품 정보</label>
+                    <p id="modalProductInfo" style="font-weight:bold;"></p>
+                </div>
+                <div class="form-group">
+                    <label id="modalQuantityLabel">수량</label>
+                    <div style="display: flex; gap: 20px; margin-bottom: 10px;">
+                        <label style="cursor:pointer; display:flex; align-items:center;">
+                            <input type="radio" name="modalUnitType" value="box" onchange="updateModalQuantityUI()" style="width:auto; margin-right:5px;"> 박스로 입력
+                        </label>
+                        <label style="cursor:pointer; display:flex; align-items:center;">
+                            <input type="radio" name="modalUnitType" value="ea" checked onchange="updateModalQuantityUI()" style="width:auto; margin-right:5px;"> 낱개(EA)로 입력
+                        </label>
+                    </div>
+                    <div id="modalQuantityInputsContainer"></div>
+                </div>
+                <div class="form-group">
+                    <label for="modalAdjustmentReason">조정 사유</label>
+                    <textarea id="modalAdjustmentReason" rows="3" placeholder="예: 재고 실사 후 차이 반영"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeAdjustmentModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveQuantityAdjustment()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="assignLocationModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>재고 위치 지정</h2>
+                <button class="modal-close" onclick="closeAssignLocationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                 <div class="form-group">
+                    <label>제품 정보</label>
+                    <p id="assignModalProductInfo" style="font-weight:bold;"></p>
+                </div>
+                <div class="form-group">
+                    <label>새 구역</label>
+                    <select id="assignZone" onchange="updateSubZones('assign')"></select>
+                </div>
+                 <div class="form-group">
+                    <label>새 세부구역</label>
+                    <select id="assignSubZone" onchange="updateFloors('assign')"></select>
+                </div>
+                 <div class="form-group">
+                    <label>새 층수</label>
+                    <select id="assignFloor"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeAssignLocationModal()">취소</button>
+                <button class="btn btn-primary" onclick="assignLocation()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="quickAddMasterModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>신규 제품 간편 등록</h2>
+                <button class="modal-close" onclick="closeQuickAddModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; font-size: 1.1em;">마스터 목록에 없는 제품입니다. 지금 등록합니다.</p>
+                <div class="form-group">
+                    <label>제품코드</label>
+                    <p id="modalNewProductCodeInfo" style="font-weight:bold;"></p>
+                </div>
+                <div class="form-group">
+                    <label for="modalNewProductName">품명</label>
+                    <input type="text" id="modalNewProductName" required>
+                </div>
+                <div class="form-group">
+                    <label for="modalNewCategory">카테고리</label>
+                    <select id="modalNewCategory" required>
+                        <option value="">선택하세요</option><option value="전자제품">전자제품</option><option value="의류">의류</option><option value="식품">식품</option><option value="생활용품">생활용품</option><option value="산업자재">산업자재</option><option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modalNewBoxSize">박스당 수량 (ea)</label>
+                    <input type="number" id="modalNewBoxSize" min="1" value="1" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeQuickAddModal()">취소</button>
+                <button class="btn btn-primary" onclick="quickAddMasterItem()">등록하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editMasterModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>마스터 정보 수정</h2>
+                <button class="modal-close" onclick="closeEditMasterModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; font-size: 1em; color: #555;">이 품목의 마스터 정보가 수정되며, 동일한 제품코드를 사용하는 모든 재고 목록에 반영됩니다.</p>
+                <div class="form-group">
+                    <label>제품코드 (수정 불가)</label>
+                    <p id="editMasterProductCode" style="font-weight:bold;"></p>
+                </div>
+                <div class="form-group">
+                    <label for="editMasterProductName">품명</label>
+                    <input type="text" id="editMasterProductName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editMasterCategory">카테고리</label>
+                    <select id="editMasterCategory" required>
+                        <option value="">선택하세요</option><option value="전자제품">전자제품</option><option value="의류">의류</option><option value="식품">식품</option><option value="생활용품">생활용품</option><option value="산업자재">산업자재</option><option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editMasterBoxSize">박스당 수량 (ea)</label>
+                    <input type="number" id="editMasterBoxSize" min="1" value="1" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeEditMasterModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveMasterEdit()">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="historyModalTitle">이동 이력</h2>
+                <button class="modal-close" onclick="closeHistoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <ul id="historyList"></ul>
+            </div>
+            <div class="modal-footer">
+                <button id="revertLastActionButton" class="btn btn-warning hidden" onclick="">↩️ 마지막 작업 되돌리기</button>
+                <button class="btn" onclick="closeHistoryModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="exchangeModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📦 교환 대기 목록</h2>
+                <button class="modal-close" onclick="closeExchangeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                 <div class="table-container">
+                    <table id="exchangeTable">
+                        <thead><tr><th>출고일</th><th>제품코드</th><th>품명</th><th>수량</th><th>처리</th></tr></thead>
+                        <tbody id="exchangeBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeExchangeModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        "use strict";
+        // --- 전역 변수 ---
+        let inventory = [];
+        let warehouseLayout = {}; 
+        let masterPartList = [];
+        let bomData = [];
+        let exchangeQueue = []; 
+        let currentUserRole = null;
+        let nextId = 1;
+        const FLOORS = ['1층', '2층', '3층'];
+        const USER_ACCOUNTS = { 'admin': { password: 'xormr', role: 'admin' }, 'viewer': { password: '1124', role: 'viewer' } };
+
+        // --- 모든 함수 정의 ---
+
+        function saveToLocalStorage() { localStorage.setItem('warehouseInventory', JSON.stringify(inventory)); localStorage.setItem('warehouseLayout', JSON.stringify(warehouseLayout)); localStorage.setItem('masterPartList', JSON.stringify(masterPartList)); localStorage.setItem('bomData', JSON.stringify(bomData)); localStorage.setItem('exchangeQueue', JSON.stringify(exchangeQueue)); }
+        function loadFromLocalStorage() { 
+            const i = localStorage.getItem('warehouseInventory'); if (i) try { inventory = JSON.parse(i); } catch (e) { inventory = []; } 
+            const l = localStorage.getItem('warehouseLayout'); if (l) try { warehouseLayout = JSON.parse(l); } catch (e) { warehouseLayout = {}; } 
+            const m = localStorage.getItem('masterPartList'); if (m) try { masterPartList = JSON.parse(m); } catch (e) { masterPartList = []; } 
+            const b = localStorage.getItem('bomData'); if (b) try { bomData = JSON.parse(b); } catch(e) { bomData = []; }
+            const eq = localStorage.getItem('exchangeQueue'); if (eq) try { exchangeQueue = JSON.parse(eq); } catch(e) { exchangeQueue = []; }
+        }
+        
+        function naturalSort(a, b) {
+            return new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b);
+        }
+        
+        function initializeNextId() {
+            if (inventory.length > 0) {
+                const maxId = inventory.reduce((max, item) => Math.max(item.id || 0, max), 0);
+                nextId = maxId + 1;
+            } else {
+                nextId = 1;
+            }
+        }
+
+        function initializeWarehouseLayout() { warehouseLayout = { 'A구역': ['A01구역', 'A02구역'], 'B구역': ['B01구역', 'B02구역'] }; }
+        function loadSampleData() { 
+            inventory = [ 
+                { id: nextId++, productCode: 'VF-H', productName: '수직프레임H', category: '산업자재', quantity: 10, location: 'A구역-A01구역-1층', status: '재고', inDate: '2025-07-03', lastMoveDate: '2025-07-03', boxSize: 1, moveHistory: [{date: '2025-07-03', from: '신규입고', to: 'A구역-A01구역-1층'}] }, 
+            ]; 
+        }
+        function setTodayDate() { const today = new Date().toISOString().split('T')[0]; ['inDate', 'outDate', 'moveDate'].forEach(id => { const el = document.getElementById(id); if (el) el.value = today; }); }
+        
+        function formatQuantity(quantity, boxSize) {
+            if (!boxSize || boxSize <= 1) {
+                return `${quantity} ea`;
+            }
+            const boxes = Math.floor(quantity / boxSize);
+            const eaches = quantity % boxSize;
+            let displayString = '';
+
+            if (boxes > 0 && eaches > 0) {
+                displayString = `${boxes} box - ${eaches} ea`;
+            } else if (boxes > 0) {
+                displayString = `${boxes} box`;
+            } else {
+                displayString = `${eaches} ea`;
+            }
+            return `${displayString} (총 ${quantity} ea)`;
+        }
+        
+        function renderInventoryTab(itemsToRender = inventory) {
+            const tBody = document.getElementById('inventoryBody');
+            const tFoot = document.getElementById('inventoryTfoot');
+            if(!tBody || !tFoot) return;
+            tBody.innerHTML = '';
+            tFoot.innerHTML = '';
+            itemsToRender.sort((a,b) => b.id - a.id).forEach(item => {
+                const row = tBody.insertRow();
+                let locationCell = item.location ? item.location : `<button class="btn btn-info btn-danger-sm" onclick="openAssignLocationModal(${item.id})">[위치 지정]</button>`;
+                
+                let managementCell = '';
+                if(currentUserRole === 'admin') {
+                    managementCell = `<td><button class="btn btn-warning btn-danger-sm" onclick="openAdjustmentModal(${item.id})">조정</button> <button class="btn btn-danger btn-danger-sm" onclick="deleteItem(${item.id})">삭제</button></td>`;
+                } else {
+                    managementCell = `<td>-</td>`;
+                }
+
+                const editBtn = currentUserRole === 'admin' ? `<button class="btn-edit-master" title="마스터 정보 수정" onclick="openEditMasterModal('${item.productCode}')">✏️</button>` : '';
+
+                row.innerHTML = `<td>${item.productCode}</td><td>${item.productName}${editBtn}</td><td>${item.category}</td><td>${formatQuantity(item.quantity, item.boxSize)}</td><td>${locationCell}</td><td><span class="status-badge ${item.quantity > 0 ? 'status-in-stock' : 'status-out-of-stock'}">${item.status}</span></td><td>${item.inDate}</td><td><button class="btn btn-info btn-danger-sm" onclick="showHistory(${item.id})">이력</button></td>${managementCell}`;
+            });
+            if (itemsToRender.length > 0) {
+                const sumQuantity = itemsToRender.reduce((sum, item) => sum + (item.quantity || 0), 0);
+                const footRow = tFoot.insertRow();
+                footRow.innerHTML = `<td colspan="3" style="text-align:right; font-weight:bold;">합계 (ea)</td><td style="font-weight:bold;">${sumQuantity.toLocaleString()}</td><td colspan="5"></td>`;
+            }
+        }
+
+        function renderOutboundTab() { const datalist = document.getElementById('outbound_item_list'); if(!datalist) return; datalist.innerHTML = ''; inventory.filter(i => i.quantity > 0 && i.location).sort((a,b) => String(a.productName).localeCompare(String(b.productName))).forEach(item => { const qtyText = formatQuantity(item.quantity, item.boxSize); const text = `(${item.productCode}) ${item.location} [${qtyText}]-${item.productName}`; datalist.insertAdjacentHTML('beforeend', `<option value="${text}"></option>`); }); }
+        
+        function renderMoveTab() {
+            const datalist = document.getElementById('move_item_list');
+            if (!datalist) return;
+            datalist.innerHTML = '';
+            inventory.filter(i => i.quantity > 0).sort((a, b) => String(a.productName).localeCompare(String(b.productName))).forEach(item => {
+                const qtyText = formatQuantity(item.quantity, item.boxSize);
+                const locationText = item.location || '위치 미지정';
+                const text = `(${item.productCode}) ${locationText} [${qtyText}]-${item.productName}`;
+                datalist.insertAdjacentHTML('beforeend', `<option value="${text}"></option>`);
+            });
+        }
+        
+        function findItemByText(text) {
+            if (!text) return null;
+            return inventory.find(i => {
+                const qtyText = formatQuantity(i.quantity, i.boxSize);
+                const locationText = i.location || '위치 미지정';
+                const compareText = `(${i.productCode}) ${locationText} [${qtyText}]-${i.productName}`;
+                return compareText === text;
+            });
+        }
+
+        function renderWarehouseLayoutTab() { const container = document.getElementById('warehouseLayoutContainer'); if (!container) return; container.innerHTML = ''; Object.keys(warehouseLayout).sort().forEach(zoneName => { const zoneDiv = document.createElement('div'); zoneDiv.className = 'zone-management'; let subzoneHtml = '<ul class="subzone-list">'; warehouseLayout[zoneName].sort(naturalSort).forEach(subzoneName => { subzoneHtml += `<li><span data-zone="${zoneName}" data-subzone="${subzoneName}">${subzoneName}</span> <div><button class="btn btn-info btn-danger-sm" onclick="editSubzone(this, '${zoneName}', '${subzoneName}')">수정</button> <button class="btn btn-danger btn-danger-sm" onclick="deleteSubzone('${zoneName}', '${subzoneName}')">삭제</button></div></li>`; }); subzoneHtml += '</ul>'; zoneDiv.innerHTML = `<h3><span>${zoneName}</span> <button class="btn btn-danger btn-danger-sm" onclick="deleteZone('${zoneName}')">구역 삭제</button></h3> ${subzoneHtml} <div class="form-group" style="margin-top: 15px;"><input type="text" id="newSubzoneName_${zoneName}" placeholder="새 세부구역 이름"><button class="btn btn-primary" style="margin-top: 5px;" onclick="addSubzone('${zoneName}')">세부구역 추가</button></div>`; container.appendChild(zoneDiv); }); }
+        
+        function renderWarehouseStatusTab() {
+            const grid = document.getElementById('warehouseStatusGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const occupied = {};
+
+            inventory.filter(i => i.quantity > 0 && i.location).forEach(item => {
+                const locationString = item.location;
+                const firstHyphenIndex = locationString.indexOf('-');
+                const lastHyphenIndex = locationString.lastIndexOf('-');
+
+                if (firstHyphenIndex === -1 || lastHyphenIndex === -1 || firstHyphenIndex === lastHyphenIndex) {
+                    return; 
+                }
+
+                const itemZone = locationString.substring(0, firstHyphenIndex);
+                const itemSubzone = locationString.substring(firstHyphenIndex + 1, lastHyphenIndex);
+                const itemFloor = locationString.substring(lastHyphenIndex + 1);
+
+                if (!warehouseLayout[itemZone] || !warehouseLayout[itemZone].includes(itemSubzone)) return;
+
+                if (!occupied[itemZone]) occupied[itemZone] = {};
+                if (!occupied[itemZone][itemSubzone]) occupied[itemZone][itemSubzone] = new Set();
+                
+                occupied[itemZone][itemSubzone].add(itemFloor);
+            });
+
+            const sortedZones = Object.keys(warehouseLayout).sort();
+
+            sortedZones.forEach(zone => {
+                const card = document.createElement('div');
+                card.className = 'zone-card';
+                card.innerHTML = `<div class="zone-title">${zone}</div>`;
+                
+                warehouseLayout[zone].sort(naturalSort).forEach(subZone => {
+                    const subzoneItem = document.createElement('div');
+                    subzoneItem.className = 'subzone-item';
+                    
+                    let floorBadgesHTML = '';
+                    FLOORS.forEach(floor => {
+                        const isOccupied = occupied[zone] && occupied[zone][subZone] && occupied[zone][subZone].has(floor);
+                        floorBadgesHTML += `<span class="floor-badge ${isOccupied ? 'occupied' : 'vacant'}">${floor}</span>`;
+                    });
+
+                    subzoneItem.innerHTML = `<div class="subzone-title">${subZone}</div><div class="floor-badges">${floorBadgesHTML}</div>`;
+                    card.appendChild(subzoneItem);
+                });
+                grid.appendChild(card);
+            });
+        }
+        
+        function renderBomCheckTab() {
+            const guideSelect = document.getElementById('guideSelect');
+            if(!guideSelect) return;
+            guideSelect.innerHTML = '<option value="">선택하세요</option>';
+            const guideNames = [...new Set(bomData.map(item => item.guideName))];
+            guideNames.sort(naturalSort).forEach(name => {
+                guideSelect.add(new Option(name, name));
+            });
+            checkBom();
+        }
+
+        function updateDatalists() { const codeDL = document.getElementById('product_code_list'); const nameDL = document.getElementById('product_name_list'); if (!codeDL || !nameDL) return; codeDL.innerHTML = ''; nameDL.innerHTML = ''; const unique = new Map(); masterPartList.forEach(p => { if (!unique.has(p.code)) unique.set(p.code, {name: p.name, boxSize: p.boxSize}); }); unique.forEach((val, code) => { codeDL.insertAdjacentHTML('beforeend', `<option value="${code}"></option>`); nameDL.insertAdjacentHTML('beforeend', `<option value="${val.name}">${code}</option>`); }); }
+        function updateZoneDropdowns(prefix) { const select = document.getElementById(`${prefix}Zone`); if (!select) return; const currentVal = select.value; select.innerHTML = '<option value="">선택하세요</option>'; Object.keys(warehouseLayout).sort().forEach(z => select.add(new Option(z, z))); if (warehouseLayout[currentVal]) select.value = currentVal; else select.value = ""; }
+        function updateAllSubZoneDropdowns() { updateSubZones('in'); updateSubZones('move'); updateSubZones('assign');}
+        
+        function updateSubZones(prefix) { const zoneSelect = document.getElementById(`${prefix}Zone`); const subZoneSelect = document.getElementById(`${prefix}SubZone`); if(!zoneSelect || !subZoneSelect) return; const currentVal = subZoneSelect.value; subZoneSelect.innerHTML = '<option value="">선택하세요</option>'; const selectedZone = zoneSelect.value; if (selectedZone && warehouseLayout[selectedZone]) { warehouseLayout[selectedZone].sort(naturalSort).forEach(sz => subZoneSelect.add(new Option(sz, sz))); } if(warehouseLayout[selectedZone]?.includes(currentVal)) subZoneSelect.value = currentVal; else subZoneSelect.value = ""; updateFloors(prefix); }
+        function updateFloors(prefix) { const subZoneSelect = document.getElementById(`${prefix}SubZone`); const floorSelect = document.getElementById(`${prefix}Floor`); if(!subZoneSelect || !floorSelect) return; floorSelect.innerHTML = '<option value="">선택하세요</option>'; if(subZoneSelect.value){ FLOORS.forEach(f => floorSelect.add(new Option(f, f))); } }
+        function updateStats() { const inStock = inventory.filter(i => i.quantity > 0); document.getElementById('totalItems').textContent = inStock.reduce((s, i) => s + (i.quantity || 0), 0).toLocaleString(); document.getElementById('inStockItems').textContent = new Set(inStock.map(i => i.productCode)).size.toLocaleString(); document.getElementById('outStockCount').textContent = inventory.filter(i => i.status === '출고완료').length.toLocaleString(); document.getElementById('occupiedLocations').textContent = new Set(inStock.map(i => i.location).filter(Boolean)).size.toLocaleString(); }
+        
+        function showTab(event) {
+            const tabName = event.currentTarget.dataset.tab;
+            document.querySelectorAll('.content').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.remove('hidden');
+            event.currentTarget.classList.add('active');
+
+            if (tabName === 'inventory') renderInventoryTab();
+            if (tabName === 'outbound') renderOutboundTab();
+            if (tabName === 'move') renderMoveTab();
+            if (tabName === 'warehouse') renderWarehouseStatusTab();
+            if (tabName === 'layout') renderWarehouseLayoutTab();
+            if (tabName === 'bomCheck') renderBomCheckTab();
+        }
+
+        function filterInventory(e) { const searchTerm = e.target.value.toLowerCase(); const filtered = inventory.filter(item => String(item.productCode).toLowerCase().includes(searchTerm) || String(item.productName).toLowerCase().includes(searchTerm) || String(item.category).toLowerCase().includes(searchTerm)); renderInventoryTab(filtered); }
+        function addZone() { const input = document.getElementById('newZoneName'); const newZoneName = input.value.trim(); if (newZoneName && !warehouseLayout[newZoneName]) { warehouseLayout[newZoneName] = []; runAllUpdates(); input.value = ''; } else { alert('이미 존재하거나 유효하지 않은 구역 이름입니다.'); } }
+        function deleteZone(zoneName) { if (isLocationInUse(zoneName)) { alert(`'${zoneName}'에 재고가 존재하여 삭제할 수 없습니다.`); return; } if (confirm(`'${zoneName}' 구역과 모든 하위 구역을 정말로 삭제하시겠습니까?`)) { delete warehouseLayout[zoneName]; runAllUpdates(); } }
+        
+        function editSubzone(button, zoneName, oldSubzoneName) {
+            const span = button.parentElement.previousElementSibling;
+            const currentName = span.textContent;
+            
+            span.innerHTML = `<input type="text" value="${currentName}" style="width: 120px;"/>`;
+            button.textContent = '저장';
+            button.onclick = () => saveSubzone(zoneName, oldSubzoneName);
+        }
+
+        function saveSubzone(zoneName, oldSubzoneName) {
+            const span = document.querySelector(`span[data-subzone="${oldSubzoneName}"]`);
+            const input = span.querySelector('input');
+            const newSubzoneName = input.value.trim();
+
+            if (!newSubzoneName) {
+                alert('세부구역 이름은 비워둘 수 없습니다.');
+                return;
+            }
+            if (newSubzoneName !== oldSubzoneName && warehouseLayout[zoneName].includes(newSubzoneName)) {
+                alert('이미 존재하는 세부구역 이름입니다.');
+                return;
+            }
+
+            const subzoneIndex = warehouseLayout[zoneName].indexOf(oldSubzoneName);
+            if (subzoneIndex > -1) {
+                warehouseLayout[zoneName][subzoneIndex] = newSubzoneName;
+            }
+
+            inventory.forEach(item => {
+                if (!item.location) return;
+                const firstHyphenIndex = item.location.indexOf('-');
+                const lastHyphenIndex = item.location.lastIndexOf('-');
+                if (firstHyphenIndex === -1 || lastHyphenIndex === -1) return;
+
+                const itemZone = item.location.substring(0, firstHyphenIndex);
+                const itemSubzone = item.location.substring(firstHyphenIndex + 1, lastHyphenIndex);
+                const itemFloor = item.location.substring(lastHyphenIndex + 1);
+
+                if (itemZone === zoneName && itemSubzone === oldSubzoneName) {
+                    item.location = `${zoneName}-${newSubzoneName}-${itemFloor}`;
+                }
+            });
+
+            alert(`'${oldSubzoneName}'이(가) '${newSubzoneName}'(으)로 변경되었습니다. 관련 재고 위치도 모두 업데이트되었습니다.`);
+            runAllUpdates();
+        }
+
+
+        function addSubzone(zoneName) { const input = document.getElementById(`newSubzoneName_${zoneName}`); const newSubzoneName = input.value.trim(); if (newSubzoneName && !warehouseLayout[zoneName].includes(newSubzoneName)) { warehouseLayout[zoneName].push(newSubzoneName); runAllUpdates(); } else { alert('이미 존재하거나 유효하지 않은 세부구역 이름입니다.'); } }
+        function deleteSubzone(zoneName, subzoneName) { if (isLocationInUse(zoneName, subzoneName)) { alert(`'${subzoneName}'에 재고가 존재하여 삭제할 수 없습니다.`); return; } if (confirm(`'${subzoneName}' 세부구역을 정말로 삭제하시겠습니까?`)) { warehouseLayout[zoneName] = warehouseLayout[zoneName].filter(sz => sz !== subzoneName); runAllUpdates(); } }
+        
+        function isLocationInUse(zone, subzone = null) {
+            return inventory.some(item => {
+                if (!item.location || item.quantity <= 0) return false;
+
+                const locationString = item.location;
+                const firstHyphenIndex = locationString.indexOf('-');
+                const lastHyphenIndex = locationString.lastIndexOf('-');
+
+                if (firstHyphenIndex === -1 || lastHyphenIndex === -1 || firstHyphenIndex === lastHyphenIndex) {
+                    return false;
+                }
+
+                const itemZone = locationString.substring(0, firstHyphenIndex);
+                if (subzone) {
+                    const itemSubzone = locationString.substring(firstHyphenIndex + 1, lastHyphenIndex);
+                    return itemZone === zone && itemSubzone === subzone;
+                }
+                return itemZone === zone;
+            });
+        }
+        
+        // --- (이하 모든 JavaScript 함수들) ---
+        // 모든 함수를 포함하여 완전한 코드를 구성합니다.
+        
+        function checkBom() {
+            const guideName = document.getElementById('guideSelect').value;
+            const bomBody = document.getElementById('bomBody');
+            bomBody.innerHTML = '';
+
+            if (!guideName) return;
+
+            const requiredParts = bomData.filter(item => item.guideName === guideName);
+
+            requiredParts.forEach(part => {
+                const bomPartCode = String(part.partCode).trim();
+                const masterItem = masterPartList.find(m => String(m.code).trim() === bomPartCode);
+                const productName = masterItem ? masterItem.name : '<strong class="status-shortage">&lt;마스터에 등록 필요&gt;</strong>';
+                
+                const currentStock = inventory
+                    .filter(inv => String(inv.productCode).trim() === bomPartCode)
+                    .reduce((total, inv) => total + inv.quantity, 0);
+                
+                const requiredQty = parseInt(part.requiredQty, 10);
+                const status = currentStock >= requiredQty ? '<span class="status-ok">● 충분</span>' : `<span class="status-shortage">❗️ 부족 (${requiredQty - currentStock}개)</span>`;
+
+                const row = bomBody.insertRow();
+                row.innerHTML = `<td>${part.partCode}</td><td>${productName}</td><td>${requiredQty}</td><td>${currentStock}</td><td>${status}</td>`;
+            });
+        }
+
+        function handleInboundSubmit(e) { e.preventDefault(); const productCode = document.getElementById('inProductCode').value.trim(); const product = masterPartList.find(p => String(p.code) === productCode); if (!product) { alert('마스터 목록에 없는 제품코드입니다. 먼저 제품 정보를 등록해주세요.\n(제품코드 입력 후 다른 칸을 클릭하면 간편 등록 팝업이 뜹니다.)'); return; } let totalQuantity = 0; const selectedUnit = document.querySelector('input[name="inboundUnitType"]:checked').value; if (selectedUnit === 'box' && product.boxSize > 1) { const boxQty = parseInt(document.getElementById('inBoxQuantity').value) || 0; const eaQty = parseInt(document.getElementById('inEaQuantity').value) || 0; totalQuantity = (boxQty * product.boxSize) + eaQty; } else { const quantityInput = document.getElementById('inQuantity'); totalQuantity = quantityInput ? (parseInt(quantityInput.value) || 0) : 0; } if (totalQuantity <= 0) { alert('수량을 1 이상 입력해주세요.'); return; } const formData = { productCode: productCode, productName: document.getElementById('inProductName').value.trim(), category: document.getElementById('inCategory').value, quantity: totalQuantity, boxSize: product.boxSize, zone: document.getElementById('inZone').value, subZone: document.getElementById('inSubZone').value, floor: document.getElementById('inFloor').value, inDate: document.getElementById('inDate').value }; if (!formData.productName || !formData.category || !formData.zone || !formData.subZone || !formData.floor || !formData.inDate) { alert('모든 필수 항목을 입력해주세요.'); return; } const location = `${formData.zone}-${formData.subZone}-${formData.floor}`; const existingItem = inventory.find(item => String(item.productCode) === productCode && item.location === location); if (existingItem) { existingItem.quantity += formData.quantity; if(!existingItem.moveHistory) existingItem.moveHistory = []; existingItem.moveHistory.push({ date: formData.inDate, from: '추가입고', to: location, qty: formData.quantity }); existingItem.lastMoveDate = formData.inDate; } else { inventory.push({ id: nextId++, ...formData, location: location, status: '재고', lastMoveDate: formData.inDate, outDate: null, moveHistory: [{date: formData.inDate, from: '신규입고', to: location, qty: formData.quantity}] }); } alert('입고 등록이 완료되었습니다.'); document.getElementById('inboundForm').reset(); updateInboundQuantityUI(true); runAllUpdates(); }
+        function processOutbound() { const selectedText = document.getElementById('outProductSelect').value; const item = findItemByText(selectedText); const quantity = parseInt(document.getElementById('outQuantity').value); const outDate = document.getElementById('outDate').value; const reason = document.getElementById('outReason').value; if (!item || !quantity || !outDate) return alert('모든 필드를 정확히 입력해주세요. 제품은 목록에서 선택해야 합니다.'); if (quantity > item.quantity) return alert('출고 수량이 재고량을 초과합니다.'); if (!item.moveHistory) item.moveHistory = []; const historyRecord = { date: outDate, qty: quantity, from: item.location }; switch (reason) { case '조립장 이동': item.quantity -= quantity; historyRecord.to = '조립장 이동'; historyRecord.type = 'outbound'; break; case '출고 반환': item.quantity += quantity; historyRecord.from = '반환입고'; historyRecord.to = item.location; historyRecord.type = 'return'; break; case '불량품 교환 출고': item.quantity -= quantity; historyRecord.to = '불량품 교환 출고'; historyRecord.type = 'exchange-out'; const txId = Date.now() + '-' + Math.random(); historyRecord.txId = txId; exchangeQueue.push({ txId: txId, itemId: item.id, productCode: item.productCode, productName: item.productName, qty: quantity, date: outDate }); break; } item.moveHistory.push(historyRecord); item.lastMoveDate = outDate; if (item.quantity <= 0) { item.status = '출고완료'; item.outDate = outDate; } else { item.status = '재고'; item.outDate = null; } alert(`'${reason}' 처리가 완료되었습니다.`); document.getElementById('outProductSelect').value = ''; document.getElementById('outQuantity').value = ''; runAllUpdates(); }
+        function processMove() { const selectedText = document.getElementById('moveProductSelect').value; const fromItem = findItemByText(selectedText); if (!fromItem) return alert('제품 목록에서 이동할 항목을 선택해주세요.'); const quantity = parseInt(document.getElementById('moveQuantity').value); const newZone = document.getElementById('moveZone').value; const newSubZone = document.getElementById('moveSubZone').value; const newFloor = document.getElementById('moveFloor').value; const moveDate = document.getElementById('moveDate').value; if (!quantity || !newZone || !newSubZone || !newFloor || !moveDate) return alert('이동할 수량, 새 위치, 이동일을 모두 정확히 입력해주세요.'); if (quantity > fromItem.quantity) return alert('이동 수량이 재고량을 초과합니다.'); const newLocation = `${newZone}-${newSubZone}-${newFloor}`; const oldLocation = fromItem.location || '위치 미지정'; let toItem = inventory.find(i => String(i.productCode) === String(fromItem.productCode) && i.location === newLocation); if (fromItem.location === newLocation && fromItem.location !== null) return alert('현재 위치와 동일한 위치로는 이동할 수 없습니다.'); const txId = Date.now() + '-' + Math.random(); if (toItem) { toItem.quantity += quantity; if (!toItem.moveHistory) toItem.moveHistory = []; toItem.moveHistory.push({ date: moveDate, from: oldLocation, to: newLocation, qty: quantity, type: 'move-in', txId: txId }); toItem.lastMoveDate = moveDate; fromItem.quantity -= quantity; if (!fromItem.moveHistory) fromItem.moveHistory = []; fromItem.moveHistory.push({ date: moveDate, from: oldLocation, to: newLocation, qty: quantity, type: 'move-out', txId: txId }); if(fromItem.quantity <= 0) { fromItem.status = '출고완료'; } } else { if (fromItem.quantity > quantity) { fromItem.quantity -= quantity; if (!fromItem.moveHistory) fromItem.moveHistory = []; fromItem.moveHistory.push({ date: moveDate, from: oldLocation, to: newLocation, qty: quantity, type: 'move-out', txId: txId }); const newItem = { ...fromItem, id: nextId++, quantity: quantity, location: newLocation, lastMoveDate: moveDate, moveHistory: [{ date: moveDate, from: oldLocation, to: newLocation, qty: quantity, type: 'move-in', txId: txId }]}; inventory.push(newItem); } else { fromItem.location = newLocation; if (!fromItem.moveHistory) fromItem.moveHistory = []; fromItem.moveHistory.push({ date: moveDate, from: oldLocation, to: newLocation, qty: quantity, type: 'move-full', txId: txId }); fromItem.lastMoveDate = moveDate; } } alert('이동(위치지정) 처리가 완료되었습니다.'); document.getElementById('moveProductSelect').value = ''; document.getElementById('moveQuantity').value = ''; runAllUpdates(); }
+        function deleteItem(itemId) { if (currentUserRole !== 'admin') return alert('권한이 없습니다.'); if (confirm('정말로 이 항목을 삭제하시겠습니까?')) { inventory = inventory.filter(item => item.id != itemId); runAllUpdates(); alert('항목이 삭제되었습니다.'); } }
+        function showHistory(itemId) { const item = inventory.find(i => i.id == itemId); if (!item || !item.moveHistory) { alert('이력 정보가 없습니다.'); return; } const modal = document.getElementById('historyModal'); document.getElementById('historyModalTitle').textContent = `'${item.productName}' 이동 이력`; const list = document.getElementById('historyList'); list.innerHTML = ''; item.moveHistory.forEach(h => { let baseString = `[${h.date}] ${h.from} → ${h.to}`; if (h.qty !== undefined) { baseString += ` (${h.qty} ea)`; } if (h.reason) { baseString += ` (사유: ${h.reason})`; } const li = document.createElement('li'); li.textContent = baseString; list.prepend(li); }); const revertButton = document.getElementById('revertLastActionButton'); const lastAction = item.moveHistory[item.moveHistory.length - 1]; const cancellableActionTypes = ['outbound', 'return', 'move-in', 'move-out', 'move-full']; if (currentUserRole === 'admin' && lastAction && cancellableActionTypes.includes(lastAction.type)) { revertButton.classList.remove('hidden'); revertButton.onclick = () => revertLastAction(item.id, lastAction.type); } else { revertButton.classList.add('hidden'); } modal.classList.remove('hidden'); }
+        function closeHistoryModal() { document.getElementById('historyModal').classList.add('hidden'); }
+        function revertLastAction(itemId, actionType) { const item = inventory.find(i => i.id == itemId); if (!item || !item.moveHistory || item.moveHistory.length === 0) { alert('되돌릴 작업이 없습니다.'); return; } const lastAction = item.moveHistory[item.moveHistory.length - 1]; if (actionType === 'outbound' || actionType === 'return') { if (!confirm('마지막 출고/반환 작업을 되돌리시겠습니까?')) return; item.moveHistory.pop(); if (lastAction.type === 'outbound') item.quantity += lastAction.qty; if (lastAction.type === 'return') item.quantity -= lastAction.qty; } else if (actionType.startsWith('move')) { if (!confirm('마지막 이동 작업을 되돌리시겠습니까?')) return; const { txId, qty, from } = lastAction; item.moveHistory.pop(); const involvedItems = inventory.filter(i => i.moveHistory && i.moveHistory.some(h => h.txId === txId)); if (involvedItems.length === 0 && lastAction.type === 'move-full') { item.location = from; } else { const sourceItem = inventory.find(i => i.location === from && i.productCode === item.productCode); const destItem = item; if (!sourceItem) { alert('오류: 이동 작업을 되돌리는 데 필요한 원래 위치의 품목을 찾지 못했습니다.'); item.moveHistory.push(lastAction); return; } sourceItem.quantity += qty; destItem.quantity -= qty; sourceItem.moveHistory = sourceItem.moveHistory.filter(h => h.txId !== txId); destItem.moveHistory = destItem.moveHistory.filter(h => h.txId !== txId); if (destItem.quantity <= 0 && destItem.moveHistory.length === 0) { inventory = inventory.filter(i => i.id !== destItem.id); } } } else { alert('이 작업은 되돌릴 수 없습니다.'); return; } inventory.forEach(i => { if(i.id === item.id) { if (i.quantity > 0) { i.status = '재고'; if (i.outDate) i.outDate = null; } } }); alert('마지막 작업이 성공적으로 되돌려졌습니다.'); closeHistoryModal(); runAllUpdates(); }
+        function loadProductForOut() { const item = findItemByText(document.getElementById('outProductSelect').value); if(item) document.getElementById('outQuantity').max = item.quantity; }
+        function loadProductForMove() { const item = findItemByText(document.getElementById('moveProductSelect').value); if(item) document.getElementById('moveQuantity').max = item.quantity; }
+        function syncMasterData(event) { const codeInput = document.getElementById('inProductCode'); const nameInput = document.getElementById('inProductName'); const categoryInput = document.getElementById('inCategory'); if (event.target.id === 'inProductCode') { const p = masterPartList.find(part => String(part.code) === event.target.value); if (p) { nameInput.value = p.name; if(p.category) categoryInput.value = p.category; } } else if (event.target.id === 'inProductName') { const p = masterPartList.find(part => part.name === event.target.value); if (p) { codeInput.value = p.code; if(p.category) categoryInput.value = p.category; } } updateInboundQuantityUI(true); }
+        function uploadBom(event) { const file = event.target.files[0]; const resultDiv = document.getElementById('uploadResult'); resultDiv.innerHTML = ''; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, { type: 'array' }); const worksheet = workbook.Sheets[workbook.SheetNames[0]]; const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: ['guideName', 'partCode', 'requiredQty'] }); if (!confirm(`${jsonData.length -1} 건의 BOM 데이터를 등록하시겠습니까? 기존 BOM 데이터는 삭제됩니다.`)) { return; } bomData = jsonData.slice(1).map(row => ({ ...row, partCode: String(row.partCode || '').trim() })).filter(row => row.guideName && row.partCode && row.requiredQty); runAllUpdates(); const message = `BOM 업로드 완료! 총 ${bomData.length}건의 데이터가 등록되었습니다.`; resultDiv.innerHTML = `<p style="color: green;">${message}</p>`; alert(message); } catch (error) { resultDiv.innerHTML = `<p style="color: red;">BOM 업로드 중 오류 발생: ${error.message}</p>`; } finally { event.target.value = ''; } }; reader.readAsArrayBuffer(file); }
+        function uploadMasterList(event) { const file = event.target.files[0]; const resultDiv = document.getElementById('uploadResult'); resultDiv.innerHTML = ''; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const worksheet = workbook.Sheets[workbook.SheetNames[0]]; const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); if (jsonData.length < 1) throw new Error("엑셀 파일에 데이터가 없습니다."); let newItemsCount = 0; let updatedItemsCount = 0; jsonData.slice(1).forEach(row => { const code = String(row[0] || '').trim(); if (!code) return; const name = String(row[1] || code).trim(); const boxSize = parseInt(row[2] || '1', 10) || 1; const existingItem = masterPartList.find(p => String(p.code) === code); if (existingItem) { existingItem.name = name; existingItem.boxSize = boxSize; updatedItemsCount++; } else { masterPartList.push({ code, name, boxSize }); newItemsCount++; } }); runAllUpdates(); let message = '마스터 목록 업로드 완료!'; if (newItemsCount > 0 || updatedItemsCount > 0) { message += ` (신규 추가: ${newItemsCount}건, 정보 업데이트: ${updatedItemsCount}건)`; } else { message = '처리할 새로운 내용이 없습니다.'; } resultDiv.innerHTML = `<p style="color: green;">${message}</p>`; alert(message); } catch (error) { resultDiv.innerHTML = `<p style="color: red;">마스터 목록 업로드 중 오류 발생: ${error.message}</p>`; } finally { event.target.value = ''; } }; reader.readAsArrayBuffer(file); }
+        function uploadForAddOrUpdate(event) { const file = event.target.files[0]; const resultDiv = document.getElementById('uploadResult'); resultDiv.innerHTML = ''; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const worksheet = workbook.Sheets[workbook.SheetNames[0]]; const jsonData = XLSX.utils.sheet_to_json(worksheet); let updatedCount = 0; let addedCount = 0; let skippedCount = 0; jsonData.forEach(row => { const productCode = String(row.productCode || '').trim(); const location = String(row.location || '').trim(); const quantity = parseInt(row.quantity, 10); if (!productCode || isNaN(quantity) || quantity <= 0) { skippedCount++; return; } const itemToUpdate = inventory.find(invItem => String(invItem.productCode) === productCode && (invItem.location || null) === (location || null)); if (itemToUpdate) { itemToUpdate.quantity += quantity; if (!itemToUpdate.moveHistory) itemToUpdate.moveHistory = []; itemToUpdate.moveHistory.push({ date: new Date().toISOString().split('T')[0], from: '엑셀보충', to: location || '위치 미지정', qty: quantity }); updatedCount++; } else { const product = masterPartList.find(p => String(p.code) === productCode); if (!product) { skippedCount++; return; } inventory.push({ id: nextId++, productCode: productCode, productName: String(row.productName || product.name), category: String(row.category || '기타'), quantity: quantity, boxSize: product.boxSize, location: location || null, inDate: new Date().toISOString().split('T')[0], status: '재고', lastMoveDate: new Date().toISOString().split('T')[0], outDate: null, moveHistory: [{ date: new Date().toISOString().split('T')[0], from: '엑셀추가', to: location || '위치 미지정', qty: quantity }] }); addedCount++; } }); runAllUpdates(); const message = `재고 추가/보충 완료! (신규: ${addedCount}건, 보충: ${updatedCount}건, 건너뜀: ${skippedCount}건)`; resultDiv.innerHTML = `<p style="color: green;">${message}</p>`; alert(message); } catch (error) { resultDiv.innerHTML = `<p style="color: red;">업로드 중 오류 발생: ${error.message}</p>`; } finally { event.target.value = ''; } }; reader.readAsArrayBuffer(file); }
+        function uploadForSync(event) { const file = event.target.files[0]; const resultDiv = document.getElementById('uploadResult'); resultDiv.innerHTML = ''; if (!file) return; if (!confirm("경고: 이 작업은 현재 재고 데이터를 엑셀 파일의 내용으로 완전히 덮어씁니다.\n엑셀에 없는 품목은 재고가 0으로 처리됩니다.\n정말로 진행하시겠습니까?")) { event.target.value = ''; return; } const reader = new FileReader(); reader.onload = function(e) { try { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const worksheet = workbook.Sheets[workbook.SheetNames[0]]; const excelData = XLSX.utils.sheet_to_json(worksheet); let updatedCount = 0, addedCount = 0, zeroedCount = 0, skippedCount = 0; let newInventory = []; const excelItems = new Map(); excelData.forEach(row => { const productCode = String(row.productCode || '').trim(); const location = String(row.location || '').trim(); const quantity = parseInt(row.quantity, 10); if (!productCode || isNaN(quantity)) { skippedCount++; return; } const key = `${productCode}@@${location}`; excelItems.set(key, row); }); inventory.forEach(currentItem => { const key = `${currentItem.productCode}@@${currentItem.location || ''}`; const excelRow = excelItems.get(key); if (excelRow) { const quantity = parseInt(excelRow.quantity, 10); if (!isNaN(quantity)) { currentItem.quantity = quantity; currentItem.status = quantity > 0 ? '재고' : '출고완료'; updatedCount++; } newInventory.push(currentItem); excelItems.delete(key); } else { currentItem.quantity = 0; currentItem.status = '출고완료'; zeroedCount++; newInventory.push(currentItem); } }); excelItems.forEach(row => { const productCode = String(row.productCode || '').trim(); const location = String(row.location || '').trim(); const quantity = parseInt(row.quantity, 10); if (!productCode || isNaN(quantity)) return; const product = masterPartList.find(p => String(p.code) === productCode); if (!product) { skippedCount++; return; } addedCount++; newInventory.push({ id: nextId++, productCode: productCode, productName: String(row.productName || product.name), category: String(row.category || '기타'), quantity: quantity, boxSize: product.boxSize, location: location || null, inDate: new Date().toISOString().split('T')[0], status: quantity > 0 ? '재고' : '출고완료', lastMoveDate: new Date().toISOString().split('T')[0], outDate: quantity > 0 ? null : new Date().toISOString().split('T')[0], moveHistory: [{ date: new Date().toISOString().split('T')[0], from: '엑셀동기화', to: location || '위치 미지정', qty: quantity }] }); }); inventory = newInventory; runAllUpdates(); const message = `재고 전체 동기화 완료! (신규: ${addedCount}건, 업데이트: ${updatedCount}건, 재고 0 처리: ${zeroedCount}건, 건너뜀: ${skippedCount}건)`; resultDiv.innerHTML = `<p style="color: green;">${message}</p>`; alert(message); } catch (error) { resultDiv.innerHTML = `<p style="color: red;">동기화 중 오류 발생: ${error.message}</p>`; } finally { event.target.value = ''; } }; reader.readAsArrayBuffer(file); }
+        function downloadCurrentInventory() { const dataToExport = inventory.map(item => ({ productCode: String(item.productCode), productName: String(item.productName), category: String(item.category), quantity: item.quantity, location: item.location || '', inDate: item.inDate, status: item.status })); const worksheet = XLSX.utils.json_to_sheet(dataToExport); const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, '재고현황'); worksheet['!cols'] = [ { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 25 }, { wch: 12 }, { wch: 12 } ]; XLSX.writeFile(workbook, `현재고_전체목록_${new Date().toISOString().slice(0,10)}.xlsx`); }
+        function downloadBlankTemplate() { const headers = [["productCode", "productName", "category", "quantity", "location", "inDate", "status"]]; const worksheet = XLSX.utils.aoa_to_sheet(headers); const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, '재고추가양식'); worksheet['!cols'] = [ { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 25 }, { wch: 12 }, { wch: 12 } ]; XLSX.writeFile(workbook, '재고추가_빈_양식.xlsx'); }
+        function backupData() { if(!confirm('현재의 모든 데이터를 파일로 백업하시겠습니까?')) return; const backup = { inventory, warehouseLayout, masterPartList, bomData, exchangeQueue }; const dataStr = JSON.stringify(backup, null, 2); const blob = new Blob([dataStr], {type: "application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `warehouse_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); }
+        function restoreData(event) { const file = event.target.files[0]; if (!file) return; if(!confirm('백업 파일로 현재 데이터를 덮어쓰시겠습니까? 모든 현재 작업 내용은 사라집니다.')) { event.target.value = ''; return; } const reader = new FileReader(); reader.onload = function(e) { try { const data = JSON.parse(e.target.result); if (data.inventory && data.warehouseLayout && data.masterPartList) { inventory = data.inventory; warehouseLayout = data.warehouseLayout; masterPartList = data.masterPartList; bomData = data.bomData || []; exchangeQueue = data.exchangeQueue || []; const restoredInventoryCount = inventory.length; const restoredLayoutCount = Object.keys(warehouseLayout).length; const restoredMasterCount = masterPartList.length; initializeNextId(); runAllUpdates(); const message = `데이터 복구 완료! (재고 항목: ${restoredInventoryCount}건, 창고 구역: ${restoredLayoutCount}건, 마스터 품목: ${restoredMasterCount}건)`; alert(message); } else { throw new Error('올바른 백업 파일 형식이 아닙니다.'); } } catch (error) { alert(`복원 중 오류 발생: ${error.message}`); } finally { event.target.value = ''; } }; reader.readAsText(file); }
+        function openAdjustmentModal(itemId) { if (currentUserRole !== 'admin') return alert('권한이 없습니다.'); const modal = document.getElementById('adjustmentModal'); const item = inventory.find(i => i.id === itemId); if (!item) return; modal.dataset.editingItemId = itemId; document.getElementById('modalProductInfo').textContent = `${item.productName} (${item.productCode})`; document.getElementById('modalAdjustmentReason').value = ''; updateModalQuantityUI(item); modal.classList.remove('hidden'); }
+        function closeAdjustmentModal() { document.getElementById('adjustmentModal').classList.add('hidden'); }
+        function updateModalQuantityUI(item) { const container = document.getElementById('modalQuantityInputsContainer'); const label = document.getElementById('modalQuantityLabel'); const boxSize = item ? item.boxSize : 1; document.querySelector(`input[name="modalUnitType"][value="${boxSize > 1 ? 'box' : 'ea'}"]`).checked = true; let displayUnit = document.querySelector('input[name="modalUnitType"]:checked').value; if (displayUnit === 'box' && boxSize <= 1) { displayUnit = 'ea'; document.querySelector(`input[name="modalUnitType"][value="ea"]`).checked = true; } container.innerHTML = ''; if (displayUnit === 'box') { label.textContent = '조정 수량 (박스/낱개)'; const currentBoxes = Math.floor(item.quantity / boxSize); const currentEaches = item.quantity % boxSize; container.innerHTML = `<div style="display: flex; gap: 10px;"><input type="number" id="modalBoxQuantity" placeholder="박스" min="0" value="${currentBoxes}" style="flex: 1;"><input type="number" id="modalEaQuantity" placeholder="낱개" min="0" value="${currentEaches}" style="flex: 1;"></div>`; } else { label.textContent = '조정 수량 (EA)'; container.innerHTML = `<input type="number" id="modalQuantity" placeholder="총 낱개 수량" min="0" value="${item.quantity}" required>`; } }
+        function saveQuantityAdjustment() { if (currentUserRole !== 'admin') return alert('권한이 없습니다.'); const modal = document.getElementById('adjustmentModal'); const itemId = parseInt(modal.dataset.editingItemId); const item = inventory.find(i => i.id === itemId); if (!item) return; const reason = document.getElementById('modalAdjustmentReason').value.trim(); if (!reason) { alert('조정 사유를 반드시 입력해주세요.'); return; } const oldQty = item.quantity; let newTotalQuantity = 0; const selectedUnit = document.querySelector('input[name="modalUnitType"]:checked').value; if (selectedUnit === 'box' && item.boxSize > 1) { const boxQty = parseInt(document.getElementById('modalBoxQuantity').value) || 0; const eaQty = parseInt(document.getElementById('modalEaQuantity').value) || 0; newTotalQuantity = (boxQty * item.boxSize) + eaQty; } else { const quantityInput = document.getElementById('modalQuantity'); newTotalQuantity = quantityInput ? (parseInt(quantityInput.value) || 0) : 0; } if (newTotalQuantity < 0) { alert('수량은 0 이상이어야 합니다.'); return; } if (newTotalQuantity > 0) { item.status = '재고'; } else { item.status = '출고완료'; item.outDate = new Date().toISOString().split('T')[0]; } item.quantity = newTotalQuantity; item.lastMoveDate = new Date().toISOString().split('T')[0]; if (!item.moveHistory) item.moveHistory = []; item.moveHistory.push({ date: item.lastMoveDate, from: '재고조정', to: `수량 변경: ${oldQty} → ${newTotalQuantity}`, reason: reason }); closeAdjustmentModal(); runAllUpdates(); alert('수량 조정이 완료되었습니다.'); }
+        function openAssignLocationModal(itemId) { if (currentUserRole !== 'admin') return alert('권한이 없습니다.'); const modal = document.getElementById('assignLocationModal'); const item = inventory.find(i => i.id === itemId); if (!item) return; modal.dataset.editingItemId = itemId; document.getElementById('assignModalProductInfo').textContent = `${item.productName} (${item.productCode})`; updateZoneDropdowns('assign'); updateSubZones('assign'); updateFloors('assign'); modal.classList.remove('hidden'); }
+        function closeAssignLocationModal() { document.getElementById('assignLocationModal').classList.add('hidden'); }
+        function assignLocation() { if (currentUserRole !== 'admin') return alert('권한이 없습니다.'); const modal = document.getElementById('assignLocationModal'); const itemId = parseInt(modal.dataset.editingItemId); const item = inventory.find(i => i.id === itemId); if (!item) return; const newZone = document.getElementById('assignZone').value; const newSubZone = document.getElementById('assignSubZone').value; const newFloor = document.getElementById('assignFloor').value; if (!newZone || !newSubZone || !newFloor) { alert('새로운 위치를 모두 선택해주세요.'); return; } const newLocation = `${newZone}-${newSubZone}-${newFloor}`; const oldLocation = item.location || '위치 미지정'; item.location = newLocation; if (!item.moveHistory) item.moveHistory = []; item.moveHistory.push({ date: new Date().toISOString().split('T')[0], from: oldLocation, to: newLocation, reason: '위치 지정' }); closeAssignLocationModal(); runAllUpdates(); alert('위치 지정이 완료되었습니다.'); }
+        function handleProductCodeBlur(event) { const productCode = event.target.value.trim(); if (!productCode) return; const exists = masterPartList.some(p => p.code === productCode); if (!exists) { openQuickAddModal(productCode); } }
+        function openQuickAddModal(productCode) { const modal = document.getElementById('quickAddMasterModal'); document.getElementById('modalNewProductCodeInfo').textContent = productCode; document.getElementById('modalNewProductName').value = ''; document.getElementById('modalNewCategory').value = ''; document.getElementById('modalNewBoxSize').value = '1'; modal.classList.remove('hidden'); document.getElementById('modalNewProductName').focus(); }
+        function closeQuickAddModal() { document.getElementById('quickAddMasterModal').classList.add('hidden'); }
+        function quickAddMasterItem() { const productCode = document.getElementById('modalNewProductCodeInfo').textContent; const productName = document.getElementById('modalNewProductName').value.trim(); const category = document.getElementById('modalNewCategory').value; const boxSize = parseInt(document.getElementById('modalNewBoxSize').value, 10) || 1; if (!productName || !category) { alert('품명과 카테고리를 모두 입력해주세요.'); return; } masterPartList.push({ code: productCode, name: productName, boxSize: boxSize, category: category }); document.getElementById('inProductCode').value = productCode; document.getElementById('inProductName').value = productName; document.getElementById('inCategory').value = category; alert(`'${productName}'(${productCode}) 제품이 마스터에 신규 등록되었습니다.\n계속해서 입고를 진행해주세요.`); closeQuickAddModal(); runAllUpdates(); }
+        function openEditMasterModal(productCode) { const masterItem = masterPartList.find(p => p.code === productCode); if(!masterItem) { alert('마스터 정보를 찾을 수 없습니다.'); return; } const modal = document.getElementById('editMasterModal'); document.getElementById('editMasterProductCode').textContent = masterItem.code; document.getElementById('editMasterProductName').value = masterItem.name; document.getElementById('editMasterCategory').value = masterItem.category || ''; document.getElementById('editMasterBoxSize').value = masterItem.boxSize || 1; modal.classList.remove('hidden'); document.getElementById('editMasterProductName').focus(); }
+        function closeEditMasterModal() { document.getElementById('editMasterModal').classList.add('hidden'); }
+        function saveMasterEdit() { const productCode = document.getElementById('editMasterProductCode').textContent; const masterItem = masterPartList.find(p => p.code === productCode); if(!masterItem) { alert('오류: 수정할 마스터 정보를 찾지 못했습니다.'); return; } const newName = document.getElementById('editMasterProductName').value.trim(); const newCategory = document.getElementById('editMasterCategory').value; const newBoxSize = parseInt(document.getElementById('editMasterBoxSize').value, 10) || 1; if (!newName || !newCategory) { alert('품명과 카테고리를 모두 입력해주세요.'); return; } masterItem.name = newName; masterItem.category = newCategory; masterItem.boxSize = newBoxSize; inventory.forEach(item => { if(item.productCode === productCode) { item.productName = newName; item.category = newCategory; } }); alert('마스터 정보가 성공적으로 수정되었습니다.'); closeEditMasterModal(); runAllUpdates(); }
+        function openExchangeModal() { const modal = document.getElementById('exchangeModal'); const tableBody = document.getElementById('exchangeBody'); tableBody.innerHTML = ''; if (exchangeQueue.length === 0) { tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">교환 대기 중인 품목이 없습니다.</td></tr>'; } else { exchangeQueue.forEach((item, index) => { const row = tableBody.insertRow(); row.innerHTML = ` <td>${item.date}</td> <td>${item.productCode}</td> <td>${item.productName}</td> <td>${item.qty}</td> <td><button class="btn btn-success btn-danger-sm" onclick="completeExchange(${index})">입고 완료</button></td> `; }); } modal.classList.remove('hidden'); }
+        function closeExchangeModal() { document.getElementById('exchangeModal').classList.add('hidden'); }
+        function completeExchange(queueIndex) { if (!confirm('이 교환 건을 입고 완료 처리하시겠습니까?')) return; const exchangeItemInfo = exchangeQueue[queueIndex]; if (!exchangeItemInfo) { alert('오류: 교환 대기 정보를 찾을 수 없습니다.'); return; } const originalItem = inventory.find(i => i.id === exchangeItemInfo.itemId); if (originalItem) { originalItem.quantity += exchangeItemInfo.qty; if (!originalItem.moveHistory) originalItem.moveHistory = []; originalItem.moveHistory.push({ date: new Date().toISOString().split('T')[0], from: '교환입고', to: originalItem.location, qty: exchangeItemInfo.qty, type: 'exchange-in', txId: exchangeItemInfo.txId }); if(originalItem.quantity > 0){ originalItem.status = '재고'; originalItem.outDate = null; } } exchangeQueue.splice(queueIndex, 1); closeExchangeModal(); runAllUpdates(); alert('교환품 입고 처리가 완료되었습니다.'); }
+        
+        // --- 로그인 및 앱 시작 ---
+        function runAllUpdates() { renderInventoryTab(); renderOutboundTab(); renderMoveTab(); renderWarehouseLayoutTab(); renderWarehouseStatusTab(); updateZoneDropdowns('in'); updateZoneDropdowns('move'); updateAllSubZoneDropdowns(); updateDatalists(); updateStats(); setTodayDate(); saveToLocalStorage(); renderBomCheckTab();}
+        
+        function applyUIPermissions() {
+            document.querySelectorAll('[data-role]').forEach(element => {
+                const roles = element.dataset.role.split(' ');
+                if (!roles.includes(currentUserRole)) {
+                    element.classList.add('hidden');
+                } else {
+                    element.classList.remove('hidden');
+                }
+            });
+
+            const excelTab = document.querySelector('.tab[data-tab="excel"]');
+            if (excelTab) {
+                const visibleExcelSections = document.querySelectorAll('#excel .excel-section:not(.hidden)');
+                if (visibleExcelSections.length === 0) {
+                    excelTab.classList.add('hidden');
+                }
+            }
+        }
+        
+        function attachAllEventListeners() {
+            document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', showTab));
+            document.getElementById('searchInput').addEventListener('input', filterInventory); 
+            document.getElementById('inboundForm').addEventListener('submit', handleInboundSubmit); 
+            document.getElementById('inProductCode').addEventListener('input', syncMasterData);
+            document.getElementById('inProductCode').addEventListener('blur', handleProductCodeBlur);
+            document.getElementById('inProductName').addEventListener('input', syncMasterData); 
+            document.getElementById('outProductSelect').addEventListener('input', loadProductForOut); 
+            document.getElementById('moveProductSelect').addEventListener('input', loadProductForMove); 
+            ['in', 'move', 'assign'].forEach(p => { 
+                const zoneSelect = document.getElementById(`${p}Zone`);
+                if(zoneSelect) {
+                    zoneSelect.addEventListener('change', () => updateSubZones(p)); 
+                }
+                const subZoneSelect = document.getElementById(`${p}SubZone`);
+                if(subZoneSelect) {
+                    subZoneSelect.addEventListener('change', () => updateFloors(p));
+                }
+            }); 
+        }
+        
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('login-error');
+            const account = USER_ACCOUNTS[username];
+            if (account && account.password === password) {
+                currentUserRole = account.role;
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('main-container').classList.remove('hidden');
+                
+                loadFromLocalStorage();
+                initializeNextId();
+                
+                if (Object.keys(warehouseLayout).length === 0) initializeWarehouseLayout();
+                if (inventory.length === 0) {
+                    loadSampleData();
+                    initializeNextId();
+                }
+                
+                applyUIPermissions();
+                attachAllEventListeners();
+                runAllUpdates(); 
+                
+                const firstTab = document.querySelector('.tab:not(.hidden)');
+                if(firstTab) {
+                    firstTab.click(); 
+                }
+                updateInboundQuantityUI(true);
+            } else {
+                errorDiv.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
+                setTimeout(() => { errorDiv.textContent = ''; }, 3000);
+            }
+        }
+        function logout() { if (confirm('로그아웃 하시겠습니까?')) { location.reload(); } }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+             document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        });
+    </script>
+</body>
+</html>
