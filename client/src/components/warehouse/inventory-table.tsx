@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useInventory, useTransactions } from '@/hooks/use-inventory';
-import { InventoryItem } from '@/types/warehouse';
+import { InventoryItem, Transaction } from '@/types/warehouse';
 
 interface InventoryTableProps {
   onEditItem?: (item: InventoryItem) => void;
@@ -12,9 +12,33 @@ interface InventoryTableProps {
 
 export function InventoryTable({ onEditItem }: InventoryTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedItemCode, setSelectedItemCode] = useState<string>('');
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const { data: inventory = [] } = useInventory();
-  const { data: transactions = [] } = useTransactions(selectedItemCode);
+  const { data: allTransactions = [] } = useTransactions();
+
+  // 선택된 아이템과 관련된 트랜잭션만 필터링
+  const filteredTransactions = useMemo(() => {
+    if (!selectedItem) return [];
+    
+    return allTransactions.filter(tx => {
+      // 제품코드가 같고, 위치가 관련된 트랜잭션만 포함
+      if (tx.itemCode !== selectedItem.code) return false;
+      
+      // 입고: toLocation이 선택된 아이템의 위치와 일치
+      if (tx.type === 'inbound' && tx.toLocation === selectedItem.location) return true;
+      
+      // 출고: fromLocation이 선택된 아이템의 위치와 일치
+      if (tx.type === 'outbound' && tx.fromLocation === selectedItem.location) return true;
+      
+      // 이동: fromLocation 또는 toLocation이 선택된 아이템의 위치와 일치
+      if (tx.type === 'move' && (tx.fromLocation === selectedItem.location || tx.toLocation === selectedItem.location)) return true;
+      
+      // 조정: 위치 정보가 없는 경우 제품코드만으로 판단
+      if (tx.type === 'adjustment') return true;
+      
+      return false;
+    });
+  }, [selectedItem, allTransactions]);
 
   const filteredInventory = useMemo(() => {
     return inventory
@@ -104,21 +128,21 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedItemCode(item.code)}
+                          onClick={() => setSelectedItem(item)}
                         >
                           <History className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
                         <DialogHeader>
-                          <DialogTitle>입출고 내역 - {item.name}</DialogTitle>
+                          <DialogTitle>입출고 내역 - {selectedItem?.name || item.name}</DialogTitle>
                         </DialogHeader>
                         <div className="max-h-96 overflow-y-auto">
-                          {transactions.length === 0 ? (
+                          {filteredTransactions.length === 0 ? (
                             <p className="text-center py-4 text-gray-500">내역이 없습니다.</p>
                           ) : (
                             <div className="space-y-3">
-                              {transactions.map((tx) => (
+                              {filteredTransactions.map((tx) => (
                                 <div key={tx.id} className="border rounded-lg p-3">
                                   <div className="flex justify-between items-start">
                                     <div>
