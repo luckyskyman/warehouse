@@ -214,7 +214,9 @@ export function OutboundForm() {
                       <CommandList>
                         <CommandEmpty>해당 제품을 찾을 수 없습니다.</CommandEmpty>
                         <CommandGroup>
-                          {inventory.map((item) => (
+                          {inventory
+                            .filter(item => item.stock > 0) // 재고가 있는 제품만 출고 가능
+                            .map((item) => (
                             <CommandItem
                               key={item.code}
                               value={item.code}
