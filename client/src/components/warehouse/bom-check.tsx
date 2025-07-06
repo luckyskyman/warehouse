@@ -11,22 +11,40 @@ export function BomCheck() {
   const { data: inventory = [] } = useInventory();
 
   const guideNames = useMemo(() => {
-    return [...new Set(bomGuides.map(bom => bom.guideName))];
+    return Array.from(new Set(bomGuides.map(bom => bom.guideName)));
   }, [bomGuides]);
 
   const bomCheckResults = useMemo((): BomCheckResult[] => {
-    return bomItems.map(bomItem => {
+    // 부품별로 필요 수량을 합산
+    const aggregatedBom = bomItems.reduce((acc, bomItem) => {
+      if (acc[bomItem.itemCode]) {
+        acc[bomItem.itemCode].requiredQuantity += bomItem.requiredQuantity;
+      } else {
+        acc[bomItem.itemCode] = {
+          itemCode: bomItem.itemCode,
+          requiredQuantity: bomItem.requiredQuantity
+        };
+      }
+      return acc;
+    }, {} as Record<string, { itemCode: string; requiredQuantity: number }>);
+
+    // 재고와 비교하여 결과 생성
+    return Object.values(aggregatedBom).map(bomItem => {
       const inventoryItem = inventory.find(item => item.code === bomItem.itemCode);
-      const currentStock = inventoryItem?.stock || 0;
+      
+      // 동일한 부품 코드의 모든 재고량을 합산 (여러 위치에 있을 수 있음)
+      const totalStock = inventory
+        .filter(item => item.code === bomItem.itemCode)
+        .reduce((sum, item) => sum + item.stock, 0);
       
       return {
         code: bomItem.itemCode,
         name: inventoryItem?.name || bomItem.itemCode,
         needed: bomItem.requiredQuantity,
-        current: currentStock,
-        status: currentStock >= bomItem.requiredQuantity ? 'ok' : 'shortage'
+        current: totalStock,
+        status: (totalStock >= bomItem.requiredQuantity ? 'ok' : 'shortage') as 'ok' | 'shortage'
       };
-    });
+    }).sort((a, b) => a.code.localeCompare(b.code)); // 부품 코드순으로 정렬
   }, [bomItems, inventory]);
 
   return (
@@ -58,6 +76,7 @@ export function BomCheck() {
                 <th>품명</th>
                 <th>필요수량</th>
                 <th>현재고</th>
+                <th>부족수량</th>
                 <th>상태</th>
               </tr>
             </thead>
@@ -68,6 +87,12 @@ export function BomCheck() {
                   <td>{result.name}</td>
                   <td>{result.needed.toLocaleString()}</td>
                   <td>{result.current.toLocaleString()}</td>
+                  <td className={result.status === 'shortage' ? 'text-red-600 font-semibold' : 'text-gray-400'}>
+                    {result.status === 'shortage' 
+                      ? (result.needed - result.current).toLocaleString()
+                      : '-'
+                    }
+                  </td>
                   <td>
                     <span className={result.status === 'ok' ? 'status-ok' : 'status-shortage'}>
                       {result.status === 'ok' ? '충분' : '부족'}
