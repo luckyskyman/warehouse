@@ -47,24 +47,12 @@ export function OutboundForm() {
 
   const selectedCodeValue = watch('code');
 
-  // 검색어에 따른 제품 필터링 및 정렬 (재고가 있는 제품만, 제품코드별 고유화)
+  // 검색어에 따른 제품 필터링 및 정렬 (재고가 있는 제품만, 위치별 개별 표시)
   const filteredInventory = React.useMemo(() => {
     // 재고가 있는 제품만 필터링
     const stockedItems = inventory.filter(item => item.stock > 0);
-    
-    // 제품코드별로 고유화 (재고 합산)
-    const uniqueItems = stockedItems.reduce((acc, item) => {
-      const existing = acc.find(existing => existing.code === item.code);
-      if (existing) {
-        // 동일 제품코드가 있으면 재고 합산
-        existing.stock += item.stock;
-      } else {
-        acc.push({ ...item });
-      }
-      return acc;
-    }, [] as typeof stockedItems);
 
-    return uniqueItems.filter(item => {
+    return stockedItems.filter(item => {
       if (!searchValue) return true;
       
       const searchLower = searchValue.toLowerCase();
@@ -76,7 +64,13 @@ export function OutboundForm() {
              codeString.includes(searchLower) || 
              nameString.includes(searchLower);
     }).sort((a, b) => {
-      if (!searchValue) return 0;
+      if (!searchValue) {
+        // 검색어가 없을 때는 제품코드순으로 정렬한 후 위치별 정렬
+        if (a.code !== b.code) {
+          return String(a.code).localeCompare(String(b.code));
+        }
+        return (a.location || '').localeCompare(b.location || '');
+      }
       
       const searchLower = searchValue.toLowerCase();
       const aCodeString = String(a.code).toLowerCase();
@@ -263,8 +257,8 @@ export function OutboundForm() {
                         <CommandGroup>
                           {filteredInventory.map((item) => (
                             <CommandItem
-                              key={item.code}
-                              value={item.code}
+                              key={`${item.code}-${item.location || 'no-location'}-${item.id}`}
+                              value={`${item.code}@${item.location || ''}`}
                               onSelect={() => handleCodeSelect(item.code)}
                             >
                               <Check
@@ -276,6 +270,9 @@ export function OutboundForm() {
                               <div className="flex flex-col">
                                 <span className="font-medium">{item.code} - {item.name}</span>
                                 <span className="text-sm text-gray-500">재고: {item.stock.toLocaleString()} {item.unit}</span>
+                                {item.location && (
+                                  <span className="text-xs text-blue-600">위치: {item.location}</span>
+                                )}
                               </div>
                             </CommandItem>
                           ))}

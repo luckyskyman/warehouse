@@ -210,8 +210,8 @@ export function MoveForm() {
                         <CommandGroup>
                           {filteredInventory.map((item) => (
                             <CommandItem
-                              key={item.code}
-                              value={item.code}
+                              key={`${item.code}-${item.location || 'no-location'}-${item.id}`}
+                              value={`${item.code}@${item.location || ''}`}
                               onSelect={() => handleCodeSelect(item.code)}
                             >
                               <Check
@@ -222,7 +222,10 @@ export function MoveForm() {
                               />
                               <div className="flex flex-col">
                                 <span className="font-medium">{item.code} - {item.name}</span>
-                                <span className="text-sm text-gray-500">재고: {item.stock.toLocaleString()} {item.unit} | 위치: {item.location || '미지정'}</span>
+                                <span className="text-sm text-gray-500">재고: {item.stock.toLocaleString()} {item.unit}</span>
+                                {item.location && (
+                                  <span className="text-xs text-blue-600">위치: {item.location}</span>
+                                )}
                               </div>
                             </CommandItem>
                           ))}
