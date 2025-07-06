@@ -13,7 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCreateInventoryItem, useCreateTransaction, useInventory, useWarehouseLayout } from '@/hooks/use-inventory';
+import { useCreateInventoryItem, useCreateTransaction, useUpdateInventoryItem, useInventory, useWarehouseLayout } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { InboundFormData } from '@/types/warehouse';
@@ -46,6 +46,7 @@ export function InboundForm() {
   const { data: inventory = [] } = useInventory();
   const { data: warehouseLayout = [] } = useWarehouseLayout();
   const createInventoryItem = useCreateInventoryItem();
+  const updateInventoryItem = useUpdateInventoryItem();
   const createTransaction = useCreateTransaction();
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<InboundFormData>({
@@ -126,6 +127,17 @@ export function InboundForm() {
       const existingItem = inventory.find(item => item.code === data.code);
       
       if (existingItem) {
+        // Update existing item with new category and location info
+        await updateInventoryItem.mutateAsync({
+          code: data.code,
+          updates: {
+            category: data.category,
+            manufacturer: data.manufacturer,
+            location: location, // 새로운 위치로 업데이트
+            stock: existingItem.stock + finalQuantity,
+          }
+        });
+
         // Create transaction for existing item
         await createTransaction.mutateAsync({
           type: 'inbound',
