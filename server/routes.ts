@@ -105,20 +105,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update inventory based on transaction type
       if (validatedData.type === "inbound") {
-        // 입고 처리: 동일 위치에 있는 재고와 합산하거나 새로운 위치별 재고 생성
-        const allItems = await storage.getInventoryItems();
-        const existingItem = allItems.find(item => 
-          item.code === validatedData.itemCode && 
-          item.location === validatedData.toLocation
-        );
-        
-        if (existingItem) {
-          // 동일 위치에 재고가 있으면 합산
-          await storage.updateInventoryItemByLocation(validatedData.itemCode, validatedData.toLocation || '', {
-            stock: existingItem.stock + validatedData.quantity
-          });
-        }
-        // 새로운 위치거나 재고가 없으면 입고 폼에서 이미 새로 생성함
+        // 입고 처리: 입고 폼에서 이미 새로운 재고 항목을 생성했으므로 추가 처리 불필요
+        // 각 입고마다 새로운 항목이 생성되어 위치별/카테고리별 관리 가능
       } else if (validatedData.type === "outbound") {
         // 출고 처리: 위치별 재고에서 차감
         const allItems = await storage.getInventoryItems();
@@ -135,9 +123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (remainingQuantity <= 0) break;
             
             const deductAmount = Math.min(item.stock, remainingQuantity);
-            const key = item.location ? `${item.code}@${item.location}` : item.code;
             
-            await storage.updateInventoryItemByLocation(item.code, item.location || '', {
+            await storage.updateInventoryItemById(item.id, {
               stock: item.stock - deductAmount
             });
             
