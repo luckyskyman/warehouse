@@ -281,7 +281,8 @@ export class MemStorage implements IStorage {
   }
 
   async getExchangeQueue(): Promise<ExchangeQueue[]> {
-    return [...this.exchangeQueue];
+    // 처리되지 않은 교환 대기 항목만 반환
+    return this.exchangeQueue.filter(item => !item.processed);
   }
 
   async createExchangeQueueItem(insertItem: InsertExchangeQueue): Promise<ExchangeQueue> {
