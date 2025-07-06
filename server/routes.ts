@@ -527,6 +527,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 제품 마스터 업로드 API
+  app.post("/api/upload/master", async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ message: "Items must be an array" });
+      }
+
+      // 기존 재고 데이터 모두 삭제 (제품 마스터로 교체)
+      const existingItems = await storage.getInventoryItems();
+      for (const item of existingItems) {
+        await storage.deleteInventoryItem(item.code);
+      }
+
+      const createdItems = [];
+      for (const item of items) {
+        const code = String(item['제품코드'] || item.code || '');
+        if (code) {
+          const newItem = {
+            code: code,
+            name: String(item['품명'] || item.name || code),
+            category: String(item['카테고리'] || item.category || '일반자재'),
+            manufacturer: String(item['제조사'] || item.manufacturer || 'Ocado'),
+            stock: 0, // 마스터 데이터는 재고량 0으로 시작
+            minStock: 0,
+            unit: String(item['단위'] || item.unit || 'ea'),
+            location: null, // 마스터 데이터는 위치 없음
+            boxSize: Number(item['박스당수량(ea)'] || item['박스당수량'] || item.boxSize || 1),
+          };
+          const created = await storage.createInventoryItem(newItem);
+          createdItems.push(created);
+        }
+      }
+
+      res.json({ created: createdItems.length, items: createdItems });
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
