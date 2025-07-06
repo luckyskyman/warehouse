@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -67,34 +67,44 @@ export function InboundForm() {
     .find(layout => layout.zoneName === selectedZone && layout.subZoneName === selectedSubZone)
     ?.floors || [];
 
-  // 검색어에 따른 제품 필터링 및 정렬
-  const filteredInventory = inventory.filter(item => {
-    if (!searchValue) return true;
-    
-    const searchLower = searchValue.toLowerCase();
-    const codeString = String(item.code).toLowerCase();
-    const nameString = item.name.toLowerCase();
-    
-    // 제품코드는 시작 부분 매칭 또는 포함 매칭, 품명은 포함 매칭
-    return codeString.startsWith(searchLower) || 
-           codeString.includes(searchLower) || 
-           nameString.includes(searchLower);
-  }).sort((a, b) => {
-    if (!searchValue) return 0;
-    
-    const searchLower = searchValue.toLowerCase();
-    const aCodeString = String(a.code).toLowerCase();
-    const bCodeString = String(b.code).toLowerCase();
-    
-    // 우선순위: 1) 시작 매칭 2) 완전 매칭 3) 포함 매칭
-    const aStartsWithSearch = aCodeString.startsWith(searchLower);
-    const bStartsWithSearch = bCodeString.startsWith(searchLower);
-    
-    if (aStartsWithSearch && !bStartsWithSearch) return -1;
-    if (!aStartsWithSearch && bStartsWithSearch) return 1;
-    
-    return 0;
-  });
+  // 검색어에 따른 제품 필터링 및 정렬 (제품코드별 고유화)
+  const filteredInventory = React.useMemo(() => {
+    // 제품코드별로 고유화 (첫 번째 항목만 선택)
+    const uniqueItems = inventory.reduce((acc, item) => {
+      if (!acc.find(existing => existing.code === item.code)) {
+        acc.push(item);
+      }
+      return acc;
+    }, [] as typeof inventory);
+
+    return uniqueItems.filter(item => {
+      if (!searchValue) return true;
+      
+      const searchLower = searchValue.toLowerCase();
+      const codeString = String(item.code).toLowerCase();
+      const nameString = item.name.toLowerCase();
+      
+      // 제품코드는 시작 부분 매칭 또는 포함 매칭, 품명은 포함 매칭
+      return codeString.startsWith(searchLower) || 
+             codeString.includes(searchLower) || 
+             nameString.includes(searchLower);
+    }).sort((a, b) => {
+      if (!searchValue) return 0;
+      
+      const searchLower = searchValue.toLowerCase();
+      const aCodeString = String(a.code).toLowerCase();
+      const bCodeString = String(b.code).toLowerCase();
+      
+      // 우선순위: 1) 시작 매칭 2) 완전 매칭 3) 포함 매칭
+      const aStartsWithSearch = aCodeString.startsWith(searchLower);
+      const bStartsWithSearch = bCodeString.startsWith(searchLower);
+      
+      if (aStartsWithSearch && !bStartsWithSearch) return -1;
+      if (!aStartsWithSearch && bStartsWithSearch) return 1;
+      
+      return 0;
+    });
+  }, [inventory, searchValue]);
 
   // 제품코드 선택 시 자동으로 품명 설정
   const handleCodeSelect = (code: string) => {

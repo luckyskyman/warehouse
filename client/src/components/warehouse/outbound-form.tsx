@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -47,10 +47,24 @@ export function OutboundForm() {
 
   const selectedCodeValue = watch('code');
 
-  // 검색어에 따른 제품 필터링 및 정렬 (재고가 있는 제품만)
-  const filteredInventory = inventory
-    .filter(item => item.stock > 0)
-    .filter(item => {
+  // 검색어에 따른 제품 필터링 및 정렬 (재고가 있는 제품만, 제품코드별 고유화)
+  const filteredInventory = React.useMemo(() => {
+    // 재고가 있는 제품만 필터링
+    const stockedItems = inventory.filter(item => item.stock > 0);
+    
+    // 제품코드별로 고유화 (재고 합산)
+    const uniqueItems = stockedItems.reduce((acc, item) => {
+      const existing = acc.find(existing => existing.code === item.code);
+      if (existing) {
+        // 동일 제품코드가 있으면 재고 합산
+        existing.stock += item.stock;
+      } else {
+        acc.push({ ...item });
+      }
+      return acc;
+    }, [] as typeof stockedItems);
+
+    return uniqueItems.filter(item => {
       if (!searchValue) return true;
       
       const searchLower = searchValue.toLowerCase();
@@ -61,8 +75,7 @@ export function OutboundForm() {
       return codeString.startsWith(searchLower) || 
              codeString.includes(searchLower) || 
              nameString.includes(searchLower);
-    })
-    .sort((a, b) => {
+    }).sort((a, b) => {
       if (!searchValue) return 0;
       
       const searchLower = searchValue.toLowerCase();
@@ -78,6 +91,7 @@ export function OutboundForm() {
       
       return 0;
     });
+  }, [inventory, searchValue]);
 
   // 제품코드 선택 시 자동으로 재고 아이템 설정
   const handleCodeSelect = (code: string) => {
