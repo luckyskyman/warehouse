@@ -344,6 +344,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Items must be an array" });
       }
 
+      // 기존 BOM 데이터 모두 삭제 (덮어쓰기)
+      const existingBomGuides = await storage.getBomGuides();
+      const uniqueGuideNames = Array.from(new Set(existingBomGuides.map(bom => bom.guideName)));
+      for (const guideName of uniqueGuideNames) {
+        await storage.deleteBomGuidesByName(guideName);
+      }
+
       const createdBoms = [];
       for (const item of items) {
         const bomItem = {
