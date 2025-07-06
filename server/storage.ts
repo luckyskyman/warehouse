@@ -7,6 +7,8 @@ import {
   type WarehouseLayout, type InsertWarehouseLayout,
   type ExchangeQueue, type InsertExchangeQueue
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -41,6 +43,132 @@ export interface IStorage {
   getExchangeQueue(): Promise<ExchangeQueue[]>;
   createExchangeQueueItem(item: InsertExchangeQueue): Promise<ExchangeQueue>;
   processExchangeQueueItem(id: number): Promise<boolean>;
+}
+
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async getInventoryItems(): Promise<InventoryItem[]> {
+    return await db.select().from(inventoryItems);
+  }
+
+  async getInventoryItem(code: string): Promise<InventoryItem | undefined> {
+    const [item] = await db.select().from(inventoryItems).where(eq(inventoryItems.code, code));
+    return item || undefined;
+  }
+
+  async createInventoryItem(insertItem: InsertInventoryItem): Promise<InventoryItem> {
+    const [item] = await db
+      .insert(inventoryItems)
+      .values(insertItem)
+      .returning();
+    return item;
+  }
+
+  async updateInventoryItem(code: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
+    const [item] = await db
+      .update(inventoryItems)
+      .set(updates)
+      .where(eq(inventoryItems.code, code))
+      .returning();
+    return item || undefined;
+  }
+
+  async deleteInventoryItem(code: string): Promise<boolean> {
+    const result = await db.delete(inventoryItems).where(eq(inventoryItems.code, code));
+    return result.rowCount > 0;
+  }
+
+  async getTransactions(): Promise<Transaction[]> {
+    return await db.select().from(transactions);
+  }
+
+  async getTransactionsByItemCode(itemCode: string): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(eq(transactions.itemCode, itemCode));
+  }
+
+  async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
+    const [transaction] = await db
+      .insert(transactions)
+      .values(insertTransaction)
+      .returning();
+    return transaction;
+  }
+
+  async getBomGuides(): Promise<BomGuide[]> {
+    return await db.select().from(bomGuides);
+  }
+
+  async getBomGuidesByName(guideName: string): Promise<BomGuide[]> {
+    return await db.select().from(bomGuides).where(eq(bomGuides.guideName, guideName));
+  }
+
+  async createBomGuide(insertBom: InsertBomGuide): Promise<BomGuide> {
+    const [bom] = await db
+      .insert(bomGuides)
+      .values(insertBom)
+      .returning();
+    return bom;
+  }
+
+  async deleteBomGuidesByName(guideName: string): Promise<boolean> {
+    const result = await db.delete(bomGuides).where(eq(bomGuides.guideName, guideName));
+    return result.rowCount > 0;
+  }
+
+  async getWarehouseLayout(): Promise<WarehouseLayout[]> {
+    return await db.select().from(warehouseLayout);
+  }
+
+  async createWarehouseZone(insertLayout: InsertWarehouseLayout): Promise<WarehouseLayout> {
+    const [layout] = await db
+      .insert(warehouseLayout)
+      .values(insertLayout)
+      .returning();
+    return layout;
+  }
+
+  async deleteWarehouseZone(id: number): Promise<boolean> {
+    const result = await db.delete(warehouseLayout).where(eq(warehouseLayout.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getExchangeQueue(): Promise<ExchangeQueue[]> {
+    return await db.select().from(exchangeQueue);
+  }
+
+  async createExchangeQueueItem(insertItem: InsertExchangeQueue): Promise<ExchangeQueue> {
+    const [item] = await db
+      .insert(exchangeQueue)
+      .values(insertItem)
+      .returning();
+    return item;
+  }
+
+  async processExchangeQueueItem(id: number): Promise<boolean> {
+    const [item] = await db
+      .update(exchangeQueue)
+      .set({ processed: true })
+      .where(eq(exchangeQueue.id, id))
+      .returning();
+    return !!item;
+  }
 }
 
 export class MemStorage implements IStorage {
