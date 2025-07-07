@@ -240,8 +240,8 @@ export function OutboundForm() {
                       aria-expanded={codeOpen}
                       className="w-full justify-between"
                     >
-                      {selectedCodeState
-                        ? inventory.find((item) => item.code === selectedCodeState)?.code
+                      {selectedItem
+                        ? `${selectedItem.code} (${selectedItem.location || '위치없음'})`
                         : "제품코드 선택 또는 검색"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -269,11 +269,8 @@ export function OutboundForm() {
                                 )}
                               />
                               <div className="flex flex-col">
-                                <span className="font-medium">{item.code} - {item.name}</span>
+                                <span className="font-medium">{item.code} ({item.location || '위치없음'}) - {item.name}</span>
                                 <span className="text-sm text-gray-500">재고: {item.stock.toLocaleString()} {item.unit}</span>
-                                {item.location && (
-                                  <span className="text-xs text-blue-600">위치: {item.location}</span>
-                                )}
                               </div>
                             </CommandItem>
                           ))}
