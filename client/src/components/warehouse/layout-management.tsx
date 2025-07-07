@@ -1,66 +1,70 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, Plus } from 'lucide-react';
-import { useWarehouseLayout, useCreateWarehouseZone } from '@/hooks/use-inventory';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Plus, Edit2, Trash2, MapPin, Building, Layers, Package } from 'lucide-react';
+import { useWarehouseLayout, useCreateWarehouseZone, useDeleteWarehouseZone } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
+import { WarehouseLayout } from '@/types/warehouse';
 
 const layoutSchema = z.object({
   zoneName: z.string().min(1, '구역명을 입력하세요'),
   subZoneName: z.string().min(1, '세부구역명을 입력하세요'),
-  floors: z.array(z.string()).min(1, '최소 1개 층을 선택하세요'),
+  floors: z.string().min(1, '층수를 입력하세요'),
 });
 
-interface LayoutFormData {
-  zoneName: string;
-  subZoneName: string;
-  floors: string[];
-}
+type LayoutFormData = z.infer<typeof layoutSchema>;
 
 export function LayoutManagement() {
-  const [selectedFloors, setSelectedFloors] = useState<string[]>(['1층']);
+  const [editingZone, setEditingZone] = useState<WarehouseLayout | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-  const { data: warehouseLayout = [] } = useWarehouseLayout();
-  const createWarehouseZone = useCreateWarehouseZone();
+  const { data: layout = [] } = useWarehouseLayout();
+  const createZone = useCreateWarehouseZone();
+  const deleteZone = useDeleteWarehouseZone();
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<LayoutFormData>({
     resolver: zodResolver(layoutSchema),
-    defaultValues: {
-      floors: ['1층'],
-    }
   });
 
-  const availableFloors = ['1층', '2층', '3층', '4층', '5층'];
-
-  const handleFloorToggle = (floor: string) => {
-    const newFloors = selectedFloors.includes(floor)
-      ? selectedFloors.filter(f => f !== floor)
-      : [...selectedFloors, floor];
-    
-    setSelectedFloors(newFloors);
-    setValue('floors', newFloors);
-  };
+  // 구역별로 그룹화
+  const groupedLayout = React.useMemo(() => {
+    const groups: { [key: string]: WarehouseLayout[] } = {};
+    layout.forEach(zone => {
+      if (!groups[zone.zoneName]) {
+        groups[zone.zoneName] = [];
+      }
+      groups[zone.zoneName].push(zone);
+    });
+    return groups;
+  }, [layout]);
 
   const onSubmit = async (data: LayoutFormData) => {
     try {
-      await createWarehouseZone.mutateAsync({
+      const floorsArray = data.floors.split(',').map(f => f.trim()).filter(f => f);
+      
+      await createZone.mutateAsync({
         zoneName: data.zoneName,
         subZoneName: data.subZoneName,
-        floors: data.floors,
+        floors: floorsArray,
       });
 
       toast({
         title: "구역 추가 완료",
-        description: `${data.zoneName} - ${data.subZoneName}이(가) 추가되었습니다.`,
+        description: `${data.zoneName}-${data.subZoneName}이(가) 추가되었습니다.`,
       });
 
       reset();
-      setSelectedFloors(['1층']);
+      setIsDialogOpen(false);
+      setEditingZone(null);
     } catch (error) {
       toast({
         title: "구역 추가 실패",
@@ -70,114 +74,251 @@ export function LayoutManagement() {
     }
   };
 
-  const groupedLayout = warehouseLayout.reduce((acc, layout) => {
-    if (!acc[layout.zoneName]) {
-      acc[layout.zoneName] = [];
+  const handleEdit = (zone: WarehouseLayout) => {
+    setEditingZone(zone);
+    setValue('zoneName', zone.zoneName);
+    setValue('subZoneName', zone.subZoneName);
+    setValue('floors', zone.floors.join(', '));
+    setIsDialogOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setEditingZone(null);
+    reset();
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (zoneId: number, zoneName: string, subZoneName: string) => {
+    try {
+      await deleteZone.mutateAsync(zoneId);
+      toast({
+        title: "구역 삭제 완료",
+        description: `${zoneName}-${subZoneName}이(가) 삭제되었습니다.`,
+      });
+    } catch (error) {
+      toast({
+        title: "삭제 실패",
+        description: "구역 삭제 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
     }
-    acc[layout.zoneName].push(layout);
-    return acc;
-  }, {} as Record<string, typeof warehouseLayout>);
+  };
 
   return (
     <div className="warehouse-content">
-      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        🔧 창고 구조 관리
-      </h2>
-
-      {/* Add New Zone Form */}
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <h3 className="text-lg font-semibold mb-4">새 구역 추가</h3>
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Building className="w-6 h-6" />
+          창고 구조 관리
+        </h2>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={handleAddNew} className="btn-warehouse-primary">
+              <Plus className="w-4 h-4 mr-2" />
+              새 구역 추가
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingZone ? '구역 수정' : '새 구역 추가'}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="zoneName">구역명</Label>
+                <Label htmlFor="zoneName">메인 구역명</Label>
                 <Input
                   id="zoneName"
                   {...register('zoneName')}
-                  placeholder="예: E구역"
+                  placeholder="예: A구역, B구역"
                 />
-                {errors.zoneName && <p className="text-sm text-red-500">{errors.zoneName.message}</p>}
+                {errors.zoneName && (
+                  <p className="text-sm text-red-500">{errors.zoneName.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subZoneName">세부구역명</Label>
+                <Label htmlFor="subZoneName">세부 구역명</Label>
                 <Input
                   id="subZoneName"
                   {...register('subZoneName')}
-                  placeholder="예: E-1"
+                  placeholder="예: 1구역, 2구역"
                 />
-                {errors.subZoneName && <p className="text-sm text-red-500">{errors.subZoneName.message}</p>}
+                {errors.subZoneName && (
+                  <p className="text-sm text-red-500">{errors.subZoneName.message}</p>
+                )}
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>사용할 층수</Label>
-              <div className="flex flex-wrap gap-2">
-                {availableFloors.map((floor) => (
-                  <Button
-                    key={floor}
-                    type="button"
-                    variant={selectedFloors.includes(floor) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleFloorToggle(floor)}
-                    className={selectedFloors.includes(floor) ? "btn-warehouse-primary" : ""}
-                  >
-                    {floor}
-                  </Button>
-                ))}
+              <div className="space-y-2">
+                <Label htmlFor="floors">층 정보</Label>
+                <Input
+                  id="floors"
+                  {...register('floors')}
+                  placeholder="예: 1, 2, 3 (쉼표로 구분)"
+                />
+                {errors.floors && (
+                  <p className="text-sm text-red-500">{errors.floors.message}</p>
+                )}
               </div>
-              {errors.floors && <p className="text-sm text-red-500">{errors.floors.message}</p>}
-            </div>
 
-            <Button
-              type="submit"
-              className="btn-warehouse-success"
-              disabled={createWarehouseZone.isPending}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {createWarehouseZone.isPending ? '추가 중...' : '구역 추가'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <div className="flex gap-2 pt-4">
+                <Button type="submit" className="btn-warehouse-primary">
+                  {editingZone ? '수정' : '추가'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  취소
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      {/* Existing Layout Display */}
-      <div className="space-y-6">
-        <h3 className="text-lg font-semibold">현재 창고 구조</h3>
-        
+      {/* 창고 구조 시각화 */}
+      <div className="grid gap-6">
         {Object.keys(groupedLayout).length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            설정된 창고 구역이 없습니다.
-          </div>
+          <Card className="p-8 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <Package className="w-12 h-12 text-gray-400" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-600">창고 구역이 없습니다</h3>
+                <p className="text-gray-500 mt-2">첫 번째 창고 구역을 추가해보세요.</p>
+              </div>
+            </div>
+          </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(groupedLayout).map(([zoneName, layouts]) => (
-              <Card key={zoneName}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-lg font-semibold text-gray-900">{zoneName}</h4>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {layouts.map((layout) => (
-                      <div key={layout.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+          Object.entries(groupedLayout).map(([zoneName, zones]) => (
+            <Card key={zoneName} className="overflow-hidden">
+              <CardHeader className="bg-blue-50 border-b">
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-blue-600" />
+                  {zoneName}
+                  <Badge variant="secondary" className="ml-2">
+                    {zones.length}개 세부구역
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {zones.map((zone) => (
+                    <div
+                      key={zone.id}
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex justify-between items-start mb-3">
                         <div>
-                          <span className="font-medium">{layout.subZoneName}</span>
-                          <div className="text-sm text-gray-600">
-                            층수: {layout.floors.join(', ')}
-                          </div>
+                          <h4 className="font-semibold text-lg">{zone.subZoneName}</h4>
+                          <p className="text-sm text-gray-600">
+                            위치: {zone.zoneName}-{zone.subZoneName}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(zone)}
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>구역 삭제</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {zone.zoneName}-{zone.subZoneName}을(를) 삭제하시겠습니까?
+                                  이 작업은 되돌릴 수 없습니다.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>취소</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(zone.id, zone.zoneName, zone.subZoneName)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  삭제
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm font-medium">층 정보:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {zone.floors.map((floor, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {floor}층
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Separator className="my-3" />
+
+                      <div className="text-xs text-gray-500">
+                        생성일: {new Date(zone.createdAt).toLocaleDateString('ko-KR')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))
         )}
       </div>
+
+      {/* 창고 구조 요약 */}
+      {Object.keys(groupedLayout).length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              창고 구조 요약
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-blue-600">
+                  {Object.keys(groupedLayout).length}
+                </div>
+                <div className="text-sm text-gray-600">메인 구역</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-green-600">
+                  {layout.length}
+                </div>
+                <div className="text-sm text-gray-600">세부 구역</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-purple-600">
+                  {layout.reduce((total, zone) => total + zone.floors.length, 0)}
+                </div>
+                <div className="text-sm text-gray-600">총 층수</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-orange-600">
+                  {layout.reduce((total, zone) => total + (zone.floors.length * 1), 0)}
+                </div>
+                <div className="text-sm text-gray-600">총 위치</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

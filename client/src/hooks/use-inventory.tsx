@@ -117,6 +117,23 @@ export function useCreateWarehouseZone() {
   });
 }
 
+export function useDeleteWarehouseZone() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/warehouse/layout/${id}`);
+      if (response.status === 204) {
+        return { success: true };
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/warehouse/layout'] });
+    },
+  });
+}
+
 export function useExchangeQueue() {
   return useQuery<ExchangeQueue[]>({
     queryKey: ['/api/exchange-queue'],
