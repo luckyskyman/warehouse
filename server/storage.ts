@@ -364,6 +364,18 @@ export class MemStorage implements IStorage {
       }
     }
     
+    // 트랜잭션 이력 생성 (불량품교환 새제품 입고)
+    await this.createTransaction({
+      type: 'inbound',
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      quantity: item.quantity,
+      toLocation: returnLocation || '위치없음',
+      reason: '불량품교환 새제품 입고',
+      memo: `교환대기목록 ID: ${id}에서 처리됨`,
+      userId: 1 // 시스템 처리
+    });
+    
     item.processed = true;
     console.log(`교환 처리 완료`);
     return true;
