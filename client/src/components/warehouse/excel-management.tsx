@@ -177,7 +177,7 @@ export function ExcelManagement() {
     try {
       const data = await parseExcelFile(file);
 
-      const response = await fetch('/api/inventory/sync', {
+      const response = await fetch('/api/upload/inventory-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: data })
@@ -235,7 +235,7 @@ export function ExcelManagement() {
     try {
       const backup = await parseBackupFile(file);
 
-      const response = await fetch('/api/restore', {
+      const response = await fetch('/api/restore-backup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(backup)
