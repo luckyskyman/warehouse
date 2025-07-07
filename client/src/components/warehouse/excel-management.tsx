@@ -272,13 +272,24 @@ export function ExcelManagement() {
     }
 
     try {
+      const sessionId = localStorage.getItem('warehouse_session');
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json"
+      };
+      
+      if (sessionId) {
+        headers["x-session-id"] = sessionId;
+      }
+
       const response = await fetch("/api/system/reset", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
+        credentials: "include",
       });
 
       if (!response.ok) {
-        throw new Error("초기화 요청이 실패했습니다.");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: 초기화 요청이 실패했습니다.`);
       }
 
       // 모든 쿼리 데이터 새로고침

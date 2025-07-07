@@ -48,11 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const savedUser = localStorage.getItem('warehouse_user');
-    if (savedUser) {
+    const savedSession = localStorage.getItem('warehouse_session');
+    if (savedUser && savedSession) {
       try {
         setUser(JSON.parse(savedUser));
       } catch (error) {
         localStorage.removeItem('warehouse_user');
+        localStorage.removeItem('warehouse_session');
       }
     }
   }, []);
