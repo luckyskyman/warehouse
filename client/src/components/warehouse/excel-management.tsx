@@ -36,10 +36,10 @@ export function ExcelManagement() {
 
     try {
       const data = await parseExcelFile(file);
-      
+
       for (const row of data) {
         if (!row['설치가이드명'] || !row['필요부품코드'] || !row['필요수량']) continue;
-        
+
         await fetch('/api/bom', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -52,7 +52,7 @@ export function ExcelManagement() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
-      
+
       toast({
         title: "BOM 업로드 완료",
         description: `${data.length}개의 자재명세서가 등록되었습니다.`,
@@ -80,7 +80,7 @@ export function ExcelManagement() {
 
       for (const row of data) {
         if (!row['제품코드'] || !row['품명']) continue;
-        
+
         const response = await fetch('/api/inventory', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -101,7 +101,7 @@ export function ExcelManagement() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      
+
       toast({
         title: "마스터 업로드 완료",
         description: `${successCount}개의 제품이 등록되었습니다.`,
@@ -129,7 +129,7 @@ export function ExcelManagement() {
 
       for (const row of data) {
         if (!row['제품코드'] || !row['수량']) continue;
-        
+
         const quantity = parseInt(row['수량']) || 0;
         if (quantity <= 0) continue;
 
@@ -152,7 +152,7 @@ export function ExcelManagement() {
 
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-      
+
       toast({
         title: "재고 추가 완료",
         description: `${successCount}개 항목의 재고가 추가되었습니다.`,
@@ -176,7 +176,7 @@ export function ExcelManagement() {
 
     try {
       const data = await parseExcelFile(file);
-      
+
       const response = await fetch('/api/inventory/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -187,7 +187,7 @@ export function ExcelManagement() {
 
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-      
+
       toast({
         title: "재고 동기화 완료",
         description: "모든 재고가 업로드한 파일과 동기화되었습니다.",
@@ -234,7 +234,7 @@ export function ExcelManagement() {
 
     try {
       const backup = await parseBackupFile(file);
-      
+
       const response = await fetch('/api/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -244,11 +244,11 @@ export function ExcelManagement() {
       if (!response.ok) throw new Error('복원 실패');
 
       const result = await response.json();
-      
+
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
-      
+
       toast({
         title: "데이터 복원 완료",
         description: `재고 ${result.inventoryCount}개, 거래내역 ${result.transactionCount}개, BOM ${result.bomCount}개가 복원되었습니다.`,
@@ -263,6 +263,38 @@ export function ExcelManagement() {
 
     if (restoreFileRef.current) {
       restoreFileRef.current.value = '';
+    }
+  };
+
+  const handleResetData = async () => {
+    if (!confirm("⚠️ 경고: 모든 재고, 거래내역, BOM 데이터가 삭제됩니다.\n\n정말로 초기화하시겠습니까?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/system/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error("초기화 요청이 실패했습니다.");
+      }
+
+      // 모든 쿼리 데이터 새로고침
+      await queryClient.invalidateQueries();
+
+      toast({
+        title: "초기화 완료",
+        description: "모든 데이터가 초기 상태로 되돌아갔습니다.",
+      });
+    } catch (error) {
+      console.error("초기화 오류:", error);
+      toast({
+        title: "초기화 실패",
+        description: error instanceof Error ? error.message : "초기화 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -331,7 +363,7 @@ export function ExcelManagement() {
                   현재 재고 현황을 엑셀 파일로 내보냅니다.
                 </p>
               </div>
-              
+
               <div className="file-upload-zone" onClick={() => exportTransactionsToExcel(transactions)}>
                 <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
                 <h4 className="font-semibold mb-1">📊 거래내역 다운로드</h4>
@@ -339,7 +371,7 @@ export function ExcelManagement() {
                   모든 거래 내역을 엑셀 파일로 내보냅니다.
                 </p>
               </div>
-              
+
               <div className="file-upload-zone" onClick={() => exportBomToExcel(bomGuides)}>
                 <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
                 <h4 className="font-semibold mb-1">📋 BOM 목록 다운로드</h4>
@@ -347,7 +379,7 @@ export function ExcelManagement() {
                   자재명세서 목록을 엑셀 파일로 내보냅니다.
                 </p>
               </div>
-              
+
               <div className="file-upload-zone" onClick={exportBlankTemplate}>
                 <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
                 <h4 className="font-semibold mb-1">📄 빈 양식 다운로드</h4>
@@ -435,6 +467,27 @@ export function ExcelManagement() {
             </CardContent>
           </Card>
         </PermissionGuard>
+
+        <Card className="p-6">
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-red-600">⚠️ 데이터 초기화</h3>
+            <p className="text-sm text-gray-600 mt-2">
+              모든 재고, 거래내역, BOM 데이터를 삭제하고 초기 상태로 되돌립니다.
+              <br />
+              <span className="text-red-500 font-medium">이 작업은 되돌릴 수 없습니다!</span>
+            </p>
+          </div>
+
+          <Button 
+            onClick={handleResetData}
+            variant="destructive"
+            className="w-full"
+          >
+            🗑️ 모든 데이터 초기화
+          </Button>
+        </div>
+      </Card>
       </div>
     </div>
   );
