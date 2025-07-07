@@ -712,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reset all data (admin only)
-  app.post("/api/system/reset", async (req, res) => {
+  app.post("/api/system/reset", requireAdmin, async (req, res) => {
     try {
       const success = await storage.resetAllData();
       if (success) {
