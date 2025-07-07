@@ -6,12 +6,17 @@ import { insertInventoryItemSchema, insertTransactionSchema, insertBomGuideSchem
 export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware for role-based access control
   const requireAdmin = (req: any, res: Response, next: NextFunction) => {
-    if (!req.user) {
+    const sessionId = req.headers['x-session-id'];
+    if (!sessionId || !sessions.has(sessionId)) {
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
-    if (req.user.role !== 'admin') {
+    
+    const user = sessions.get(sessionId);
+    if (!user || user.role !== 'admin') {
       return res.status(403).json({ message: "Admin 권한이 필요합니다. 현재 계정은 조회 전용입니다." });
     }
+    
+    req.user = user;
     next();
   };
 
