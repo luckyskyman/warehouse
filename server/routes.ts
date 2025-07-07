@@ -4,22 +4,30 @@ import { storage } from "./storage";
 import { insertInventoryItemSchema, insertTransactionSchema, insertBomGuideSchema, insertWarehouseLayoutSchema, insertExchangeQueueSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Simple session store (should use Redis or database in production)
-  const sessions = new Map();
+  // Global session store that persists across requests
+  global.warehouseSessions = global.warehouseSessions || new Map();
+  const sessions = global.warehouseSessions;
   
-  // Add session middleware access with detailed logging
+  // Add session middleware access - only log API calls
   app.use((req: any, res, next) => {
     const sessionId = req.headers['x-session-id'];
-    console.log('Session middleware:', { 
-      path: req.path, 
-      method: req.method, 
-      sessionId: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
-      hasSession: !!sessionId && sessions.has(sessionId)
-    });
+    
+    // Only log API calls, not static files
+    if (req.path.startsWith('/api')) {
+      console.log('API Session check:', { 
+        path: req.path, 
+        method: req.method, 
+        sessionId: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
+        hasSession: !!sessionId && sessions.has(sessionId),
+        totalSessions: sessions.size
+      });
+    }
     
     if (sessionId && sessions.has(sessionId)) {
       req.user = sessions.get(sessionId);
-      console.log('User attached to request:', { id: req.user.id, role: req.user.role });
+      if (req.path.startsWith('/api')) {
+        console.log('User found in session:', { id: req.user.id, role: req.user.role });
+      }
     }
     next();
   });
@@ -27,21 +35,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware for role-based access control
   const requireAdmin = (req: any, res: Response, next: NextFunction) => {
     const sessionId = req.headers['x-session-id'];
-    console.log('Admin check:', { sessionId, hasSession: !!sessionId });
     
     if (!sessionId || !sessions.has(sessionId)) {
-      console.log('Session not found or invalid');
+      console.log('Admin access denied - no valid session:', { 
+        sessionId: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
+        totalSessions: sessions.size
+      });
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
     
     const user = sessions.get(sessionId);
-    console.log('User from session:', user);
-    
     if (!user || user.role !== 'admin') {
-      console.log('User not admin:', user?.role);
+      console.log('Admin access denied - insufficient privileges:', { 
+        userRole: user?.role || 'unknown',
+        userId: user?.id || 'unknown'
+      });
       return res.status(403).json({ message: "Admin 권한이 필요합니다. 현재 계정은 조회 전용입니다." });
     }
     
+    console.log('Admin access granted:', { userId: user.id, role: user.role });
     req.user = user;
     next();
   };
@@ -59,6 +71,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate session ID
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       sessions.set(sessionId, user);
+      
+      console.log('Login successful:', { 
+        userId: user.id, 
+        username: user.username, 
+        role: user.role,
+        sessionId: sessionId.substring(0, 20) + '...',
+        totalSessions: sessions.size
+      });
 
       res.json({ 
         user: { 
