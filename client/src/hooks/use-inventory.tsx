@@ -98,9 +98,15 @@ export function useDeleteWarehouseZone() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: number) => apiRequest('DELETE', `/api/warehouse/layout/${id}`),
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/warehouse/layout/${id}`);
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/warehouse/layout'] });
+    },
+    onError: (error) => {
+      console.error('Delete warehouse zone error:', error);
     },
   });
 }
