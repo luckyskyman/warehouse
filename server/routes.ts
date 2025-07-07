@@ -4,6 +4,17 @@ import { storage } from "./storage";
 import { insertInventoryItemSchema, insertTransactionSchema, insertBomGuideSchema, insertWarehouseLayoutSchema, insertExchangeQueueSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Middleware for role-based access control
+  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "로그인이 필요합니다." });
+    }
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: "Admin 권한이 필요합니다. 현재 계정은 조회 전용입니다." });
+    }
+    next();
+  };
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -48,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/inventory", async (req, res) => {
+  app.post("/api/inventory", requireAdmin, async (req, res) => {
     try {
       const validatedData = insertInventoryItemSchema.parse(req.body);
       const item = await storage.createInventoryItem(validatedData);
@@ -58,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/inventory/:code", async (req, res) => {
+  app.patch("/api/inventory/:code", requireAdmin, async (req, res) => {
     try {
       const item = await storage.updateInventoryItem(req.params.code, req.body);
       if (!item) {
@@ -70,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/inventory/:code", async (req, res) => {
+  app.delete("/api/inventory/:code", requireAdmin, async (req, res) => {
     try {
       const deleted = await storage.deleteInventoryItem(req.params.code);
       if (!deleted) {
@@ -98,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/transactions", async (req, res) => {
+  app.post("/api/transactions", requireAdmin, async (req, res) => {
     try {
       const validatedData = insertTransactionSchema.parse(req.body);
       const transaction = await storage.createTransaction(validatedData);
@@ -331,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/bom", async (req, res) => {
+  app.post("/api/bom", requireAdmin, async (req, res) => {
     try {
       const validatedData = insertBomGuideSchema.parse(req.body);
       const bom = await storage.createBomGuide(validatedData);
@@ -341,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/bom/:guideName", async (req, res) => {
+  app.delete("/api/bom/:guideName", requireAdmin, async (req, res) => {
     try {
       const deleted = await storage.deleteBomGuidesByName(req.params.guideName);
       if (!deleted) {
@@ -363,7 +374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/warehouse/layout", async (req, res) => {
+  app.post("/api/warehouse/layout", requireAdmin, async (req, res) => {
     try {
       const validatedData = insertWarehouseLayoutSchema.parse(req.body);
       const layout = await storage.createWarehouseZone(validatedData);
@@ -373,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/warehouse/layout/:id", async (req, res) => {
+  app.delete("/api/warehouse/layout/:id", requireAdmin, async (req, res) => {
     try {
       const deleted = await storage.deleteWarehouseZone(parseInt(req.params.id));
       if (!deleted) {
@@ -395,7 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/exchange-queue/:id/process", async (req, res) => {
+  app.post("/api/exchange-queue/:id/process", requireAdmin, async (req, res) => {
     try {
       const processed = await storage.processExchangeQueueItem(parseInt(req.params.id));
       if (!processed) {
@@ -407,8 +418,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Excel upload routes
-  app.post("/api/upload/master", async (req, res) => {
+  // Excel upload routes  
+  app.post("/api/upload/master", requireAdmin, async (req, res) => {
     try {
       const { items } = req.body;
       if (!Array.isArray(items)) {
@@ -563,7 +574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Backup restore endpoint
-  app.post("/api/restore-backup", async (req, res) => {
+  app.post("/api/restore-backup", requireAdmin, async (req, res) => {
     try {
       const { inventory, transactions, bomGuides } = req.body;
       

@@ -14,6 +14,7 @@ import { Plus, Edit2, Trash2, MapPin, Building, Layers, Package } from 'lucide-r
 import { useWarehouseLayout, useCreateWarehouseZone, useDeleteWarehouseZone } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
 import { WarehouseLayout } from '@/types/warehouse';
+import { PermissionGuard } from '@/components/ui/permission-guard';
 
 const layoutSchema = z.object({
   zoneName: z.string().min(1, '구역명을 입력하세요'),
@@ -111,14 +112,15 @@ export function LayoutManagement() {
           <Building className="w-6 h-6" />
           창고 구조 관리
         </h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleAddNew} className="btn-warehouse-primary">
-              <Plus className="w-4 h-4 mr-2" />
-              새 구역 추가
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
+        <PermissionGuard permission="canManageWarehouse">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleAddNew} className="btn-warehouse-primary">
+                <Plus className="w-4 h-4 mr-2" />
+                새 구역 추가
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
             <DialogHeader>
               <DialogTitle>
                 {editingZone ? '구역 수정' : '새 구역 추가'}
@@ -174,8 +176,9 @@ export function LayoutManagement() {
                 </Button>
               </div>
             </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </PermissionGuard>
       </div>
 
       {/* 창고 구조 시각화 */}
@@ -216,40 +219,42 @@ export function LayoutManagement() {
                             위치: {zone.zoneName}-{zone.subZoneName}
                           </p>
                         </div>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(zone)}
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline">
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>구역 삭제</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  {zone.zoneName}-{zone.subZoneName}을(를) 삭제하시겠습니까?
-                                  이 작업은 되돌릴 수 없습니다.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>취소</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(zone.id, zone.zoneName, zone.subZoneName)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  삭제
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                        <PermissionGuard permission="canManageWarehouse" showViewerMessage={false}>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(zone)}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>구역 삭제</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {zone.zoneName}-{zone.subZoneName}을(를) 삭제하시겠습니까?
+                                    이 작업은 되돌릴 수 없습니다.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>취소</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(zone.id, zone.zoneName, zone.subZoneName)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    삭제
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </PermissionGuard>
                       </div>
 
                       <div className="space-y-2">

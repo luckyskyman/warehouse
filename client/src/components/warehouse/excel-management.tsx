@@ -5,6 +5,7 @@ import { Upload, Download, FileSpreadsheet, Database, AlertTriangle } from 'luci
 import { useInventory, useTransactions, useBomGuides, useWarehouseLayout, useExchangeQueue } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
+import { PermissionGuard } from '@/components/ui/permission-guard';
 import { 
   exportInventoryToExcel, 
   exportTransactionsToExcel, 
@@ -352,20 +353,22 @@ export function ExcelManagement() {
         <Card>
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-4">1. 자재 명세서(BOM) 관리</h3>
-            <div className="file-upload-zone" onClick={() => bomFileRef.current?.click()}>
-              <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-              <h4 className="font-semibold mb-1">📋 자재 명세서(BOM) 업로드</h4>
-              <p className="text-sm text-gray-600">
-                A열: 설치가이드명, B열: 필요부품코드, C열: 필요수량 형식의 엑셀 파일을 올립니다.
-              </p>
-              <input
-                ref={bomFileRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={handleBomUpload}
-              />
-            </div>
+            <PermissionGuard permission="canUploadFiles">
+              <div className="file-upload-zone" onClick={() => bomFileRef.current?.click()}>
+                <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+                <h4 className="font-semibold mb-1">📋 자재 명세서(BOM) 업로드</h4>
+                <p className="text-sm text-gray-600">
+                  A열: 설치가이드명, B열: 필요부품코드, C열: 필요수량 형식의 엑셀 파일을 올립니다.
+                </p>
+                <input
+                  ref={bomFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleBomUpload}
+                />
+              </div>
+            </PermissionGuard>
           </CardContent>
         </Card>
 
@@ -373,9 +376,10 @@ export function ExcelManagement() {
         <Card>
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-4">2. 제품 마스터 관리</h3>
-            <div className="file-upload-zone" onClick={() => masterFileRef.current?.click()}>
-              <Database className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-              <h4 className="font-semibold mb-1">📋 제품 마스터 목록 업로드</h4>
+            <PermissionGuard permission="canUploadFiles">
+              <div className="file-upload-zone" onClick={() => masterFileRef.current?.click()}>
+                <Database className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+                <h4 className="font-semibold mb-1">📋 제품 마스터 목록 업로드</h4>
               <p className="text-sm text-gray-600">
                 시스템에 등록할 제품의 기본 정보(제품코드, 품명, 박스당수량)를 올립니다.
               </p>
@@ -387,6 +391,7 @@ export function ExcelManagement() {
                 onChange={handleMasterUpload}
               />
             </div>
+            </PermissionGuard>
           </CardContent>
         </Card>
 
