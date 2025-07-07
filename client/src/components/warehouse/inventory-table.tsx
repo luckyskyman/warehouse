@@ -160,18 +160,32 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
                                     </span>
                                   </div>
                                   
-                                  {/* 위치 정보 표시 */}
+                                  {/* 위치 정보 및 사유 표시 */}
                                   <div className="text-sm text-blue-600 mt-1">
                                     {tx.type === 'inbound' && tx.toLocation && (
                                       <span>→ {tx.toLocation} 입고</span>
                                     )}
                                     {tx.type === 'outbound' && tx.fromLocation && (
-                                      <span>{tx.fromLocation} →</span>
+                                      <span>{tx.fromLocation} → 출고</span>
                                     )}
                                     {tx.type === 'move' && (
                                       <span>{tx.fromLocation} → {tx.toLocation}</span>
                                     )}
                                   </div>
+                                  
+                                  {/* 사유 정보 표시 */}
+                                  {tx.reason && (
+                                    <div className="text-sm text-gray-600 mt-1">
+                                      사유: {tx.reason}
+                                    </div>
+                                  )}
+                                  
+                                  {/* 메모 정보 표시 */}
+                                  {tx.memo && (
+                                    <div className="text-sm text-gray-500 mt-1">
+                                      메모: {tx.memo}
+                                    </div>
+                                  )}
                                   
                                   {(tx.reason || tx.memo) && (
                                     <p className="text-sm text-gray-600 mt-1">
