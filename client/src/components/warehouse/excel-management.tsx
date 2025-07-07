@@ -86,40 +86,25 @@ export function ExcelManagement() {
 
     try {
       const data = await parseExcelFile(file);
-      let successCount = 0;
+      console.log('Parsed master data:', data.length, 'items');
 
-      for (const row of data) {
-        if (!row['제품코드'] || !row['품명']) continue;
+      const response = await apiRequest('POST', '/api/upload/master', { items: data });
+      const result = await response.json();
+      
+      console.log('Master upload result:', result);
 
-        const response = await fetch('/api/inventory', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: row['제품코드'],
-            name: row['품명'],
-            category: row['카테고리'] || '기타',
-            manufacturer: row['제조사'] || null,
-            stock: 0,
-            minStock: parseInt(row['최소재고']) || 10,
-            unit: row['단위'] || '개',
-            location: '미지정',
-            boxSize: parseInt(row['박스당수량']) || 1
-          })
-        });
-
-        if (response.ok) successCount++;
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      // 모든 관련 쿼리 새로고침
+      await queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
 
       toast({
         title: "마스터 업로드 완료",
-        description: `${successCount}개의 제품이 등록되었습니다.`,
+        description: `${result.created}개의 제품이 처리되었습니다.`,
       });
     } catch (error) {
+      console.error('Master upload error:', error);
       toast({
         title: "업로드 실패",
-        description: "파일 형식을 확인해주세요.",
+        description: error instanceof Error ? error.message : "파일 형식을 확인해주세요.",
         variant: "destructive",
       });
     }
