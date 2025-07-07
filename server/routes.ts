@@ -118,8 +118,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (totalStock >= validatedData.quantity) {
             let remainingQuantity = validatedData.quantity;
+            const outboundLocations: string[] = [];
             
-            // 위치별로 재고 차감 (FIFO 방식)
+            // 위치별로 재고 차감 (FIFO 방식) 및 위치 정보 수집
             for (const item of itemsWithCode) {
               if (remainingQuantity <= 0) break;
               
@@ -129,20 +130,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 stock: item.stock - deductAmount
               });
               
+              if (item.location) {
+                outboundLocations.push(item.location);
+              }
+              
               remainingQuantity -= deductAmount;
             }
+            
+            // 트랜잭션에 출고 위치 정보 업데이트
+            validatedData.fromLocation = outboundLocations.join(', ');
           } else {
             return res.status(400).json({ message: "Insufficient stock" });
           }
         } else if (validatedData.reason === "출고 반환") {
-          // 출고 반환: 재고에 가산
-          const firstItem = itemsWithCode[0];
-          if (firstItem) {
-            await storage.updateInventoryItemById(firstItem.id, {
-              stock: firstItem.stock + validatedData.quantity
+          // 출고 반환: 최근 출고된 위치로 반환
+          // 최근 출고 트랜잭션에서 위치 정보 찾기
+          const allTransactions = await storage.getTransactionsByItemCode(validatedData.itemCode);
+          const recentOutbound = allTransactions
+            .filter(t => t.type === "outbound" && t.reason !== "출고 반환")
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          
+          const returnLocation = recentOutbound?.fromLocation || validatedData.toLocation;
+          
+          // 해당 위치의 기존 재고 찾기
+          const targetItem = allItems.find(item => 
+            item.code === validatedData.itemCode && item.location === returnLocation
+          );
+          
+          if (targetItem) {
+            // 해당 위치에 기존 재고가 있으면 가산
+            await storage.updateInventoryItemById(targetItem.id, {
+              stock: targetItem.stock + validatedData.quantity
             });
           } else {
-            // 기존 재고가 없으면 새로 생성
+            // 해당 위치에 재고가 없으면 새로 생성
             const masterItem = allItems.find(item => item.code === validatedData.itemCode);
             if (masterItem) {
               await storage.createInventoryItem({
@@ -153,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 stock: validatedData.quantity,
                 minStock: masterItem.minStock,
                 unit: masterItem.unit,
-                location: validatedData.fromLocation || null,
+                location: returnLocation,
                 boxSize: masterItem.boxSize
               });
             }
@@ -164,8 +185,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (totalStock >= validatedData.quantity) {
             let remainingQuantity = validatedData.quantity;
+            const outboundLocations: string[] = [];
             
-            // 위치별로 재고 차감 (FIFO 방식)
+            // 위치별로 재고 차감 (FIFO 방식) 및 위치 정보 수집
             for (const item of itemsWithCode) {
               if (remainingQuantity <= 0) break;
               
@@ -175,8 +197,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 stock: item.stock - deductAmount
               });
               
+              if (item.location) {
+                outboundLocations.push(item.location);
+              }
+              
               remainingQuantity -= deductAmount;
             }
+            
+            // 트랜잭션에 출고 위치 정보 업데이트
+            validatedData.fromLocation = outboundLocations.join(', ');
             
             // 교환 대기 목록에 추가
             await storage.createExchangeQueueItem({
@@ -194,6 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (totalStock >= validatedData.quantity) {
             let remainingQuantity = validatedData.quantity;
+            const outboundLocations: string[] = [];
             
             for (const item of itemsWithCode) {
               if (remainingQuantity <= 0) break;
@@ -204,8 +234,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 stock: item.stock - deductAmount
               });
               
+              if (item.location) {
+                outboundLocations.push(item.location);
+              }
+              
               remainingQuantity -= deductAmount;
             }
+            
+            // 트랜잭션에 출고 위치 정보 업데이트
+            validatedData.fromLocation = outboundLocations.join(', ');
           } else {
             return res.status(400).json({ message: "Insufficient stock" });
           }
