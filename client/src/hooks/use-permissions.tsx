@@ -21,6 +21,8 @@ export function usePermissions() {
     canManageBom: isAdmin,
     canManageWarehouse: isAdmin,
     canUploadFiles: isAdmin,
+    canDownloadData: !!user, // Admin과 Viewer 모두 허용
+    canRestoreData: isAdmin,
     canProcessExchange: isAdmin,
     
     // 사용자 정보
