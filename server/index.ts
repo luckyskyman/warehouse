@@ -6,6 +6,18 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Simple session store for authentication
+const sessions = new Map();
+
+// Session middleware
+app.use((req: any, res, next) => {
+  const sessionId = req.headers['x-session-id'];
+  if (sessionId && sessions.has(sessionId)) {
+    req.user = sessions.get(sessionId);
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

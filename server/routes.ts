@@ -1,11 +1,11 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertInventoryItemSchema, insertTransactionSchema, insertBomGuideSchema, insertWarehouseLayoutSchema, insertExchangeQueueSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware for role-based access control
-  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const requireAdmin = (req: any, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
@@ -15,22 +15,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  // Simple session store (should use Redis or database in production)
+  const sessions = new Map();
+  
+  // Add session middleware access
+  app.use((req: any, res, next) => {
+    const sessionId = req.headers['x-session-id'];
+    if (sessionId && sessions.has(sessionId)) {
+      req.user = sessions.get(sessionId);
+    }
+    next();
+  });
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { username, password } = req.body;
       const user = await storage.getUserByUsername(username);
-      
+
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      // Generate session ID
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessions.set(sessionId, user);
 
       res.json({ 
         user: { 
           id: user.id, 
           username: user.username, 
           role: user.role 
-        } 
+        },
+        sessionId: sessionId
       });
     } catch (error) {
       res.status(500).json({ message: "Server error" });
@@ -113,7 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTransactionSchema.parse(req.body);
       const transaction = await storage.createTransaction(validatedData);
-      
+
       // Update inventory based on transaction type
       if (validatedData.type === "inbound") {
         // 입고 처리: 입고 폼에서 이미 새로운 재고 항목을 생성했으므로 추가 처리 불필요
@@ -122,32 +139,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 출고 처리: 사유별로 다른 처리
         const allItems = await storage.getInventoryItems();
         const itemsWithCode = allItems.filter(item => item.code === validatedData.itemCode && item.stock > 0);
-        
+
         if (validatedData.reason === "조립장 이동") {
           // 조립장 이동: 재고에서 차감만
           const totalStock = itemsWithCode.reduce((sum, item) => sum + item.stock, 0);
-          
+
           if (totalStock >= validatedData.quantity) {
             let remainingQuantity = validatedData.quantity;
             const outboundLocations: string[] = [];
-            
+
             // 위치별로 재고 차감 (FIFO 방식) 및 위치 정보 수집
             for (const item of itemsWithCode) {
               if (remainingQuantity <= 0) break;
-              
+
               const deductAmount = Math.min(item.stock, remainingQuantity);
-              
+
               await storage.updateInventoryItemById(item.id, {
                 stock: item.stock - deductAmount
               });
-              
+
               if (item.location) {
                 outboundLocations.push(item.location);
               }
-              
+
               remainingQuantity -= deductAmount;
             }
-            
+
             // 트랜잭션에 출고 위치 정보 업데이트
             validatedData.fromLocation = outboundLocations.join(', ');
           } else {
@@ -160,14 +177,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const recentOutbound = allTransactions
             .filter(t => t.type === "outbound" && t.reason !== "출고 반환")
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-          
+
           const returnLocation = recentOutbound?.fromLocation || validatedData.toLocation;
-          
+
           // 해당 위치의 기존 재고 찾기
           const targetItem = allItems.find(item => 
             item.code === validatedData.itemCode && item.location === returnLocation
           );
-          
+
           if (targetItem) {
             // 해당 위치에 기존 재고가 있으면 가산
             await storage.updateInventoryItemById(targetItem.id, {
@@ -193,31 +210,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else if (validatedData.reason === "불량품 교환 출고") {
           // 불량품 교환 출고: 먼저 재고에서 차감하고 교환 대기 목록에 추가
           const totalStock = itemsWithCode.reduce((sum, item) => sum + item.stock, 0);
-          
+
           if (totalStock >= validatedData.quantity) {
             let remainingQuantity = validatedData.quantity;
             const outboundLocations: string[] = [];
-            
+
             // 위치별로 재고 차감 (FIFO 방식) 및 위치 정보 수집
             for (const item of itemsWithCode) {
               if (remainingQuantity <= 0) break;
-              
+
               const deductAmount = Math.min(item.stock, remainingQuantity);
-              
+
               await storage.updateInventoryItemById(item.id, {
                 stock: item.stock - deductAmount
               });
-              
+
               if (item.location) {
                 outboundLocations.push(item.location);
               }
-              
+
               remainingQuantity -= deductAmount;
             }
-            
+
             // 트랜잭션에 출고 위치 정보 업데이트
             validatedData.fromLocation = outboundLocations.join(', ');
-            
+
             // 교환 대기 목록에 추가
             await storage.createExchangeQueueItem({
               itemCode: validatedData.itemCode,
@@ -231,27 +248,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // 기타 출고: 기존 로직대로 재고 차감
           const totalStock = itemsWithCode.reduce((sum, item) => sum + item.stock, 0);
-          
+
           if (totalStock >= validatedData.quantity) {
             let remainingQuantity = validatedData.quantity;
             const outboundLocations: string[] = [];
-            
+
             for (const item of itemsWithCode) {
               if (remainingQuantity <= 0) break;
-              
+
               const deductAmount = Math.min(item.stock, remainingQuantity);
-              
+
               await storage.updateInventoryItemById(item.id, {
                 stock: item.stock - deductAmount
               });
-              
+
               if (item.location) {
                 outboundLocations.push(item.location);
               }
-              
+
               remainingQuantity -= deductAmount;
             }
-            
+
             // 트랜잭션에 출고 위치 정보 업데이트
             validatedData.fromLocation = outboundLocations.join(', ');
           } else {
@@ -266,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           item.location === validatedData.fromLocation &&
           item.stock >= validatedData.quantity
         );
-        
+
         if (sourceItem) {
           // 이동할 수량이 전체 재고와 같다면 위치만 변경
           if (sourceItem.stock === validatedData.quantity) {
@@ -278,13 +295,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.updateInventoryItemById(sourceItem.id, {
               stock: sourceItem.stock - validatedData.quantity
             });
-            
+
             // 목표 위치에 동일한 제품이 있는지 확인
             const targetItem = allItems.find(item => 
               item.code === validatedData.itemCode && 
               item.location === validatedData.toLocation
             );
-            
+
             if (targetItem) {
               // 기존 아이템에 수량 추가
               await storage.updateInventoryItemById(targetItem.id, {
@@ -316,7 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       res.status(201).json(transaction);
     } catch (error) {
       res.status(400).json({ message: "Invalid data" });
@@ -439,7 +456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           location: null,
           boxSize: Number(item['박스당수량'] || item.boxSize || 1),
         };
-        
+
         if (inventoryItem.code) {
           const created = await storage.createInventoryItem(inventoryItem);
           createdItems.push(created);
@@ -473,7 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           itemCode: String(item['필요부품코드'] || item.itemCode || ''),
           requiredQuantity: Number(item['필요수량'] || item.requiredQuantity || 0),
         };
-        
+
         if (bomItem.guideName && bomItem.itemCode) {
           const created = await storage.createBomGuide(bomItem);
           createdBoms.push(created);
@@ -498,7 +515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const code = String(item['제품코드'] || item.code || '');
         const quantity = Number(item['수량'] || item.quantity || 0);
         const location = `${item['구역'] || item.zone || 'A구역'}-${String(item['세부구역'] || item.subZone || 'A-1').split('-')[1] || '1'}-${String(item['층수'] || item.floor || '1층').replace('층', '')}`;
-        
+
         if (code && quantity > 0) {
           const existingItem = await storage.getInventoryItem(code);
           if (existingItem) {
@@ -577,7 +594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/restore-backup", requireAdmin, async (req, res) => {
     try {
       const { inventory, transactions, bomGuides } = req.body;
-      
+
       let inventoryCount = 0;
       let transactionCount = 0;
       let bomCount = 0;
@@ -679,6 +696,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ created: createdItems.length, items: createdItems });
     } catch (error) {
       res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Process exchange queue item
+  app.post("/api/exchange-queue/:id/process", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const success = await storage.processExchangeQueueItem(id);
+
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: "Exchange queue item not found" });
+    }
+  });
+
+  // Reset all data (admin only)
+  app.post("/api/system/reset", async (req, res) => {
+    try {
+      const success = await storage.resetAllData();
+      if (success) {
+        res.json({ message: "모든 데이터가 초기화되었습니다." });
+      } else {
+        res.status(500).json({ error: "데이터 초기화에 실패했습니다." });
+      }
+    } catch (error) {
+      console.error("데이터 초기화 오류:", error);
+      res.status(500).json({ error: "데이터 초기화 중 오류가 발생했습니다." });
     }
   });
 

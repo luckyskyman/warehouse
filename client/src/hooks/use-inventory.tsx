@@ -3,16 +3,14 @@ import { InventoryItem, Transaction, BomGuide, WarehouseLayout, ExchangeQueue, I
 import { apiRequest } from '@/lib/queryClient';
 
 export function useInventory() {
-  return useQuery<InventoryItem[]>({
+  return useQuery({
     queryKey: ['/api/inventory'],
-    select: (data) => data || [],
   });
 }
 
 export function useInventoryItem(code: string) {
-  return useQuery<InventoryItem>({
+  return useQuery({
     queryKey: ['/api/inventory', code],
-    enabled: !!code,
   });
 }
 
@@ -20,10 +18,7 @@ export function useCreateInventoryItem() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (item: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => {
-      const response = await apiRequest('POST', '/api/inventory', item);
-      return response.json();
-    },
+    mutationFn: (item: any) => apiRequest('POST', '/api/inventory', item),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
     },
@@ -34,10 +29,7 @@ export function useUpdateInventoryItem() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ code, updates }: { code: string; updates: Partial<InventoryItem> }) => {
-      const response = await apiRequest('PATCH', `/api/inventory/${code}`, updates);
-      return response.json();
-    },
+    mutationFn: ({ code, ...updates }: any) => apiRequest('PATCH', `/api/inventory/${code}`, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
     },
@@ -45,9 +37,8 @@ export function useUpdateInventoryItem() {
 }
 
 export function useTransactions(itemCode?: string) {
-  return useQuery<Transaction[]>({
+  return useQuery({
     queryKey: itemCode ? ['/api/transactions', itemCode] : ['/api/transactions'],
-    select: (data) => data || [],
   });
 }
 
@@ -55,30 +46,23 @@ export function useCreateTransaction() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
-      const response = await apiRequest('POST', '/api/transactions', transaction);
-      return response.json();
-    },
+    mutationFn: (transaction: any) => apiRequest('POST', '/api/transactions', transaction),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/exchange-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
     },
   });
 }
 
 export function useBomGuides() {
-  return useQuery<BomGuide[]>({
+  return useQuery({
     queryKey: ['/api/bom'],
-    select: (data) => data || [],
   });
 }
 
 export function useBomGuidesByName(guideName: string) {
-  return useQuery<BomGuide[]>({
+  return useQuery({
     queryKey: ['/api/bom', guideName],
-    enabled: !!guideName,
-    select: (data) => data || [],
   });
 }
 
@@ -86,10 +70,7 @@ export function useCreateBomGuide() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (bom: Omit<BomGuide, 'id' | 'createdAt'>) => {
-      const response = await apiRequest('POST', '/api/bom', bom);
-      return response.json();
-    },
+    mutationFn: (bom: any) => apiRequest('POST', '/api/bom', bom),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
     },
@@ -97,9 +78,8 @@ export function useCreateBomGuide() {
 }
 
 export function useWarehouseLayout() {
-  return useQuery<WarehouseLayout[]>({
+  return useQuery({
     queryKey: ['/api/warehouse/layout'],
-    select: (data) => data || [],
   });
 }
 
@@ -107,10 +87,7 @@ export function useCreateWarehouseZone() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (layout: Omit<WarehouseLayout, 'id' | 'createdAt'>) => {
-      const response = await apiRequest('POST', '/api/warehouse/layout', layout);
-      return response.json();
-    },
+    mutationFn: (zone: any) => apiRequest('POST', '/api/warehouse/layout', zone),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/warehouse/layout'] });
     },
@@ -121,13 +98,7 @@ export function useDeleteWarehouseZone() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiRequest('DELETE', `/api/warehouse/layout/${id}`);
-      if (response.status === 204) {
-        return { success: true };
-      }
-      return response.json();
-    },
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/warehouse/layout/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/warehouse/layout'] });
     },
@@ -135,9 +106,8 @@ export function useDeleteWarehouseZone() {
 }
 
 export function useExchangeQueue() {
-  return useQuery<ExchangeQueue[]>({
+  return useQuery({
     queryKey: ['/api/exchange-queue'],
-    select: (data) => data || [],
   });
 }
 
@@ -145,14 +115,7 @@ export function useProcessExchangeQueueItem() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiRequest('POST', `/api/exchange-queue/${id}/process`);
-      // 204 응답은 내용이 없으므로 JSON 파싱하지 않음
-      if (response.status === 204) {
-        return { success: true };
-      }
-      return response.json();
-    },
+    mutationFn: (id: number) => apiRequest('POST', `/api/exchange-queue/${id}/process`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/exchange-queue'] });
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
@@ -164,16 +127,13 @@ export function useProcessExchangeQueueItem() {
 export function useInventoryStats() {
   const { data: inventory = [] } = useInventory();
   const { data: warehouseLayout = [] } = useWarehouseLayout();
-  
-  // 재고가 있는 제품만 통계에 포함
-  const inventoryWithStock = inventory.filter(item => item.stock > 0);
-  
+
   const stats: InventoryStats = {
-    totalStock: inventoryWithStock.reduce((sum, item) => sum + item.stock, 0),
-    totalItems: inventoryWithStock.length,
-    shortageItems: inventoryWithStock.filter(item => item.stock <= item.minStock).length,
-    warehouseZones: Array.from(new Set(warehouseLayout.map(layout => layout.zoneName))).length || 4,
+    totalItems: inventory.length,
+    totalStock: inventory.reduce((sum: number, item: InventoryItem) => sum + item.stock, 0),
+    shortageItems: inventory.filter((item: InventoryItem) => item.stock < item.minStock).length,
+    warehouseZones: warehouseLayout.length,
   };
-  
-  return stats;
+
+  return { stats };
 }

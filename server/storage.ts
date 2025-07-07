@@ -380,6 +380,26 @@ export class MemStorage implements IStorage {
     console.log(`교환 처리 완료`);
     return true;
   }
+
+  // 데이터 초기화 기능
+  async resetAllData(): Promise<boolean> {
+    console.log('모든 데이터 초기화 시작...');
+    
+    // 모든 데이터 초기화
+    this.inventoryItems.clear();
+    this.transactions = [];
+    this.bomGuides = [];
+    this.exchangeQueue = [];
+    
+    // ID 카운터 초기화 (사용자와 레이아웃은 유지)
+    this.currentItemId = 1;
+    this.currentTransactionId = 1;
+    this.currentBomId = 1;
+    this.currentExchangeId = 1;
+    
+    console.log('모든 데이터 초기화 완료');
+    return true;
+  }
 }
 
 export const storage = new MemStorage();
