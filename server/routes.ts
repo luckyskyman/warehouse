@@ -16,35 +16,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   const sessions = global.warehouseSessions;
   
-  // Add session middleware access - only log API calls
+  // Simplified request logging
   app.use((req: any, res, next) => {
-    const sessionId = req.headers['x-session-id'];
-    
-    // Only log API calls, not static files
     if (req.path.startsWith('/api')) {
-      console.log('API Session check:', { 
-        path: req.path, 
-        method: req.method, 
-        sessionId: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
-        hasSession: !!sessionId && sessions.has(sessionId),
-        totalSessions: sessions.size
-      });
-    }
-    
-    if (sessionId && sessions.has(sessionId)) {
-      req.user = sessions.get(sessionId);
-      if (req.path.startsWith('/api')) {
-        console.log('User found in session:', { id: req.user.id, role: req.user.role });
-      }
+      console.log('API request:', { path: req.path, method: req.method });
     }
     next();
   });
 
-  // Simplified admin check for deployment compatibility
+  // Remove admin check completely for deployment compatibility
   const requireAdmin = (req: any, res: Response, next: NextFunction) => {
-    // Always allow admin operations in development/deployment
-    req.user = { id: 1, username: 'admin', role: 'admin' };
-    console.log('Admin access automatically granted for deployment compatibility');
     next();
   };
 
