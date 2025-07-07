@@ -19,12 +19,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware for role-based access control
   const requireAdmin = (req: any, res: Response, next: NextFunction) => {
     const sessionId = req.headers['x-session-id'];
+    console.log('Admin check:', { sessionId, hasSession: !!sessionId });
+    
     if (!sessionId || !sessions.has(sessionId)) {
+      console.log('Session not found or invalid');
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
     
     const user = sessions.get(sessionId);
+    console.log('User from session:', user);
+    
     if (!user || user.role !== 'admin') {
+      console.log('User not admin:', user?.role);
       return res.status(403).json({ message: "Admin 권한이 필요합니다. 현재 계정은 조회 전용입니다." });
     }
     
@@ -719,10 +725,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reset all data (admin only)
   app.post("/api/system/reset", requireAdmin, async (req, res) => {
     try {
+      console.log('System reset requested by user:', req.user);
       const success = await storage.resetAllData();
       if (success) {
+        console.log('System reset completed successfully');
         res.json({ message: "모든 데이터가 초기화되었습니다." });
       } else {
+        console.log('System reset failed');
         res.status(500).json({ error: "데이터 초기화에 실패했습니다." });
       }
     } catch (error) {
