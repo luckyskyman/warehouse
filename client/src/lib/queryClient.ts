@@ -13,7 +13,10 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   const sessionId = localStorage.getItem('warehouse_session');
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+  };
   
   if (data) {
     headers["Content-Type"] = "application/json";
@@ -21,6 +24,9 @@ export async function apiRequest(
   
   if (sessionId) {
     headers["x-session-id"] = sessionId;
+    console.log('API request with session:', { method, url, sessionId: sessionId.substring(0, 20) + '...' });
+  } else {
+    console.log('API request without session:', { method, url });
   }
 
   const res = await fetch(url, {
@@ -28,8 +34,11 @@ export async function apiRequest(
     headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
+    cache: "no-cache",
   });
 
+  console.log('API response:', { status: res.status, statusText: res.statusText, url });
+  
   await throwIfResNotOk(res);
   return res;
 }
