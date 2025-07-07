@@ -2,6 +2,31 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryItem, Transaction, BomGuide, WarehouseLayout, ExchangeQueue, InventoryStats } from '@/types/warehouse';
 import { apiRequest } from '@/lib/queryClient';
 
+async function apiRequest(method: string, url: string, data?: any) {
+  const sessionId = localStorage.getItem('sessionId');
+
+  const options: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(sessionId && { 'x-session-id': sessionId }),
+    },
+  };
+
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+  }
+
+  return response;
+}
+
 export function useInventory() {
   return useQuery<InventoryItem[]>({
     queryKey: ['/api/inventory'],
@@ -18,7 +43,7 @@ export function useInventoryItem(code: string) {
 
 export function useCreateInventoryItem() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (item: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => {
       const response = await apiRequest('POST', '/api/inventory', item);
@@ -32,7 +57,7 @@ export function useCreateInventoryItem() {
 
 export function useUpdateInventoryItem() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ code, updates }: { code: string; updates: Partial<InventoryItem> }) => {
       const response = await apiRequest('PATCH', `/api/inventory/${code}`, updates);
@@ -53,7 +78,7 @@ export function useTransactions(itemCode?: string) {
 
 export function useCreateTransaction() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
       const response = await apiRequest('POST', '/api/transactions', transaction);
@@ -84,7 +109,7 @@ export function useBomGuidesByName(guideName: string) {
 
 export function useCreateBomGuide() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (bom: Omit<BomGuide, 'id' | 'createdAt'>) => {
       const response = await apiRequest('POST', '/api/bom', bom);
@@ -105,7 +130,7 @@ export function useWarehouseLayout() {
 
 export function useCreateWarehouseZone() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (layout: Omit<WarehouseLayout, 'id' | 'createdAt'>) => {
       const response = await apiRequest('POST', '/api/warehouse/layout', layout);
@@ -119,7 +144,7 @@ export function useCreateWarehouseZone() {
 
 export function useDeleteWarehouseZone() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest('DELETE', `/api/warehouse/layout/${id}`);
@@ -143,7 +168,7 @@ export function useExchangeQueue() {
 
 export function useProcessExchangeQueueItem() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest('POST', `/api/exchange-queue/${id}/process`);
@@ -164,16 +189,16 @@ export function useProcessExchangeQueueItem() {
 export function useInventoryStats() {
   const { data: inventory = [] } = useInventory();
   const { data: warehouseLayout = [] } = useWarehouseLayout();
-  
+
   // 재고가 있는 제품만 통계에 포함
   const inventoryWithStock = inventory.filter(item => item.stock > 0);
-  
+
   const stats: InventoryStats = {
     totalStock: inventoryWithStock.reduce((sum, item) => sum + item.stock, 0),
     totalItems: inventoryWithStock.length,
     shortageItems: inventoryWithStock.filter(item => item.stock <= item.minStock).length,
     warehouseZones: Array.from(new Set(warehouseLayout.map(layout => layout.zoneName))).length || 4,
   };
-  
+
   return stats;
 }

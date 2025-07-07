@@ -15,11 +15,30 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(username, password);
+      const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({username, password}),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.sessionId) {
+        localStorage.setItem('sessionId', result.sessionId);
+      }
+      login(result.user);
+      // console.log(result.user, "result.user")
       toast({
         title: "로그인 성공",
         description: "창고 관리 시스템에 오신 것을 환영합니다.",
       });
+    } else {
+      toast({
+        title: "로그인 실패",
+        description: "아이디 또는 비밀번호가 잘못되었습니다.",
+        variant: "destructive",
+      });
+    }
     } catch (error) {
       toast({
         title: "로그인 실패",
@@ -37,7 +56,7 @@ export function LoginForm() {
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">재고관리시스템 로그인</h2>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">아이디</Label>
@@ -50,7 +69,7 @@ export function LoginForm() {
                 className="w-full"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">비밀번호</Label>
               <Input
@@ -62,7 +81,7 @@ export function LoginForm() {
                 className="w-full"
               />
             </div>
-            
+
             <Button 
               type="submit" 
               className="w-full btn-warehouse-primary"

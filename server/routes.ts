@@ -1,11 +1,11 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertInventoryItemSchema, insertTransactionSchema, insertBomGuideSchema, insertWarehouseLayoutSchema, insertExchangeQueueSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware for role-based access control
-  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const requireAdmin = (req: any, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ message: "로그인이 필요합니다." });
     }
@@ -14,6 +14,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
+
+  // Simple session store (should use Redis or database in production)
+  const sessions = new Map();
+  
+  // Add session middleware access
+  app.use((req: any, res, next) => {
+    const sessionId = req.headers['x-session-id'];
+    if (sessionId && sessions.has(sessionId)) {
+      req.user = sessions.get(sessionId);
+    }
+    next();
+  });
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
@@ -25,12 +37,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Generate session ID
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessions.set(sessionId, user);
+
       res.json({ 
         user: { 
           id: user.id, 
           username: user.username, 
           role: user.role 
-        } 
+        },
+        sessionId: sessionId
       });
     } catch (error) {
       res.status(500).json({ message: "Server error" });
