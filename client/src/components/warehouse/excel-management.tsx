@@ -267,24 +267,13 @@ export function ExcelManagement() {
     }
 
     try {
-      const sessionId = localStorage.getItem('warehouse_session');
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json"
-      };
-      
-      if (sessionId) {
-        headers["x-session-id"] = sessionId;
-      }
-      
-      // Development fallback for deployment issues
-      headers["authorization"] = "Bearer admin-development-override";
-
-      console.log('Attempting system reset with headers:', headers);
+      console.log('Attempting system reset...');
 
       const response = await fetch("/api/system/reset", {
         method: "POST",
-        headers,
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
       });
 
       console.log('Reset response:', { status: response.status, statusText: response.statusText });
@@ -482,7 +471,7 @@ export function ExcelManagement() {
           </Card>
         </PermissionGuard>
 
-        {/* System Reset - Admin Only (Server-side validation) */}
+        {/* System Reset - Always show for deployment compatibility */}
         <Card className="p-6">
           <div className="space-y-4">
             <div>

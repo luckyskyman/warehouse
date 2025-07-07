@@ -100,8 +100,21 @@ export function useDeleteWarehouseZone() {
   return useMutation({
     mutationFn: async (id: number) => {
       console.log('Deleting warehouse zone:', id);
-      const response = await apiRequest('DELETE', `/api/warehouse/layout/${id}`);
-      console.log('Delete response status:', response.status);
+      
+      const response = await fetch(`/api/warehouse/layout/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      });
+      
+      console.log('Delete response:', { status: response.status, statusText: response.statusText });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: 삭제 요청이 실패했습니다.`);
+      }
+      
       return response;
     },
     onSuccess: () => {
