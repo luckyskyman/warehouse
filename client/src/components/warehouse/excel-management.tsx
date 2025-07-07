@@ -85,12 +85,29 @@ export function ExcelManagement() {
     if (!file) return;
 
     try {
+      console.log('Starting master upload for file:', file.name);
+      
       const data = await parseExcelFile(file);
       console.log('Parsed master data:', data.length, 'items');
+      console.log('Sample data:', data.slice(0, 2));
 
-      const response = await apiRequest('POST', '/api/upload/master', { items: data });
-      const result = await response.json();
+      const response = await fetch('/api/upload/master', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ items: data })
+      });
       
+      console.log('Upload response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Upload failed:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: 업로드가 실패했습니다.`);
+      }
+      
+      const result = await response.json();
       console.log('Master upload result:', result);
 
       // 모든 관련 쿼리 새로고침

@@ -85,18 +85,44 @@ export const parseExcelFile = (file: File): Promise<any[]> => {
     
     reader.onload = (e) => {
       try {
+        console.log('Excel file read started for:', file.name);
+        
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
+        
+        console.log('Workbook sheets:', workbook.SheetNames);
+        
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        // JSON으로 변환 (빈 셀도 포함)
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+          defval: "",  // 빈 셀의 기본값
+          raw: false   // 문자열로 변환
+        });
+        
+        console.log('Parsed Excel data:', {
+          rows: jsonData.length,
+          columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : [],
+          sample: jsonData.slice(0, 2)
+        });
+        
+        if (jsonData.length === 0) {
+          throw new Error('엑셀 파일이 비어있거나 데이터가 없습니다.');
+        }
+        
         resolve(jsonData);
       } catch (error) {
+        console.error('Excel parsing error:', error);
         reject(error);
       }
     };
     
-    reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+    reader.onerror = () => {
+      console.error('File reader error');
+      reject(new Error('파일을 읽을 수 없습니다.'));
+    };
+    
     reader.readAsArrayBuffer(file);
   });
 };
