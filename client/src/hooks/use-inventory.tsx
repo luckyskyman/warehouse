@@ -106,7 +106,7 @@ export function useDeleteWarehouseZone() {
       queryClient.invalidateQueries({ queryKey: ['/api/warehouse/layout'] });
     },
     onError: (error) => {
-      console.error('Delete warehouse zone error:', error);
+      // Error handling moved to component level
     },
   });
 }

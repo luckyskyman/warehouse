@@ -34,7 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('warehouse_user', JSON.stringify(data.user));
       localStorage.setItem('warehouse_session', data.sessionId);
     } catch (error) {
-      console.error('Login error:', error);
       throw error instanceof Error ? error : new Error('로그인에 실패했습니다.');
     } finally {
       setIsLoading(false);

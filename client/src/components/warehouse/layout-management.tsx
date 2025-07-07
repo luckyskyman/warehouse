@@ -97,7 +97,6 @@ export function LayoutManagement() {
         description: `${zoneName}-${subZoneName}이(가) 삭제되었습니다.`,
       });
     } catch (error) {
-      console.error('Delete error:', error);
       const errorMessage = error instanceof Error ? error.message : "구역 삭제 중 오류가 발생했습니다.";
       toast({
         title: "삭제 실패",
