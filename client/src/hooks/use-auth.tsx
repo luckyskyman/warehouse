@@ -18,12 +18,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('POST', '/api/auth/login', { username, password });
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '로그인에 실패했습니다.');
+      }
+
       const data = await response.json();
       setUser(data.user);
       localStorage.setItem('warehouse_user', JSON.stringify(data.user));
+      localStorage.setItem('warehouse_session', data.sessionId);
     } catch (error) {
-      throw new Error('로그인에 실패했습니다.');
+      console.error('Login error:', error);
+      throw error instanceof Error ? error : new Error('로그인에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -32,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('warehouse_user');
+    localStorage.removeItem('warehouse_session');
   };
 
   useEffect(() => {
