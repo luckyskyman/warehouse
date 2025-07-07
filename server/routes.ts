@@ -7,11 +7,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Simple session store (should use Redis or database in production)
   const sessions = new Map();
   
-  // Add session middleware access
+  // Add session middleware access with detailed logging
   app.use((req: any, res, next) => {
     const sessionId = req.headers['x-session-id'];
+    console.log('Session middleware:', { 
+      path: req.path, 
+      method: req.method, 
+      sessionId: sessionId ? sessionId.substring(0, 20) + '...' : 'none',
+      hasSession: !!sessionId && sessions.has(sessionId)
+    });
+    
     if (sessionId && sessions.has(sessionId)) {
       req.user = sessions.get(sessionId);
+      console.log('User attached to request:', { id: req.user.id, role: req.user.role });
     }
     next();
   });
