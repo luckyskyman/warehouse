@@ -4,6 +4,18 @@ import { storage } from "./storage";
 import { insertInventoryItemSchema, insertTransactionSchema, insertBomGuideSchema, insertWarehouseLayoutSchema, insertExchangeQueueSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Simple session store (should use Redis or database in production)
+  const sessions = new Map();
+  
+  // Add session middleware access
+  app.use((req: any, res, next) => {
+    const sessionId = req.headers['x-session-id'];
+    if (sessionId && sessions.has(sessionId)) {
+      req.user = sessions.get(sessionId);
+    }
+    next();
+  });
+
   // Middleware for role-based access control
   const requireAdmin = (req: any, res: Response, next: NextFunction) => {
     const sessionId = req.headers['x-session-id'];
@@ -19,18 +31,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     req.user = user;
     next();
   };
-
-  // Simple session store (should use Redis or database in production)
-  const sessions = new Map();
-  
-  // Add session middleware access
-  app.use((req: any, res, next) => {
-    const sessionId = req.headers['x-session-id'];
-    if (sessionId && sessions.has(sessionId)) {
-      req.user = sessions.get(sessionId);
-    }
-    next();
-  });
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {

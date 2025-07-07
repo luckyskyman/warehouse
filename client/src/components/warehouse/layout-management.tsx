@@ -91,12 +91,17 @@ export function LayoutManagement() {
 
   const handleDelete = async (zoneId: number, zoneName: string, subZoneName: string) => {
     try {
+      console.log('Attempting to delete zone:', { zoneId, zoneName, subZoneName });
+      const sessionId = localStorage.getItem('warehouse_session');
+      console.log('Session check for delete:', { sessionId });
+      
       await deleteZone.mutateAsync(zoneId);
       toast({
         title: "구역 삭제 완료",
         description: `${zoneName}-${subZoneName}이(가) 삭제되었습니다.`,
       });
     } catch (error) {
+      console.log('Delete zone error details:', error);
       const errorMessage = error instanceof Error ? error.message : "구역 삭제 중 오류가 발생했습니다.";
       toast({
         title: "삭제 실패",
