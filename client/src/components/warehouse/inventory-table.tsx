@@ -21,23 +21,9 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
     if (!selectedItem) return [];
     
     return allTransactions.filter(tx => {
-      // 제품코드가 같고, 위치가 관련된 트랜잭션만 포함
-      if (tx.itemCode !== selectedItem.code) return false;
-      
-      // 입고: toLocation이 선택된 아이템의 위치와 일치
-      if (tx.type === 'inbound' && tx.toLocation === selectedItem.location) return true;
-      
-      // 출고: fromLocation이 선택된 아이템의 위치와 일치
-      if (tx.type === 'outbound' && tx.fromLocation === selectedItem.location) return true;
-      
-      // 이동: fromLocation 또는 toLocation이 선택된 아이템의 위치와 일치
-      if (tx.type === 'move' && (tx.fromLocation === selectedItem.location || tx.toLocation === selectedItem.location)) return true;
-      
-      // 조정: 위치 정보가 없는 경우 제품코드만으로 판단
-      if (tx.type === 'adjustment') return true;
-      
-      return false;
-    });
+      // 같은 제품코드의 모든 트랜잭션 포함
+      return tx.itemCode === selectedItem.code;
+    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [selectedItem, allTransactions]);
 
   const filteredInventory = useMemo(() => {
@@ -135,7 +121,7 @@ export function InventoryTable({ onEditItem }: InventoryTableProps) {
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
                         <DialogHeader>
-                          <DialogTitle>입출고 내역 - {selectedItem?.name || item.name}</DialogTitle>
+                          <DialogTitle>입출고 내역 - {selectedItem?.name || item.name} (제품코드: {selectedItem?.code || item.code})</DialogTitle>
                         </DialogHeader>
                         <div className="max-h-96 overflow-y-auto">
                           {filteredTransactions.length === 0 ? (
