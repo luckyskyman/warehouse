@@ -289,7 +289,6 @@ export function ExcelManagement() {
         description: "모든 데이터가 초기 상태로 되돌아갔습니다.",
       });
     } catch (error) {
-      console.error("초기화 오류:", error);
       toast({
         title: "초기화 실패",
         description: error instanceof Error ? error.message : "초기화 중 오류가 발생했습니다.",
