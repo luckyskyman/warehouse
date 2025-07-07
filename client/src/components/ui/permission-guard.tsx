@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
-  permission: 'canCreate' | 'canUpdate' | 'canDelete' | 'canManageInventory' | 'canProcessTransactions' | 'canManageBom' | 'canManageWarehouse' | 'canUploadFiles' | 'canProcessExchange';
+  permission: 'canCreate' | 'canUpdate' | 'canDelete' | 'canManageInventory' | 'canProcessTransactions' | 'canManageBom' | 'canManageWarehouse' | 'canUploadFiles' | 'canDownloadData' | 'canRestoreData' | 'canProcessExchange';
   fallback?: React.ReactNode;
   showViewerMessage?: boolean;
 }
