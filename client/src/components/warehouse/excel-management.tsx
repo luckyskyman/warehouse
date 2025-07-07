@@ -36,34 +36,31 @@ export function ExcelManagement() {
 
     try {
       const data = await parseExcelFile(file);
-      console.log('BOM 데이터:', data);
       
-      // Send to server
-      const response = await fetch('/api/upload/bom', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: data }),
-      });
-
-      if (!response.ok) {
-        throw new Error('서버 업로드 실패');
+      for (const row of data) {
+        if (!row['설치가이드명'] || !row['필요부품코드'] || !row['필요수량']) continue;
+        
+        await fetch('/api/bom', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guideName: row['설치가이드명'],
+            itemCode: row['필요부품코드'],
+            requiredQuantity: parseInt(row['필요수량']) || 1
+          })
+        });
       }
 
-      const result = await response.json();
-      
-      // Refresh cache
       queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
       
       toast({
         title: "BOM 업로드 완료",
-        description: `${result.created}개의 BOM 항목이 업로드되었습니다.`,
+        description: `${data.length}개의 자재명세서가 등록되었습니다.`,
       });
     } catch (error) {
       toast({
         title: "업로드 실패",
-        description: "BOM 파일을 읽는 중 오류가 발생했습니다.",
+        description: "파일 형식을 확인해주세요.",
         variant: "destructive",
       });
     }
@@ -79,34 +76,40 @@ export function ExcelManagement() {
 
     try {
       const data = await parseExcelFile(file);
-      console.log('마스터 데이터:', data);
-      
-      // Send to server
-      const response = await fetch('/api/upload/master', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: data }),
-      });
+      let successCount = 0;
 
-      if (!response.ok) {
-        throw new Error('서버 업로드 실패');
+      for (const row of data) {
+        if (!row['제품코드'] || !row['품명']) continue;
+        
+        const response = await fetch('/api/inventory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: row['제품코드'],
+            name: row['품명'],
+            category: row['카테고리'] || '기타',
+            manufacturer: row['제조사'] || null,
+            stock: 0,
+            minStock: parseInt(row['최소재고']) || 10,
+            unit: row['단위'] || '개',
+            location: '미지정',
+            boxSize: parseInt(row['박스당수량']) || 1
+          })
+        });
+
+        if (response.ok) successCount++;
       }
 
-      const result = await response.json();
-      
-      // Refresh cache
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       
       toast({
-        title: "마스터 목록 업로드 완료",
-        description: `${result.created}개의 제품이 등록되었습니다.`,
+        title: "마스터 업로드 완료",
+        description: `${successCount}개의 제품이 등록되었습니다.`,
       });
     } catch (error) {
       toast({
         title: "업로드 실패",
-        description: "마스터 파일을 읽는 중 오류가 발생했습니다.",
+        description: "파일 형식을 확인해주세요.",
         variant: "destructive",
       });
     }
@@ -122,34 +125,42 @@ export function ExcelManagement() {
 
     try {
       const data = await parseExcelFile(file);
-      console.log('추가/보충 데이터:', data);
-      
-      // Send to server
-      const response = await fetch('/api/upload/inventory-add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: data }),
-      });
+      let successCount = 0;
 
-      if (!response.ok) {
-        throw new Error('서버 업로드 실패');
+      for (const row of data) {
+        if (!row['제품코드'] || !row['수량']) continue;
+        
+        const quantity = parseInt(row['수량']) || 0;
+        if (quantity <= 0) continue;
+
+        const response = await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'inbound',
+            itemCode: row['제품코드'],
+            itemName: row['품명'] || row['제품코드'],
+            quantity: quantity,
+            toLocation: row['위치'] || '미지정',
+            reason: '엑셀 일괄 입고',
+            memo: row['비고'] || null
+          })
+        });
+
+        if (response.ok) successCount++;
       }
 
-      const result = await response.json();
-      
-      // Refresh cache
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       
       toast({
-        title: "재고 추가/보충 완료",
-        description: `${result.updated}개 항목의 재고가 추가/보충되었습니다.`,
+        title: "재고 추가 완료",
+        description: `${successCount}개 항목의 재고가 추가되었습니다.`,
       });
     } catch (error) {
       toast({
         title: "업로드 실패",
-        description: "파일을 읽는 중 오류가 발생했습니다.",
+        description: "파일 형식을 확인해주세요.",
         variant: "destructive",
       });
     }
@@ -165,34 +176,26 @@ export function ExcelManagement() {
 
     try {
       const data = await parseExcelFile(file);
-      console.log('동기화 데이터:', data);
       
-      // Send to server
-      const response = await fetch('/api/upload/inventory-sync', {
+      const response = await fetch('/api/inventory/sync', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: data }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: data })
       });
 
-      if (!response.ok) {
-        throw new Error('서버 업로드 실패');
-      }
+      if (!response.ok) throw new Error('동기화 실패');
 
-      const result = await response.json();
-      
-      // Refresh cache
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       
       toast({
-        title: "재고 전체 동기화 완료",
-        description: `${result.synced}개 항목으로 재고가 전체 동기화되었습니다.`,
+        title: "재고 동기화 완료",
+        description: "모든 재고가 업로드한 파일과 동기화되었습니다.",
       });
     } catch (error) {
       toast({
         title: "동기화 실패",
-        description: "파일을 읽는 중 오류가 발생했습니다.",
+        description: "파일 형식을 확인해주세요.",
         variant: "destructive",
       });
     }
@@ -231,96 +234,17 @@ export function ExcelManagement() {
 
     try {
       const backup = await parseBackupFile(file);
-      console.log('복원 데이터:', backup);
       
-      // 백업 데이터를 현재 시스템 형식으로 변환
-      const convertedInventory = backup.inventory?.map((item: any) => ({
-        code: item.productCode || item.code,
-        name: item.productName || item.name,
-        category: item.category,
-        manufacturer: item.manufacturer || null,
-        stock: item.quantity || item.stock || 0,
-        minStock: item.minStock || 10,
-        unit: item.unit || "개",
-        location: item.location || `${item.zone}-${item.subZone}-${item.floor}`,
-        boxSize: item.boxSize || 1
-      })) || [];
-
-      // 백업 파일에 거래내역이 없다면 재고 이동내역으로부터 생성
-      let convertedTransactions = backup.transactions?.map((trans: any) => ({
-        type: trans.type,
-        itemCode: trans.itemCode,
-        itemName: trans.itemName,
-        quantity: trans.quantity,
-        fromLocation: trans.fromLocation || null,
-        toLocation: trans.toLocation || null,
-        reason: trans.reason || null,
-        memo: trans.memo || null,
-        userId: trans.userId || null
-      })) || [];
-
-      // 거래내역이 없으면 재고 moveHistory에서 생성
-      if (convertedTransactions.length === 0 && backup.inventory) {
-        convertedTransactions = [];
-        backup.inventory.forEach((item: any) => {
-          if (item.moveHistory && Array.isArray(item.moveHistory)) {
-            item.moveHistory.forEach((move: any) => {
-              if (move.type === 'outbound') {
-                convertedTransactions.push({
-                  type: 'outbound',
-                  itemCode: item.productCode || item.code,
-                  itemName: item.productName || item.name,
-                  quantity: move.qty || move.quantity,
-                  fromLocation: move.from || null,
-                  toLocation: move.to || null,
-                  reason: move.to || '이동',
-                  memo: null,
-                  userId: null
-                });
-              } else if (move.from === '신규입고') {
-                convertedTransactions.push({
-                  type: 'inbound',
-                  itemCode: item.productCode || item.code,
-                  itemName: item.productName || item.name,
-                  quantity: move.qty || move.quantity,
-                  fromLocation: null,
-                  toLocation: move.to || null,
-                  reason: '신규입고',
-                  memo: null,
-                  userId: null
-                });
-              }
-            });
-          }
-        });
-      }
-
-      const convertedBomGuides = backup.bomGuides?.map((bom: any) => ({
-        guideName: bom.guideName,
-        itemCode: bom.itemCode,
-        requiredQuantity: bom.requiredQuantity
-      })) || [];
-
-      // 서버에 복원 데이터 전송
-      const response = await fetch('/api/restore-backup', {
+      const response = await fetch('/api/restore', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          inventory: convertedInventory,
-          transactions: convertedTransactions,
-          bomGuides: convertedBomGuides
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(backup)
       });
 
-      if (!response.ok) {
-        throw new Error('복원 실패');
-      }
+      if (!response.ok) throw new Error('복원 실패');
 
       const result = await response.json();
       
-      // 캐시 새로고침
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
@@ -349,11 +273,11 @@ export function ExcelManagement() {
       </h2>
 
       <div className="space-y-6">
-        {/* BOM Management */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">1. 자재 명세서(BOM) 관리</h3>
-            <PermissionGuard permission="canUploadFiles">
+        {/* BOM Management - Admin Only */}
+        <PermissionGuard permission="canUploadFiles">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">1. 자재 명세서(BOM) 관리</h3>
               <div className="file-upload-zone" onClick={() => bomFileRef.current?.click()}>
                 <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-blue-500" />
                 <h4 className="font-semibold mb-1">📋 자재 명세서(BOM) 업로드</h4>
@@ -368,46 +292,86 @@ export function ExcelManagement() {
                   onChange={handleBomUpload}
                 />
               </div>
-            </PermissionGuard>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
 
-        {/* Master List Management */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">2. 제품 마스터 관리</h3>
-            <PermissionGuard permission="canUploadFiles">
+        {/* Master List Management - Admin Only */}
+        <PermissionGuard permission="canUploadFiles">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">2. 제품 마스터 관리</h3>
               <div className="file-upload-zone" onClick={() => masterFileRef.current?.click()}>
                 <Database className="w-8 h-8 mx-auto mb-2 text-blue-500" />
                 <h4 className="font-semibold mb-1">📋 제품 마스터 목록 업로드</h4>
-              <p className="text-sm text-gray-600">
-                시스템에 등록할 제품의 기본 정보(제품코드, 품명, 박스당수량)를 올립니다.
-              </p>
-              <input
-                ref={masterFileRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={handleMasterUpload}
-              />
-            </div>
-            </PermissionGuard>
-          </CardContent>
-        </Card>
+                <p className="text-sm text-gray-600">
+                  시스템에 등록할 제품의 기본 정보(제품코드, 품명, 박스당수량)를 올립니다.
+                </p>
+                <input
+                  ref={masterFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleMasterUpload}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
 
-        {/* Inventory Add/Update */}
+        {/* Data Export Section - All Users */}
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">3. 재고 추가 / 보충 (안전)</h3>
-            <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-4">3. 데이터 내보내기</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="file-upload-zone" onClick={() => exportInventoryToExcel(inventory)}>
+                <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                <h4 className="font-semibold mb-1">📦 재고현황 다운로드</h4>
+                <p className="text-sm text-gray-600">
+                  현재 재고 현황을 엑셀 파일로 내보냅니다.
+                </p>
+              </div>
+              
+              <div className="file-upload-zone" onClick={() => exportTransactionsToExcel(transactions)}>
+                <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                <h4 className="font-semibold mb-1">📊 거래내역 다운로드</h4>
+                <p className="text-sm text-gray-600">
+                  모든 거래 내역을 엑셀 파일로 내보냅니다.
+                </p>
+              </div>
+              
+              <div className="file-upload-zone" onClick={() => exportBomToExcel(bomGuides)}>
+                <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                <h4 className="font-semibold mb-1">📋 BOM 목록 다운로드</h4>
+                <p className="text-sm text-gray-600">
+                  자재명세서 목록을 엑셀 파일로 내보냅니다.
+                </p>
+              </div>
+              
               <div className="file-upload-zone" onClick={exportBlankTemplate}>
                 <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
                 <h4 className="font-semibold mb-1">📄 빈 양식 다운로드</h4>
                 <p className="text-sm text-gray-600">
-                  새로 입고된 품목을 추가하기 위한 빈 템플릿을 받습니다.
+                  입고 작업용 빈 템플릿을 받습니다.
                 </p>
               </div>
-              
+
+              <div className="file-upload-zone border-yellow-400" onClick={handleBackup}>
+                <Database className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                <h4 className="font-semibold mb-1">💾 전체 데이터 백업</h4>
+                <p className="text-sm text-gray-600">
+                  현재 시스템의 모든 데이터를 JSON 파일로 백업합니다.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Inventory Add/Update - Admin Only */}
+        <PermissionGuard permission="canUploadFiles">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">4. 재고 추가 / 보충 (안전)</h3>
               <div className="file-upload-zone" onClick={() => addUpdateFileRef.current?.click()}>
                 <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
                 <h4 className="font-semibold mb-1">🚚 파일로 추가/보충</h4>
@@ -422,23 +386,15 @@ export function ExcelManagement() {
                   onChange={handleAddUpdateUpload}
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
 
-        {/* Full Sync */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">4. 재고 전체 동기화 (주의)</h3>
-            <div className="space-y-4">
-              <div className="file-upload-zone" onClick={() => exportInventoryToExcel(inventory)}>
-                <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                <h4 className="font-semibold mb-1">📊 현재고 전체 다운로드</h4>
-                <p className="text-sm text-gray-600">
-                  재고 실사 등을 위해 현재 시스템의 모든 재고 목록을 다운로드합니다.
-                </p>
-              </div>
-              
+        {/* Full Sync - Admin Only */}
+        <PermissionGuard permission="canUploadFiles">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">5. 재고 전체 동기화 (주의)</h3>
               <div className="file-upload-zone" onClick={() => syncFileRef.current?.click()}>
                 <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-500" />
                 <h4 className="font-semibold mb-1">🔄 파일로 전체 동기화</h4>
@@ -453,23 +409,15 @@ export function ExcelManagement() {
                   onChange={handleSyncUpload}
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
 
-        {/* System Data Management */}
-        <Card className="bg-gray-50">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">5. 시스템 데이터 관리</h3>
-            <div className="space-y-4">
-              <div className="file-upload-zone border-yellow-400" onClick={handleBackup}>
-                <Database className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                <h4 className="font-semibold mb-1">💾 전체 데이터 백업</h4>
-                <p className="text-sm text-gray-600">
-                  현재 시스템의 모든 데이터(재고,창고구조,마스터)를 JSON 파일로 백업합니다.
-                </p>
-              </div>
-              
+        {/* System Restore - Admin Only */}
+        <PermissionGuard permission="canRestoreData">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">6. 시스템 데이터 복원</h3>
               <div className="file-upload-zone" onClick={() => restoreFileRef.current?.click()}>
                 <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
                 <h4 className="font-semibold mb-1">📂 전체 데이터 복구</h4>
@@ -484,41 +432,9 @@ export function ExcelManagement() {
                   onChange={handleRestore}
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Export Options */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">데이터 내보내기</h3>
-            <div className="flex flex-wrap gap-4">
-              <Button
-                onClick={() => exportInventoryToExcel(inventory)}
-                className="btn-warehouse-success"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                재고 데이터 다운로드
-              </Button>
-              
-              <Button
-                onClick={() => exportTransactionsToExcel(transactions)}
-                className="btn-warehouse-info"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                입출고 내역 다운로드
-              </Button>
-              
-              <Button
-                onClick={() => exportBomToExcel(bomGuides)}
-                className="btn-warehouse-primary"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                BOM 목록 다운로드
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
       </div>
     </div>
   );
