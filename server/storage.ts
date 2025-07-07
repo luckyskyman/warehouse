@@ -302,39 +302,65 @@ export class MemStorage implements IStorage {
     
     console.log(`교환 처리 시작: ${item.itemCode}, 수량: ${item.quantity}`);
     
-    // 교환 처리 시 새 제품으로 재고 가산
+    // 교환 처리 시 원래 불량품이 출고된 위치로 반환
+    // 불량품 교환 출고 트랜잭션에서 위치 정보 찾기
+    const allTransactions = this.transactions.filter(t => 
+      t.itemCode === item.itemCode && 
+      t.type === "outbound" && 
+      t.reason === "불량품 교환 출고"
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    const originalOutbound = allTransactions[0];
+    const returnLocation = originalOutbound?.fromLocation;
+    
+    console.log(`교환 처리 시작: ${item.itemCode}, 수량: ${item.quantity}, 반환 위치: ${returnLocation}`);
+    
     const allItems = Array.from(this.inventoryItems.values());
-    const itemsWithCode = allItems.filter(inventoryItem => 
-      inventoryItem.code === item.itemCode
-    );
     
-    console.log(`해당 제품 코드 재고 항목 수: ${itemsWithCode.length}`);
-    
-    if (itemsWithCode.length > 0) {
-      // 기존 재고가 있으면 첫 번째 항목에 가산
-      const firstItem = itemsWithCode[0];
-      console.log(`기존 재고: ${firstItem.stock}, 가산 후: ${firstItem.stock + item.quantity}`);
-      await this.updateInventoryItemById(firstItem.id, {
-        stock: firstItem.stock + item.quantity
-      });
-      console.log(`재고 가산 완료`);
-    } else {
-      // 기존 재고가 없으면 마스터 데이터를 찾아서 새 재고 생성
-      const masterItem = allItems.find(inventoryItem => inventoryItem.code === item.itemCode);
-      console.log(`마스터 항목 찾음: ${masterItem ? 'Yes' : 'No'}`);
-      if (masterItem) {
-        await this.createInventoryItem({
-          code: masterItem.code,
-          name: masterItem.name,
-          category: masterItem.category,
-          manufacturer: masterItem.manufacturer,
-          stock: item.quantity,
-          minStock: masterItem.minStock,
-          unit: masterItem.unit,
-          location: null, // 교환품은 기본 위치
-          boxSize: masterItem.boxSize
+    if (returnLocation) {
+      // 원래 위치로 반환
+      const targetItem = allItems.find(inventoryItem => 
+        inventoryItem.code === item.itemCode && inventoryItem.location === returnLocation
+      );
+      
+      if (targetItem) {
+        // 해당 위치에 기존 재고가 있으면 가산
+        console.log(`원래 위치 ${returnLocation}에 기존 재고: ${targetItem.stock}, 가산 후: ${targetItem.stock + item.quantity}`);
+        await this.updateInventoryItemById(targetItem.id, {
+          stock: targetItem.stock + item.quantity
         });
-        console.log(`새 재고 항목 생성 완료`);
+        console.log(`원래 위치로 재고 가산 완료`);
+      } else {
+        // 해당 위치에 재고가 없으면 새로 생성
+        const masterItem = allItems.find(inventoryItem => inventoryItem.code === item.itemCode);
+        if (masterItem) {
+          await this.createInventoryItem({
+            code: masterItem.code,
+            name: masterItem.name,
+            category: masterItem.category,
+            manufacturer: masterItem.manufacturer,
+            stock: item.quantity,
+            minStock: masterItem.minStock,
+            unit: masterItem.unit,
+            location: returnLocation,
+            boxSize: masterItem.boxSize
+          });
+          console.log(`원래 위치 ${returnLocation}에 새 재고 항목 생성 완료`);
+        }
+      }
+    } else {
+      // 위치 정보가 없으면 첫 번째 항목에 가산
+      const itemsWithCode = allItems.filter(inventoryItem => 
+        inventoryItem.code === item.itemCode
+      );
+      
+      if (itemsWithCode.length > 0) {
+        const firstItem = itemsWithCode[0];
+        console.log(`위치 정보 없음, 첫 번째 항목에 가산: ${firstItem.stock + item.quantity}`);
+        await this.updateInventoryItemById(firstItem.id, {
+          stock: firstItem.stock + item.quantity
+        });
+        console.log(`재고 가산 완료`);
       }
     }
     
