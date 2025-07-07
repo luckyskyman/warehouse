@@ -26,9 +26,12 @@ export function ExcelManagement() {
   const { toast } = useToast();
   
   // Debug permissions for deployment
+  const userData = localStorage.getItem('warehouse_user');
+  const sessionData = localStorage.getItem('warehouse_session');
   console.log('Excel Management Debug:', {
-    admin: localStorage.getItem('warehouse_user'),
-    session: localStorage.getItem('warehouse_session')
+    hasUser: !!userData,
+    hasSession: !!sessionData,
+    userRole: userData ? JSON.parse(userData).role : 'none'
   });
   
   const { data: inventory = [] } = useInventory();
