@@ -45,32 +45,43 @@ export function ExcelManagement() {
     if (!file) return;
 
     try {
+      console.log('Starting BOM upload for file:', file.name);
+      
       const data = await parseExcelFile(file);
+      console.log('Parsed BOM data:', data.length, 'items');
+      console.log('Sample BOM data:', data.slice(0, 2));
+      console.log('Available columns:', data.length > 0 ? Object.keys(data[0]) : []);
 
-      for (const row of data) {
-        if (!row['설치가이드명'] || !row['필요부품코드'] || !row['필요수량']) continue;
-
-        await fetch('/api/bom', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            guideName: row['설치가이드명'],
-            itemCode: row['필요부품코드'],
-            requiredQuantity: parseInt(row['필요수량']) || 1
-          })
-        });
+      const response = await fetch('/api/upload/bom', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ items: data })
+      });
+      
+      console.log('BOM upload response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('BOM upload failed:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: BOM 업로드가 실패했습니다.`);
       }
+      
+      const result = await response.json();
+      console.log('BOM upload result:', result);
 
       queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
 
       toast({
         title: "BOM 업로드 완료",
-        description: `${data.length}개의 자재명세서가 등록되었습니다.`,
+        description: `${result.created}개의 자재명세서가 등록되었습니다.`,
       });
     } catch (error) {
+      console.error('BOM upload error:', error);
       toast({
         title: "업로드 실패",
-        description: "파일 형식을 확인해주세요.",
+        description: error instanceof Error ? error.message : "파일 형식을 확인해주세요.",
         variant: "destructive",
       });
     }

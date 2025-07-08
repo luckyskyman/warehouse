@@ -513,9 +513,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Items must be an array" });
       }
 
+      console.log('BOM upload request:', { itemCount: items.length });
+      console.log('Sample BOM items:', items.slice(0, 2));
+
       // 기존 BOM 데이터 모두 삭제 (덮어쓰기)
       const existingBomGuides = await storage.getBomGuides();
       const uniqueGuideNames = Array.from(new Set(existingBomGuides.map(bom => bom.guideName)));
+      console.log('Deleting existing BOM guides:', uniqueGuideNames);
+      
       for (const guideName of uniqueGuideNames) {
         await storage.deleteBomGuidesByName(guideName);
       }
@@ -528,14 +533,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           requiredQuantity: Number(item['필요수량'] || item.requiredQuantity || 0),
         };
 
-        if (bomItem.guideName && bomItem.itemCode) {
+        console.log('Processing BOM item:', bomItem);
+
+        if (bomItem.guideName && bomItem.itemCode && bomItem.requiredQuantity > 0) {
           const created = await storage.createBomGuide(bomItem);
           createdBoms.push(created);
+          console.log('Created BOM item:', created.id);
+        } else {
+          console.log('Skipped invalid BOM item:', bomItem);
         }
       }
 
+      console.log('BOM upload complete:', { processed: createdBoms.length });
       res.json({ created: createdBoms.length, items: createdBoms });
     } catch (error) {
+      console.error('BOM upload error:', error);
       res.status(500).json({ message: "Server error" });
     }
   });

@@ -6,9 +6,18 @@ import { BomCheckResult } from '@/types/warehouse';
 
 export function BomCheck() {
   const [selectedGuide, setSelectedGuide] = useState('');
-  const { data: bomGuides = [] } = useBomGuides();
-  const { data: bomItems = [] } = useBomGuidesByName(selectedGuide);
+  const { data: bomGuides = [], isLoading: bomLoading } = useBomGuides();
+  const { data: bomItems = [], isLoading: bomItemsLoading } = useBomGuidesByName(selectedGuide);
   const { data: inventory = [] } = useInventory();
+
+  console.log('BOM Check Debug:', {
+    selectedGuide,
+    bomGuidesCount: bomGuides.length,
+    bomItemsCount: bomItems.length,
+    inventoryCount: inventory.length,
+    bomLoading,
+    bomItemsLoading
+  });
 
   const guideNames = useMemo(() => {
     return Array.from(new Set(bomGuides.map(bom => bom.guideName)));
@@ -61,16 +70,33 @@ export function BomCheck() {
       
       <div className="mb-6">
         <Label htmlFor="guideSelect">설치가이드 선택</Label>
-        <Select value={selectedGuide} onValueChange={setSelectedGuide}>
-          <SelectTrigger className="w-full mt-2">
-            <SelectValue placeholder="선택하세요" />
-          </SelectTrigger>
-          <SelectContent>
-            {guideNames.map(guideName => (
-              <SelectItem key={guideName} value={guideName}>{guideName}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {bomLoading ? (
+          <div className="p-4 text-center text-gray-500">
+            설치가이드 목록을 불러오는 중...
+          </div>
+        ) : (
+          <Select value={selectedGuide} onValueChange={setSelectedGuide}>
+            <SelectTrigger className="w-full mt-2">
+              <SelectValue placeholder={guideNames.length > 0 ? "설치가이드를 선택하세요" : "등록된 설치가이드가 없습니다"} />
+            </SelectTrigger>
+            <SelectContent>
+              {guideNames.length > 0 ? (
+                guideNames.map(guideName => (
+                  <SelectItem key={guideName} value={guideName}>{guideName}</SelectItem>
+                ))
+              ) : (
+                <SelectItem value="" disabled>
+                  설치가이드가 없습니다. 먼저 BOM 데이터를 업로드하세요.
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        )}
+        {!bomLoading && guideNames.length === 0 && (
+          <p className="text-sm text-yellow-600 mt-2">
+            📋 엑셀관리 탭에서 자재명세서(BOM) 파일을 업로드하세요.
+          </p>
+        )}
       </div>
 
       {selectedGuide && (
