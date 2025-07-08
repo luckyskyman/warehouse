@@ -499,27 +499,29 @@ export function ExcelManagement() {
           </Card>
         </PermissionGuard>
 
-        {/* System Reset - Always show for deployment compatibility */}
-        <Card className="p-6">
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-red-600">⚠️ 데이터 초기화</h3>
-              <p className="text-sm text-gray-600 mt-2">
-                모든 재고, 거래내역, BOM 데이터를 삭제하고 초기 상태로 되돌립니다.
-                <br />
-                <span className="text-red-500 font-medium">이 작업은 되돌릴 수 없습니다!</span>
-              </p>
-            </div>
+        {/* System Reset - Admin Only */}
+        <PermissionGuard requiredPermission="canRestoreData">
+          <Card className="p-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-red-600">⚠️ 데이터 초기화</h3>
+                <p className="text-sm text-gray-600 mt-2">
+                  모든 재고, 거래내역, BOM 데이터를 삭제하고 초기 상태로 되돌립니다.
+                  <br />
+                  <span className="text-red-500 font-medium">이 작업은 되돌릴 수 없습니다!</span>
+                </p>
+              </div>
 
-            <Button 
-              onClick={handleResetData}
-              variant="destructive"
-              className="w-full"
-            >
-              🗑️ 모든 데이터 초기화
-            </Button>
-          </div>
-        </Card>
+              <Button 
+                onClick={handleResetData}
+                variant="destructive"
+                className="w-full"
+              >
+                🗑️ 모든 데이터 초기화
+              </Button>
+            </div>
+          </Card>
+        </PermissionGuard>
       </div>
     </div>
   );
