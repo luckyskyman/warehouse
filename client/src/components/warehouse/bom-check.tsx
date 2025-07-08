@@ -85,7 +85,7 @@ export function BomCheck() {
                   <SelectItem key={guideName} value={guideName}>{guideName}</SelectItem>
                 ))
               ) : (
-                <SelectItem value="" disabled>
+                <SelectItem value="no-guides" disabled>
                   설치가이드가 없습니다. 먼저 BOM 데이터를 업로드하세요.
                 </SelectItem>
               )}
