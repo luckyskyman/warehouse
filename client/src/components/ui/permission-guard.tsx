@@ -6,20 +6,34 @@ import { Badge } from '@/components/ui/badge';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
-  permission: 'canCreate' | 'canUpdate' | 'canDelete' | 'canManageInventory' | 'canProcessTransactions' | 'canManageBom' | 'canManageWarehouse' | 'canUploadFiles' | 'canDownloadData' | 'canRestoreData' | 'canProcessExchange';
+  requiredPermission?: 'canCreate' | 'canUpdate' | 'canDelete' | 'canManageInventory' | 'canProcessTransactions' | 'canManageBom' | 'canManageWarehouse' | 'canUploadFiles' | 'canDownloadData' | 'canRestoreData' | 'canProcessExchange';
+  permission?: 'canCreate' | 'canUpdate' | 'canDelete' | 'canManageInventory' | 'canProcessTransactions' | 'canManageBom' | 'canManageWarehouse' | 'canUploadFiles' | 'canDownloadData' | 'canRestoreData' | 'canProcessExchange';
   fallback?: React.ReactNode;
   showViewerMessage?: boolean;
 }
 
 export function PermissionGuard({ 
   children, 
+  requiredPermission,
   permission, 
   fallback, 
   showViewerMessage = true 
 }: PermissionGuardProps) {
   const permissions = usePermissions();
 
-  if (!permissions[permission]) {
+  // Support both prop names for backward compatibility
+  const permissionToCheck = requiredPermission || permission;
+  
+  console.log('PermissionGuard Debug:', {
+    permissionToCheck,
+    hasPermission: permissionToCheck ? permissions[permissionToCheck] : false,
+    userRole: permissions.user?.role,
+    isAdmin: permissions.isAdmin,
+    canRestoreData: permissions.canRestoreData,
+    allPermissions: permissions
+  });
+  
+  if (!permissionToCheck || !permissions[permissionToCheck]) {
     if (fallback) {
       return <>{fallback}</>;
     }
