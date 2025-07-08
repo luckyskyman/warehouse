@@ -24,15 +24,6 @@ export function PermissionGuard({
   // Support both prop names for backward compatibility
   const permissionToCheck = requiredPermission || permission;
   
-  console.log('PermissionGuard Debug:', {
-    permissionToCheck,
-    hasPermission: permissionToCheck ? permissions[permissionToCheck] : false,
-    userRole: permissions.user?.role,
-    isAdmin: permissions.isAdmin,
-    canRestoreData: permissions.canRestoreData,
-    allPermissions: permissions
-  });
-  
   if (!permissionToCheck || !permissions[permissionToCheck]) {
     if (fallback) {
       return <>{fallback}</>;

@@ -111,6 +111,7 @@ Changelog:
 - July 08, 2025. Fixed BOM upload functionality with proper Excel parsing and bulk upload API
 - July 08, 2025. Added proper permission guards for admin-only functions (data reset, restore)
 - July 08, 2025. Fixed SelectItem empty value error in BOM check component
+- July 08, 2025. Fixed admin mode permission display issue - data reset button now properly shows for admin users
 ```
 
 ## User Preferences
