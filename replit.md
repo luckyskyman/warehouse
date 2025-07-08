@@ -108,10 +108,20 @@ The application uses Drizzle ORM with the following main entities:
 ```
 Changelog:
 - July 06, 2025. Initial setup
+- July 08, 2025. Fixed BOM upload functionality with proper Excel parsing and bulk upload API
+- July 08, 2025. Added proper permission guards for admin-only functions (data reset, restore)
+- July 08, 2025. Fixed SelectItem empty value error in BOM check component
 ```
 
 ## User Preferences
 
 ```
 Preferred communication style: Simple, everyday language.
+```
+
+## Login Credentials
+
+```
+Admin account: username="admin", password="xormr"
+Viewer account: username="viewer", password="1124"
 ```
