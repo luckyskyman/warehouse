@@ -63,6 +63,7 @@ export function useBomGuides() {
 export function useBomGuidesByName(guideName: string) {
   return useQuery({
     queryKey: ['/api/bom', guideName],
+    enabled: !!guideName,
   });
 }
 
