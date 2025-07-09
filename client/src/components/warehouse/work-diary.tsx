@@ -255,7 +255,7 @@ export function WorkDiaryManagement({
 
                 <div className="space-y-2">
                   <Label htmlFor="priority">우선순위</Label>
-                  <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value as any })}>
+                  <Select value={formData.priority || 'normal'} onValueChange={(value) => setFormData({ ...formData, priority: value as any })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

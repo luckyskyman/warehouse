@@ -10,14 +10,7 @@ export function BomCheck() {
   const { data: bomItems = [], isLoading: bomItemsLoading } = useBomGuidesByName(selectedGuide);
   const { data: inventory = [] } = useInventory();
 
-  console.log('BOM Check Debug:', {
-    selectedGuide,
-    bomGuidesCount: bomGuides.length,
-    bomItemsCount: bomItems.length,
-    inventoryCount: inventory.length,
-    bomLoading,
-    bomItemsLoading
-  });
+  
 
   const guideNames = useMemo(() => {
     return Array.from(new Set(bomGuides.map(bom => bom.guideName)));
