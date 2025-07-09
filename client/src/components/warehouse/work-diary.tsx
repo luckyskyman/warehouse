@@ -69,13 +69,17 @@ export function WorkDiaryManagement({
       if (selectedDiary) {
         await onUpdateDiary(selectedDiary.id, formData);
         toast({ title: "업무일지가 수정되었습니다." });
+        // 수정 후에는 폼을 닫습니다
+        setIsFormOpen(false);
+        setSelectedDiary(null);
       } else {
         await onCreateDiary(formData);
         toast({ title: "업무일지가 작성되었습니다." });
+        // 새로 작성 시에는 폼을 열어둔 채로 내용만 초기화합니다
+        setSelectedDiary(null);
       }
 
-      setIsFormOpen(false);
-      setSelectedDiary(null);
+      // 폼 데이터 초기화
       setFormData({
         title: '',
         content: '',
