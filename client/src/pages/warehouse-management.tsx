@@ -14,7 +14,7 @@ import { WorkDiaryManagement } from '@/components/warehouse/work-diary';
 import { Button } from '@/components/ui/button';
 import { TabName } from '@/types/warehouse';
 import { useQuery } from '@tanstack/react-query';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function WarehouseManagement() {
   const { user, logout, sessionId } = useAuth();

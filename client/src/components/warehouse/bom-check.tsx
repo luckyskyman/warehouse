@@ -78,9 +78,9 @@ export function BomCheck() {
                   <SelectItem key={guideName} value={guideName}>{guideName}</SelectItem>
                 ))
               ) : (
-                <SelectItem value="no-guides" disabled>
+                <div className="p-2 text-sm text-gray-500">
                   설치가이드가 없습니다. 먼저 BOM 데이터를 업로드하세요.
-                </SelectItem>
+                </div>
               )}
             </SelectContent>
           </Select>
