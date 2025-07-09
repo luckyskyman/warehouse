@@ -58,7 +58,10 @@ export function WorkDiaryManagement({
 
   const filteredDiaries = workDiaries.filter(diary => {
     if (filterCategory !== 'all' && diary.category !== filterCategory) return false;
-    if (filterDate && !diary.workDate.toISOString().startsWith(filterDate)) return false;
+    if (filterDate) {
+      const diaryDate = new Date(diary.workDate).toISOString().split('T')[0];
+      if (!diaryDate.startsWith(filterDate)) return false;
+    }
     return true;
   });
 

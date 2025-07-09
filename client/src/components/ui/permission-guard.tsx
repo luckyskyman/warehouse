@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
-  requiredPermission?: 'canCreate' | 'canUpdate' | 'canDelete' | 'canManageInventory' | 'canProcessTransactions' | 'canManageBom' | 'canManageWarehouse' | 'canUploadFiles' | 'canDownloadData' | 'canRestoreData' | 'canProcessExchange';
-  permission?: 'canCreate' | 'canUpdate' | 'canDelete' | 'canManageInventory' | 'canProcessTransactions' | 'canManageBom' | 'canManageWarehouse' | 'canUploadFiles' | 'canDownloadData' | 'canRestoreData' | 'canProcessExchange';
+  requiredPermission?: 'canCreate' | 'canUpdate' | 'canDelete' | 'canManageInventory' | 'canProcessTransactions' | 'canManageBom' | 'canManageWarehouse' | 'canUploadFiles' | 'canDownloadData' | 'canRestoreData' | 'canProcessExchange' | 'canCreateDiary' | 'canEditDiary' | 'canDeleteDiary' | 'canViewReports';
+  permission?: 'canCreate' | 'canUpdate' | 'canDelete' | 'canManageInventory' | 'canProcessTransactions' | 'canManageBom' | 'canManageWarehouse' | 'canUploadFiles' | 'canDownloadData' | 'canRestoreData' | 'canProcessExchange' | 'canCreateDiary' | 'canEditDiary' | 'canDeleteDiary' | 'canViewReports';
   fallback?: React.ReactNode;
   showViewerMessage?: boolean;
 }
