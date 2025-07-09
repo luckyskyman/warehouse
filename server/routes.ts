@@ -787,15 +787,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/work-diary", requireAdmin, async (req, res) => {
     try {
-      const validatedData = insertWorkDiarySchema.parse({
-        ...req.body,
-        authorId: req.body.authorId || 1 // Default to user ID 1 if not provided
-      });
-      const diary = await storage.createWorkDiary(validatedData);
+      // Manual validation and transformation
+      const workDiary = {
+        title: req.body.title,
+        content: req.body.content,
+        category: req.body.category || '기타',
+        priority: req.body.priority || 'normal',
+        status: req.body.status || 'completed',
+        workDate: new Date(req.body.workDate),
+        attachments: req.body.attachments || null,
+        tags: req.body.tags || null,
+        authorId: req.body.authorId || 1,
+        assignedTo: req.body.assignedTo || null,
+      };
+      
+      // Basic validation
+      if (!workDiary.title || !workDiary.content) {
+        return res.status(400).json({ message: "Title and content are required" });
+      }
+      
+      const diary = await storage.createWorkDiary(workDiary);
       res.status(201).json(diary);
     } catch (error) {
       console.error('Work diary creation error:', error);
-      res.status(400).json({ message: "Invalid data" });
+      res.status(400).json({ message: "Invalid data", error: error.message });
     }
   });
 
