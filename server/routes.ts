@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertInventoryItemSchema, insertTransactionSchema, insertBomGuideSchema, insertWarehouseLayoutSchema, insertExchangeQueueSchema } from "@shared/schema";
+import { insertInventoryItemSchema, insertTransactionSchema, insertBomGuideSchema, insertWarehouseLayoutSchema, insertExchangeQueueSchema, insertWorkDiarySchema, insertWorkDiaryCommentSchema } from "@shared/schema";
 
 // Global session store that persists across module loads
 declare global {
@@ -757,6 +757,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } else {
       res.status(404).json({ error: "Exchange queue item not found" });
+    }
+  });
+
+  // Work diary routes
+  app.get("/api/work-diary", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const start = startDate ? new Date(startDate as string) : undefined;
+      const end = endDate ? new Date(endDate as string) : undefined;
+      const diaries = await storage.getWorkDiaries(start, end);
+      res.json(diaries);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/work-diary/:id", async (req, res) => {
+    try {
+      const diary = await storage.getWorkDiary(parseInt(req.params.id));
+      if (!diary) {
+        return res.status(404).json({ message: "Work diary not found" });
+      }
+      res.json(diary);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/work-diary", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertWorkDiarySchema.parse({
+        ...req.body,
+        authorId: req.body.authorId || 1 // Default to user ID 1 if not provided
+      });
+      const diary = await storage.createWorkDiary(validatedData);
+      res.status(201).json(diary);
+    } catch (error) {
+      console.error('Work diary creation error:', error);
+      res.status(400).json({ message: "Invalid data" });
+    }
+  });
+
+  app.patch("/api/work-diary/:id", requireAdmin, async (req, res) => {
+    try {
+      const diary = await storage.updateWorkDiary(parseInt(req.params.id), req.body);
+      if (!diary) {
+        return res.status(404).json({ message: "Work diary not found" });
+      }
+      res.json(diary);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/work-diary/:id", requireAdmin, async (req, res) => {
+    try {
+      const deleted = await storage.deleteWorkDiary(parseInt(req.params.id));
+      if (!deleted) {
+        return res.status(404).json({ message: "Work diary not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Work diary comments routes
+  app.get("/api/work-diary/:id/comments", async (req, res) => {
+    try {
+      const comments = await storage.getWorkDiaryComments(parseInt(req.params.id));
+      res.json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/work-diary/:id/comments", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertWorkDiaryCommentSchema.parse({
+        ...req.body,
+        diaryId: parseInt(req.params.id)
+      });
+      const comment = await storage.createWorkDiaryComment(validatedData);
+      res.status(201).json(comment);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid data" });
     }
   });
 

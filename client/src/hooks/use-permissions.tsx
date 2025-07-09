@@ -9,12 +9,12 @@ export function usePermissions() {
   return {
     // 읽기 권한 (모든 사용자)
     canView: !!user,
-    
+
     // 쓰기 권한 (Admin만)
     canCreate: isAdmin,
     canUpdate: isAdmin,
     canDelete: isAdmin,
-    
+
     // 특정 기능 권한
     canManageInventory: isAdmin,
     canProcessTransactions: isAdmin,
@@ -24,10 +24,15 @@ export function usePermissions() {
     canDownloadData: !!user, // Admin과 Viewer 모두 허용
     canRestoreData: isAdmin,
     canProcessExchange: isAdmin,
-    
+
     // 사용자 정보
     user,
     isAdmin,
     isViewer,
+    canViewDiary: true, // Both admin and viewer can view diaries
+    canCreateDiary: isAdmin,
+    canEditDiary: isAdmin, 
+    canDeleteDiary: isAdmin,
+    canViewReports: true, // Both admin and viewer can view reports
   };
 }

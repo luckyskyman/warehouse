@@ -65,6 +65,40 @@ export const exchangeQueue = pgTable("exchange_queue", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const workDiary = pgTable("work_diary", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  category: text("category").notNull(), // '입고', '출고', '재고조사', '설비점검', '기타'
+  priority: text("priority").notNull().default("normal"), // 'low', 'normal', 'high', 'urgent'
+  status: text("status").notNull().default("completed"), // 'in_progress', 'completed', 'pending'
+  workDate: timestamp("work_date").notNull(),
+  attachments: json("attachments"), // Array of file info
+  tags: json("tags"), // Array of tags
+  authorId: integer("author_id").notNull(),
+  assignedTo: json("assigned_to"), // Array of user IDs
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const workDiaryComments = pgTable("work_diary_comments", {
+  id: serial("id").primaryKey(),
+  diaryId: integer("diary_id").notNull(),
+  content: text("content").notNull(),
+  authorId: integer("author_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const workNotifications = pgTable("work_notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  diaryId: integer("diary_id").notNull(),
+  type: text("type").notNull(), // 'new_diary', 'comment', 'mention', 'status_change'
+  message: text("message").notNull(),
+  read: boolean("read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -115,6 +149,32 @@ export const insertExchangeQueueSchema = createInsertSchema(exchangeQueue).pick(
   outboundDate: true,
 });
 
+export const insertWorkDiarySchema = createInsertSchema(workDiary).pick({
+  title: true,
+  content: true,
+  category: true,
+  priority: true,
+  status: true,
+  workDate: true,
+  attachments: true,
+  tags: true,
+  authorId: true,
+  assignedTo: true,
+});
+
+export const insertWorkDiaryCommentSchema = createInsertSchema(workDiaryComments).pick({
+  diaryId: true,
+  content: true,
+  authorId: true,
+});
+
+export const insertWorkNotificationSchema = createInsertSchema(workNotifications).pick({
+  userId: true,
+  diaryId: true,
+  type: true,
+  message: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -133,3 +193,12 @@ export type InsertWarehouseLayout = z.infer<typeof insertWarehouseLayoutSchema>;
 
 export type ExchangeQueue = typeof exchangeQueue.$inferSelect;
 export type InsertExchangeQueue = z.infer<typeof insertExchangeQueueSchema>;
+
+export type WorkDiary = typeof workDiary.$inferSelect;
+export type InsertWorkDiary = z.infer<typeof insertWorkDiarySchema>;
+
+export type WorkDiaryComment = typeof workDiaryComments.$inferSelect;
+export type InsertWorkDiaryComment = z.infer<typeof insertWorkDiaryCommentSchema>;
+
+export type WorkNotification = typeof workNotifications.$inferSelect;
+export type InsertWorkNotification = z.infer<typeof insertWorkNotificationSchema>;

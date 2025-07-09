@@ -74,7 +74,52 @@ export interface InventoryStats {
   warehouseZones: number;
 }
 
-export type TabName = "bomCheck" | "inventory" | "inbound" | "outbound" | "move" | "warehouse" | "layout" | "excel";
+export interface WorkDiary {
+  id: number;
+  title: string;
+  content: string;
+  category: string;
+  priority: "low" | "normal" | "high" | "urgent";
+  status: "in_progress" | "completed" | "pending";
+  workDate: Date;
+  attachments?: any[];
+  tags?: string[];
+  authorId: number;
+  assignedTo?: number[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WorkDiaryComment {
+  id: number;
+  diaryId: number;
+  content: string;
+  authorId: number;
+  createdAt: Date;
+}
+
+export interface WorkNotification {
+  id: number;
+  userId: number;
+  diaryId: number;
+  type: "new_diary" | "comment" | "mention" | "status_change";
+  message: string;
+  read: boolean;
+  createdAt: Date;
+}
+
+export interface WorkDiaryFormData {
+  title: string;
+  content: string;
+  category: string;
+  priority: "low" | "normal" | "high" | "urgent";
+  status: "in_progress" | "completed" | "pending";
+  workDate: Date;
+  tags: string[];
+  assignedTo: number[];
+}
+
+export type TabName = "bomCheck" | "inventory" | "inbound" | "outbound" | "move" | "warehouse" | "layout" | "excel" | "workDiary";
 
 export interface InboundFormData {
   code: string;
