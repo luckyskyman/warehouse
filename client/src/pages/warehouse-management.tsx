@@ -10,6 +10,7 @@ import { MoveForm } from '@/components/warehouse/move-form';
 import { WarehouseStatus } from '@/components/warehouse/warehouse-status';
 import { LayoutManagement } from '@/components/warehouse/layout-management';
 import { ExcelManagement } from '@/components/warehouse/excel-management';
+import { WorkDiaryManagement } from '@/components/warehouse/work-diary';
 import { Button } from '@/components/ui/button';
 import { TabName } from '@/types/warehouse';
 
@@ -52,6 +53,28 @@ export default function WarehouseManagement() {
         return <LayoutManagement />;
       case 'excel':
         return <ExcelManagement />;
+      case 'workDiary':
+        return (
+            <WorkDiaryManagement 
+              workDiaries={[]} // TODO: Implement work diary data fetching
+              onCreateDiary={async (data) => {
+                // TODO: Implement create diary
+                console.log('Create diary:', data);
+              }}
+              onUpdateDiary={async (id, data) => {
+                // TODO: Implement update diary
+                console.log('Update diary:', id, data);
+              }}
+              onDeleteDiary={async (id) => {
+                // TODO: Implement delete diary
+                console.log('Delete diary:', id);
+              }}
+              onExportReport={async (type, date) => {
+                // TODO: Implement export report
+                console.log('Export report:', type, date);
+              }}
+            />
+          );
       default:
         return <BomCheck />;
     }

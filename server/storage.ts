@@ -4,7 +4,10 @@ import {
   type Transaction, type InsertTransaction,
   type BomGuide, type InsertBomGuide,
   type WarehouseLayout, type InsertWarehouseLayout,
-  type ExchangeQueue, type InsertExchangeQueue
+  type ExchangeQueue, type InsertExchangeQueue,
+  type WorkDiary, type InsertWorkDiary,
+  type WorkDiaryComment, type InsertWorkDiaryComment,
+  type WorkNotification, type InsertWorkNotification
 } from "@shared/schema";
 
 export interface IStorage {
@@ -40,6 +43,23 @@ export interface IStorage {
   getExchangeQueue(): Promise<ExchangeQueue[]>;
   createExchangeQueueItem(item: InsertExchangeQueue): Promise<ExchangeQueue>;
   processExchangeQueueItem(id: number): Promise<boolean>;
+
+  // Work diary
+  getWorkDiaries(startDate?: Date, endDate?: Date): Promise<WorkDiary[]>;
+  getWorkDiary(id: number): Promise<WorkDiary | undefined>;
+  createWorkDiary(diary: InsertWorkDiary): Promise<WorkDiary>;
+  updateWorkDiary(id: number, updates: Partial<WorkDiary>): Promise<WorkDiary | undefined>;
+  deleteWorkDiary(id: number): Promise<boolean>;
+
+  // Work diary comments
+  getWorkDiaryComments(diaryId: number): Promise<WorkDiaryComment[]>;
+  createWorkDiaryComment(comment: InsertWorkDiaryComment): Promise<WorkDiaryComment>;
+  deleteWorkDiaryComment(id: number): Promise<boolean>;
+
+  // Work notifications
+  getWorkNotifications(userId: number): Promise<WorkNotification[]>;
+  createWorkNotification(notification: InsertWorkNotification): Promise<WorkNotification>;
+  markNotificationAsRead(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -49,12 +69,18 @@ export class MemStorage implements IStorage {
   private bomGuides: BomGuide[];
   private warehouseLayout: WarehouseLayout[];
   private exchangeQueue: ExchangeQueue[];
+  private workDiaries: WorkDiary[];
+  private workDiaryComments: WorkDiaryComment[];
+  private workNotifications: WorkNotification[];
   private currentUserId: number;
   private currentItemId: number;
   private currentTransactionId: number;
   private currentBomId: number;
   private currentLayoutId: number;
   private currentExchangeId: number;
+  private currentWorkDiaryId: number;
+  private currentCommentId: number;
+  private currentNotificationId: number;
 
   constructor() {
     this.users = new Map();
@@ -63,12 +89,18 @@ export class MemStorage implements IStorage {
     this.bomGuides = [];
     this.warehouseLayout = [];
     this.exchangeQueue = [];
+    this.workDiaries = [];
+    this.workDiaryComments = [];
+    this.workNotifications = [];
     this.currentUserId = 1;
     this.currentItemId = 1;
     this.currentTransactionId = 1;
     this.currentBomId = 1;
     this.currentLayoutId = 1;
     this.currentExchangeId = 1;
+    this.currentWorkDiaryId = 1;
+    this.currentCommentId = 1;
+    this.currentNotificationId = 1;
 
     this.initializeData();
   }
@@ -381,6 +413,103 @@ export class MemStorage implements IStorage {
     return true;
   }
 
+  // Work diary methods
+  async getWorkDiaries(startDate?: Date, endDate?: Date): Promise<WorkDiary[]> {
+    let diaries = [...this.workDiaries];
+    
+    if (startDate || endDate) {
+      diaries = diaries.filter(diary => {
+        const workDate = new Date(diary.workDate);
+        if (startDate && workDate < startDate) return false;
+        if (endDate && workDate > endDate) return false;
+        return true;
+      });
+    }
+    
+    return diaries.sort((a, b) => new Date(b.workDate).getTime() - new Date(a.workDate).getTime());
+  }
+
+  async getWorkDiary(id: number): Promise<WorkDiary | undefined> {
+    return this.workDiaries.find(diary => diary.id === id);
+  }
+
+  async createWorkDiary(insertDiary: InsertWorkDiary): Promise<WorkDiary> {
+    const diary: WorkDiary = {
+      id: this.currentWorkDiaryId++,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...insertDiary,
+    };
+    this.workDiaries.push(diary);
+    return diary;
+  }
+
+  async updateWorkDiary(id: number, updates: Partial<WorkDiary>): Promise<WorkDiary | undefined> {
+    const index = this.workDiaries.findIndex(diary => diary.id === id);
+    if (index === -1) return undefined;
+    
+    this.workDiaries[index] = { 
+      ...this.workDiaries[index], 
+      ...updates, 
+      updatedAt: new Date() 
+    };
+    return this.workDiaries[index];
+  }
+
+  async deleteWorkDiary(id: number): Promise<boolean> {
+    const initialLength = this.workDiaries.length;
+    this.workDiaries = this.workDiaries.filter(diary => diary.id !== id);
+    // 관련 댓글도 삭제
+    this.workDiaryComments = this.workDiaryComments.filter(comment => comment.diaryId !== id);
+    return this.workDiaries.length < initialLength;
+  }
+
+  async getWorkDiaryComments(diaryId: number): Promise<WorkDiaryComment[]> {
+    return this.workDiaryComments
+      .filter(comment => comment.diaryId === diaryId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+
+  async createWorkDiaryComment(insertComment: InsertWorkDiaryComment): Promise<WorkDiaryComment> {
+    const comment: WorkDiaryComment = {
+      id: this.currentCommentId++,
+      createdAt: new Date(),
+      ...insertComment,
+    };
+    this.workDiaryComments.push(comment);
+    return comment;
+  }
+
+  async deleteWorkDiaryComment(id: number): Promise<boolean> {
+    const initialLength = this.workDiaryComments.length;
+    this.workDiaryComments = this.workDiaryComments.filter(comment => comment.id !== id);
+    return this.workDiaryComments.length < initialLength;
+  }
+
+  async getWorkNotifications(userId: number): Promise<WorkNotification[]> {
+    return this.workNotifications
+      .filter(notification => notification.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createWorkNotification(insertNotification: InsertWorkNotification): Promise<WorkNotification> {
+    const notification: WorkNotification = {
+      id: this.currentNotificationId++,
+      read: false,
+      createdAt: new Date(),
+      ...insertNotification,
+    };
+    this.workNotifications.push(notification);
+    return notification;
+  }
+
+  async markNotificationAsRead(id: number): Promise<boolean> {
+    const notification = this.workNotifications.find(n => n.id === id);
+    if (!notification) return false;
+    notification.read = true;
+    return true;
+  }
+
   // 데이터 초기화 기능
   async resetAllData(): Promise<boolean> {
     console.log('모든 데이터 초기화 시작...');
@@ -390,12 +519,18 @@ export class MemStorage implements IStorage {
     this.transactions = [];
     this.bomGuides = [];
     this.exchangeQueue = [];
+    this.workDiaries = [];
+    this.workDiaryComments = [];
+    this.workNotifications = [];
     
     // ID 카운터 초기화 (사용자와 레이아웃은 유지)
     this.currentItemId = 1;
     this.currentTransactionId = 1;
     this.currentBomId = 1;
     this.currentExchangeId = 1;
+    this.currentWorkDiaryId = 1;
+    this.currentCommentId = 1;
+    this.currentNotificationId = 1;
     
     console.log('모든 데이터 초기화 완료');
     return true;
