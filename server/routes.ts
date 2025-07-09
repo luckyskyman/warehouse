@@ -787,10 +787,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/work-diary", requireAdmin, async (req, res) => {
     try {
-      const validatedData = insertWorkDiarySchema.parse(req.body);
+      const validatedData = insertWorkDiarySchema.parse({
+        ...req.body,
+        authorId: req.body.authorId || 1 // Default to user ID 1 if not provided
+      });
       const diary = await storage.createWorkDiary(validatedData);
       res.status(201).json(diary);
     } catch (error) {
+      console.error('Work diary creation error:', error);
       res.status(400).json({ message: "Invalid data" });
     }
   });

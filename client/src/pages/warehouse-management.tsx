@@ -13,10 +13,13 @@ import { ExcelManagement } from '@/components/warehouse/excel-management';
 import { WorkDiaryManagement } from '@/components/warehouse/work-diary';
 import { Button } from '@/components/ui/button';
 import { TabName } from '@/types/warehouse';
+import { useQuery } from '@tanstack/react-query';
+import { useToast } from "@/components/ui/use-toast";
 
 export default function WarehouseManagement() {
-  const { user, logout } = useAuth();
+  const { user, logout, sessionId } = useAuth();
   const [activeTab, setActiveTab] = useState<TabName>('bomCheck');
+  const { toast } = useToast();
 
   if (!user) {
     return <LoginForm />;
@@ -35,6 +38,30 @@ export default function WarehouseManagement() {
   ] as const;
 
   const filteredTabs = tabs.filter(tab => tab.roles.includes(user.role));
+
+  const { data: bomGuides = [] } = useQuery({
+    queryKey: ['bomGuides'],
+    queryFn: async () => {
+      const response = await fetch('/api/bom', {
+        headers: {
+          'Authorization': `Bearer ${sessionId}`
+        }
+      });
+      return response.json();
+    }
+  });
+
+  const { data: workDiaries = [], refetch: refetchWorkDiaries } = useQuery({
+    queryKey: ['workDiaries'],
+    queryFn: async () => {
+      const response = await fetch('/api/work-diary', {
+        headers: {
+          'Authorization': `Bearer ${sessionId}`
+        }
+      });
+      return response.json();
+    }
+  });
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -56,28 +83,133 @@ export default function WarehouseManagement() {
         return <ExcelManagement />;
       case 'workDiary':
         return (
-            <WorkDiaryManagement 
-              workDiaries={[]} // TODO: Implement work diary data fetching
-              onCreateDiary={async (data) => {
-                // TODO: Implement create diary
-                console.log('Create diary:', data);
-              }}
-              onUpdateDiary={async (id, data) => {
-                // TODO: Implement update diary
-                console.log('Update diary:', id, data);
-              }}
-              onDeleteDiary={async (id) => {
-                // TODO: Implement delete diary
-                console.log('Delete diary:', id);
-              }}
-              onExportReport={async (type, date) => {
-                // TODO: Implement export report
-                console.log('Export report:', type, date);
-              }}
-            />
-          );
+          <WorkDiaryManagement 
+            workDiaries={workDiaries}
+            onCreateDiary={handleCreateWorkDiary}
+            onUpdateDiary={handleUpdateWorkDiary}
+            onDeleteDiary={handleDeleteWorkDiary}
+            onExportReport={handleExportWorkDiaryReport}
+          />
+        );
       default:
         return <BomCheck />;
+    }
+  };
+
+  const handleLayoutDeleteZone = async (id: number) => {
+    try {
+      const response = await fetch(`/api/warehouse/layout/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${sessionId}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete zone');
+      }
+
+      refetchLayout();
+      toast({ title: "구역이 삭제되었습니다." });
+    } catch (error) {
+      toast({ 
+        title: "오류가 발생했습니다.", 
+        description: "구역 삭제에 실패했습니다.",
+        variant: "destructive" 
+      });
+    }
+  };
+
+  // Work diary handlers
+  const handleCreateWorkDiary = async (data: any) => {
+    try {
+      const response = await fetch('/api/work-diary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionId}`
+        },
+        body: JSON.stringify({
+          ...data,
+          authorId: user?.id || 1
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create work diary');
+      }
+
+      refetchWorkDiaries();
+      toast({ title: "업무일지가 작성되었습니다." });
+    } catch (error) {
+      toast({ 
+        title: "오류가 발생했습니다.", 
+        description: "업무일지 작성에 실패했습니다.",
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleUpdateWorkDiary = async (id: number, data: any) => {
+    try {
+      const response = await fetch(`/api/work-diary/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionId}`
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update work diary');
+      }
+
+      refetchWorkDiaries();
+      toast({ title: "업무일지가 수정되었습니다." });
+    } catch (error) {
+      toast({ 
+        title: "오류가 발생했습니다.", 
+        description: "업무일지 수정에 실패했습니다.",
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleDeleteWorkDiary = async (id: number) => {
+    try {
+      const response = await fetch(`/api/work-diary/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${sessionId}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete work diary');
+      }
+
+      refetchWorkDiaries();
+      toast({ title: "업무일지가 삭제되었습니다." });
+    } catch (error) {
+      toast({ 
+        title: "오류가 발생했습니다.", 
+        description: "업무일지 삭제에 실패했습니다.",
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleExportWorkDiaryReport = async (type: 'daily' | 'monthly' | 'yearly', date: Date) => {
+    try {
+      // 보고서 생성 로직 (추후 구현)
+      toast({ title: `${type === 'daily' ? '일별' : type === 'monthly' ? '월별' : '년별'} 보고서 생성 중...` });
+    } catch (error) {
+      toast({ 
+        title: "오류가 발생했습니다.", 
+        description: "보고서 생성에 실패했습니다.",
+        variant: "destructive" 
+      });
     }
   };
 
