@@ -31,6 +31,7 @@ export default function WarehouseManagement() {
     { id: 'warehouse', label: '🏪 창고현황', roles: ['admin', 'viewer'] },
     { id: 'layout', label: '🔧 창고 구조 관리', roles: ['admin'] },
     { id: 'excel', label: '📊 엑셀관리', roles: ['admin', 'viewer'] },
+    { id: 'workDiary', label: '📋 업무일지', roles: ['admin', 'viewer'] },
   ] as const;
 
   const filteredTabs = tabs.filter(tab => tab.roles.includes(user.role));
