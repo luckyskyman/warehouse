@@ -295,6 +295,38 @@ export function WorkDiaryManagement({
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="assignedTo">담당자 지정</Label>
+                  <Select value={formData.assignedTo[0]?.toString() || ''} onValueChange={(value) => {
+                    const userId = value ? [parseInt(value)] : [];
+                    setFormData({ ...formData, assignedTo: userId });
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="담당자를 선택하세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">담당자 없음</SelectItem>
+                      <SelectItem value="1">관리자 (admin)</SelectItem>
+                      <SelectItem value="2">조회자 (viewer)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tags">태그 (쉼표로 구분)</Label>
+                  <Input
+                    id="tags"
+                    value={formData.tags.join(', ')}
+                    onChange={(e) => {
+                      const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+                      setFormData({ ...formData, tags });
+                    }}
+                    placeholder="예: 긴급, 점검필요, 안전"
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2">
                 <Button 
                   type="button" 
@@ -350,6 +382,12 @@ export function WorkDiaryManagement({
                         <User className="h-4 w-4" />
                         작성자 ID: {diary.authorId}
                       </div>
+                      {diary.assignedTo && diary.assignedTo.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          <MessageSquare className="h-4 w-4" />
+                          담당자 ID: {diary.assignedTo.join(', ')}
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
                         {formatDate(diary.createdAt)}
