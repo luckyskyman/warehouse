@@ -298,15 +298,15 @@ export function WorkDiaryManagement({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="assignedTo">담당자 지정</Label>
-                  <Select value={formData.assignedTo[0]?.toString() || ''} onValueChange={(value) => {
-                    const userId = value ? [parseInt(value)] : [];
+                  <Select value={formData.assignedTo[0]?.toString() || '0'} onValueChange={(value) => {
+                    const userId = value && value !== '0' ? [parseInt(value)] : [];
                     setFormData({ ...formData, assignedTo: userId });
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="담당자를 선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">담당자 없음</SelectItem>
+                      <SelectItem value="0">담당자 없음</SelectItem>
                       <SelectItem value="1">관리자 (admin)</SelectItem>
                       <SelectItem value="2">조회자 (viewer)</SelectItem>
                     </SelectContent>
