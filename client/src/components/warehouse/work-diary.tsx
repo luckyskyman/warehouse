@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,7 +64,7 @@ export function WorkDiaryManagement({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       if (selectedDiary) {
         await onUpdateDiary(selectedDiary.id, formData);
@@ -74,7 +73,7 @@ export function WorkDiaryManagement({
         await onCreateDiary(formData);
         toast({ title: "업무일지가 작성되었습니다." });
       }
-      
+
       setIsFormOpen(false);
       setSelectedDiary(null);
       setFormData({
@@ -136,7 +135,7 @@ export function WorkDiaryManagement({
           <h2 className="text-2xl font-bold">📋 업무일지</h2>
           <p className="text-gray-600">일별 업무 내용 및 특이사항을 기록합니다.</p>
         </div>
-        
+
         <div className="flex gap-2">
           {/* 보고서 다운로드 */}
           <PermissionGuard permission="canViewReports">
@@ -183,7 +182,7 @@ export function WorkDiaryManagement({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label>날짜</Label>
               <Input 
@@ -193,7 +192,7 @@ export function WorkDiaryManagement({
                 className="w-40"
               />
             </div>
-            
+
             <Button 
               variant="outline" 
               onClick={() => {
@@ -226,7 +225,7 @@ export function WorkDiaryManagement({
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="workDate">업무 날짜</Label>
                   <Input
@@ -298,17 +297,17 @@ export function WorkDiaryManagement({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="assignedTo">담당자 지정</Label>
-                  <Select value={formData.assignedTo[0]?.toString() || '0'} onValueChange={(value) => {
-                    const userId = value && value !== '0' ? [parseInt(value)] : [];
+                  <Select value={formData.assignedTo[0] !== undefined ? formData.assignedTo[0] : 0} onValueChange={(value) => {
+                    const userId = value !== undefined && value !== 0 ? [parseInt(value as string)] : [];
                     setFormData({ ...formData, assignedTo: userId });
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="담당자를 선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">담당자 없음</SelectItem>
-                      <SelectItem value="1">관리자 (admin)</SelectItem>
-                      <SelectItem value="2">조회자 (viewer)</SelectItem>
+                      <SelectItem value={0}>담당자 없음</SelectItem>
+                      <SelectItem value={1}>관리자 (admin)</SelectItem>
+                      <SelectItem value={2}>조회자 (viewer)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -372,7 +371,7 @@ export function WorkDiaryManagement({
                         {statusOptions.find(s => s.value === diary.status)?.label}
                       </Badge>
                     </div>
-                    
+
                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
@@ -393,9 +392,9 @@ export function WorkDiaryManagement({
                         {formatDate(diary.createdAt)}
                       </div>
                     </div>
-                    
+
                     <p className="text-gray-700 whitespace-pre-wrap">{diary.content}</p>
-                    
+
                     {diary.tags && diary.tags.length > 0 && (
                       <div className="flex gap-1 mt-3">
                         {diary.tags.map((tag, index) => (
@@ -406,7 +405,7 @@ export function WorkDiaryManagement({
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex gap-2 ml-4">
                     <PermissionGuard permission="canEditDiary">
                       <Button 
@@ -417,7 +416,7 @@ export function WorkDiaryManagement({
                         수정
                       </Button>
                     </PermissionGuard>
-                    
+
                     <PermissionGuard permission="canDeleteDiary">
                       <Button 
                         variant="outline" 
