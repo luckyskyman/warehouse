@@ -160,6 +160,8 @@ export const insertWorkDiarySchema = createInsertSchema(workDiary).pick({
   tags: true,
   authorId: true,
   assignedTo: true,
+}).extend({
+  workDate: z.union([z.date(), z.string().transform((str) => new Date(str))]),
 });
 
 export const insertWorkDiaryCommentSchema = createInsertSchema(workDiaryComments).pick({
