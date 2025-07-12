@@ -413,9 +413,9 @@ export function ExcelManagement() {
 
               <div className="file-upload-zone" onClick={exportBlankTemplate}>
                 <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                <h4 className="font-semibold mb-1">📄 업로드 템플릿 다운로드</h4>
+                <h4 className="font-semibold mb-1">📄 파일로 재고추가/보충 업로드 템플릿 다운로드</h4>
                 <p className="text-sm text-gray-600">
-                  재고추가, 전체동기화, BOM업로드용 샘플 템플릿을 받습니다.
+                  재고 추가/보충 작업용 엑셀 템플릿을 받습니다. (샘플 데이터 포함)
                 </p>
               </div>
 
@@ -439,7 +439,7 @@ export function ExcelManagement() {
                 <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
                 <h4 className="font-semibold mb-1">🚚 파일로 추가/보충</h4>
                 <p className="text-sm text-gray-600">
-                  템플릿의 "재고추가템플릿" 시트 형식으로 재고를 현재고에 **더합니다.** 기존 재고는 유지됩니다.
+                  "파일로재고추가보충_업로드템플릿" 형식으로 재고를 현재고에 **더합니다.** 기존 재고는 유지됩니다.
                 </p>
                 <input
                   ref={addUpdateFileRef}

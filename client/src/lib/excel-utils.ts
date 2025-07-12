@@ -58,41 +58,22 @@ export const exportBomToExcel = (bomGuides: BomGuide[]) => {
 };
 
 export const exportBlankTemplate = () => {
-  // 재고 추가/업데이트용 템플릿
+  // 재고 추가/보충용 템플릿 (샘플 데이터 포함)
   const addUpdateTemplate = [
-    { '제품코드': 'SAMPLE-001', '품명': '샘플 제품', '수량': 10, '위치': 'A구역-A-1-1', '비고': '엑셀 일괄 입고' },
-    { '제품코드': 'SAMPLE-002', '품명': '샘플 부품', '수량': 25, '위치': 'B구역-B-2-1', '비고': '추가 입고' },
+    { '제품코드': '60011059', '품명': 'MK3 GRID, TRACK SUPPORT, 4W, X', '수량': 50, '위치': 'A구역-A-1-1층', '비고': '신규 입고' },
+    { '제품코드': '60007658', '품명': 'MK3 GRID, TRACK SUPPORT, 2W, X', '수량': 100, '위치': 'A구역-A-1-2층', '비고': '재고 보충' },
+    { '제품코드': '30011554', '품명': '볼트/너트/와셔 세트', '수량': 200, '위치': 'B구역-B-2-1층', '비고': '대량 입고' },
+    { '제품코드': '60010149', '품명': 'TS 스프레더 플레이트, 구멍 1개', '수량': 75, '위치': 'C구역-C-1-1층', '비고': '추가 보충' },
+    { '제품코드': '', '품명': '', '수량': '', '위치': '', '비고': '' },
+    { '제품코드': '', '품명': '', '수량': '', '위치': '', '비고': '' },
     { '제품코드': '', '품명': '', '수량': '', '위치': '', '비고': '' }
   ];
 
-  // 전체 동기화용 템플릿
-  const syncTemplate = [
-    { '제품코드': 'SYNC-001', '품명': '동기화 샘플', '카테고리': '전자제품', '제조사': '샘플회사', '현재고': 100, '최소재고': 10, '단위': 'ea', '위치': 'A구역-A-1-1', '박스당수량': 1 },
-    { '제품코드': 'SYNC-002', '품명': '동기화 부품', '카테고리': '기계부품', '제조사': '부품회사', '현재고': 50, '최소재고': 5, '단위': 'ea', '위치': 'B구역-B-2-2', '박스당수량': 10 },
-    { '제품코드': '', '품명': '', '카테고리': '', '제조사': '', '현재고': '', '최소재고': '', '단위': '', '위치': '', '박스당수량': '' }
-  ];
-
-  // BOM 업로드용 템플릿
-  const bomTemplate = [
-    { '설치가이드명': 'SAMPLE-GUIDE-1', '필요부품코드': 'PART-001', '필요수량': 4, '부품명/설명': '볼트 세트' },
-    { '설치가이드명': '', '필요부품코드': 'PART-002', '필요수량': 8, '부품명/설명': '너트 세트' },
-    { '설치가이드명': 'SAMPLE-GUIDE-2', '필요부품코드': 'PART-003', '필요수량': 2, '부품명/설명': '브라켓' },
-    { '설치가이드명': '', '필요부품코드': '', '필요수량': '', '부품명/설명': '' }
-  ];
-
   const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(addUpdateTemplate);
+  XLSX.utils.book_append_sheet(wb, ws, "재고추가보충템플릿");
   
-  // 각 시트 추가
-  const ws1 = XLSX.utils.json_to_sheet(addUpdateTemplate);
-  XLSX.utils.book_append_sheet(wb, ws1, "재고추가템플릿");
-  
-  const ws2 = XLSX.utils.json_to_sheet(syncTemplate);
-  XLSX.utils.book_append_sheet(wb, ws2, "전체동기화템플릿");
-  
-  const ws3 = XLSX.utils.json_to_sheet(bomTemplate);
-  XLSX.utils.book_append_sheet(wb, ws3, "BOM업로드템플릿");
-  
-  XLSX.writeFile(wb, "업로드템플릿(샘플포함).xlsx");
+  XLSX.writeFile(wb, "파일로재고추가보충_업로드템플릿.xlsx");
 };
 
 export const parseExcelFile = (file: File): Promise<any[]> => {
