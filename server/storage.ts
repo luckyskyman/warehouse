@@ -130,8 +130,19 @@ export class MemStorage implements IStorage {
       isManager: false,
       createdAt: new Date(),
     };
+    const leeDongJe: User = {
+      id: this.currentUserId++,
+      username: "이동제",
+      password: "1124",
+      role: "viewer",
+      department: "창고부",
+      position: "소장",
+      isManager: true,
+      createdAt: new Date(),
+    };
     this.users.set(adminUser.id, adminUser);
     this.users.set(viewerUser.id, viewerUser);
+    this.users.set(leeDongJe.id, leeDongJe);
 
     // Create basic warehouse layout only
     const basicLayout: WarehouseLayout[] = [
@@ -601,27 +612,37 @@ export class MemStorage implements IStorage {
     if (userId) {
       const user = this.users.get(userId);
       if (user) {
+        console.log(`[업무일지 필터링] 사용자 ${user.username}(ID: ${userId}, 부서: ${user.department})의 업무일지 조회`);
+        
         diaries = diaries.filter(diary => {
           const author = this.users.get(diary.authorId);
           
+          console.log(`[업무일지 필터링] 업무일지 ID: ${diary.id}, 작성자: ${author?.username}(ID: ${diary.authorId}), 담당자: ${diary.assignedTo}, 공개범위: ${diary.visibility}`);
+          
           // Admin은 모든 업무일지 조회 가능
           if (user.role === 'admin') {
+            console.log(`[업무일지 필터링] Admin 권한으로 조회 허용`);
             return true;
           }
           
           // Private: 작성자 + 담당자만 조회 가능
           if (diary.visibility === 'private') {
-            return diary.authorId === userId || 
-                   (diary.assignedTo && diary.assignedTo.includes(userId));
+            const isAuthor = diary.authorId === userId;
+            const isAssigned = diary.assignedTo && diary.assignedTo.includes(userId);
+            console.log(`[업무일지 필터링] Private 모드 - 작성자여부: ${isAuthor}, 담당자여부: ${isAssigned}`);
+            return isAuthor || isAssigned;
           }
           
           // Department: 같은 부서 멤버들만 조회 가능
           if (diary.visibility === 'department') {
-            return diary.authorId === userId || 
-                   (user.department && author?.department === user.department);
+            const isAuthor = diary.authorId === userId;
+            const sameDepartment = user.department && author?.department === user.department;
+            console.log(`[업무일지 필터링] Department 모드 - 작성자여부: ${isAuthor}, 같은부서여부: ${sameDepartment} (사용자부서: ${user.department}, 작성자부서: ${author?.department})`);
+            return isAuthor || sameDepartment;
           }
           
           // Public: 모든 사용자 조회 가능
+          console.log(`[업무일지 필터링] Public 모드 - 조회 허용`);
           return true;
         });
       }
