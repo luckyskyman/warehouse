@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Plus, Edit2, Trash2, Shield } from "lucide-react";
+import { Users, Plus, Edit2, Trash2, Shield, User, LogOut, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface User {
   id: number;
@@ -28,6 +29,69 @@ interface CreateUserData {
   position?: string;
   isManager?: boolean;
 }
+
+// 사용자 드롭다운 컴포넌트
+const UserDropdown = () => {
+  const { user, logout } = useAuth();
+  
+  const getUserDisplayName = () => {
+    if (!user) return '';
+    
+    let displayName = user.username;
+    let roleText = user.role === 'admin' ? '관리자' : '일반사용자';
+    
+    // 부서와 직급 정보가 있으면 추가
+    if (user.department || user.position) {
+      const departmentInfo = [];
+      if (user.department) departmentInfo.push(user.department);
+      if (user.position) departmentInfo.push(user.position);
+      if (user.isManager) departmentInfo.push('부서장');
+      
+      if (departmentInfo.length > 0) {
+        displayName += ` (${departmentInfo.join('/')})`;
+      }
+    } else {
+      displayName += ` (${roleText})`;
+    }
+    
+    return displayName;
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="outline" 
+          className="bg-white/90 hover:bg-white border-gray-300 shadow-sm"
+        >
+          <User className="w-4 h-4 mr-2" />
+          {getUserDisplayName()}
+          <ChevronDown className="w-4 h-4 ml-2" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <div className="px-3 py-2">
+          <p className="text-sm font-medium">{user.username}</p>
+          {user.department && (
+            <p className="text-xs text-gray-500">{user.department}</p>
+          )}
+          {user.position && (
+            <p className="text-xs text-gray-500">{user.position}</p>
+          )}
+          <p className="text-xs text-gray-500">
+            {user.role === 'admin' ? '관리자' : '일반사용자'}
+            {user.isManager && ' • 부서장'}
+          </p>
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600">
+          <LogOut className="w-4 h-4 mr-2" />
+          로그아웃
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 export default function UserManagement() {
   const { user } = useAuth();
@@ -205,17 +269,31 @@ export default function UserManagement() {
   };
 
   return (
-    <div className="warehouse-content">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            사용자 관리
-          </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            시스템 사용자 계정을 관리합니다
-          </p>
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto p-5">
+        {/* Header */}
+        <div className="warehouse-header">
+          <div className="relative">
+            <h1 className="text-4xl font-bold text-center text-gray-900 mb-4 text-shadow">
+              🏭 창고 물품 재고 관리시스템
+            </h1>
+            <div className="absolute top-0 right-0">
+              <UserDropdown />
+            </div>
+          </div>
         </div>
+
+        <div className="warehouse-content">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Users className="h-6 w-6" />
+                사용자 관리
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                시스템 사용자 계정을 관리합니다
+              </p>
+            </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -429,6 +507,8 @@ export default function UserManagement() {
           </div>
         </DialogContent>
       </Dialog>
+        </div>
+      </div>
     </div>
   );
 }
