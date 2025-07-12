@@ -526,11 +526,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const createdBoms = [];
+      let currentGuideName = '';
+      
       for (const item of items) {
+        const guideName = String(item['설치가이드명'] || item.guideName || '').trim();
+        const itemCode = String(item['필요부품코드'] || item.itemCode || '').trim();
+        const requiredQuantity = Number(item['필요수량'] || item.requiredQuantity || 0);
+
+        // 새로운 가이드명이 있으면 업데이트, 없으면 이전 가이드명 사용
+        if (guideName) {
+          currentGuideName = guideName;
+        }
+
         const bomItem = {
-          guideName: String(item['설치가이드명'] || item.guideName || ''),
-          itemCode: String(item['필요부품코드'] || item.itemCode || ''),
-          requiredQuantity: Number(item['필요수량'] || item.requiredQuantity || 0),
+          guideName: currentGuideName,
+          itemCode: itemCode,
+          requiredQuantity: requiredQuantity,
         };
 
         console.log('Processing BOM item:', bomItem);
