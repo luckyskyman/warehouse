@@ -24,6 +24,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
+  // Session authentication middleware
+  const authenticateUser = (req: any, res: Response, next: NextFunction) => {
+    const sessionId = req.headers['authorization']?.replace('Bearer ', '') || 
+                     req.headers['sessionid'] || 
+                     req.headers['x-session-id'];
+    
+    if (sessionId && sessions.has(sessionId)) {
+      req.user = sessions.get(sessionId);
+      console.log('세션 인증 성공:', { userId: req.user.id, username: req.user.username });
+    } else {
+      console.log('세션 인증 실패 또는 세션 없음:', { sessionId, hasSession: sessionId ? sessions.has(sessionId) : false });
+    }
+    
+    next();
+  };
+
+  // Apply authentication middleware to all API routes except login
+  app.use('/api', (req: any, res, next) => {
+    if (req.path === '/auth/login') {
+      return next();
+    }
+    authenticateUser(req, res, next);
+  });
+
   // Remove admin check completely for deployment compatibility
   const requireAdmin = (req: any, res: Response, next: NextFunction) => {
     next();
