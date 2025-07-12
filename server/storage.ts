@@ -232,12 +232,24 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    console.log('Creating user in storage with:', insertUser);
+    
+    // 중복 사용자명 체크
+    const existingUser = await this.getUserByUsername(insertUser.username);
+    if (existingUser) {
+      throw new Error('Username already exists');
+    }
+    
     const user: User = {
       id: this.currentUserId++,
       createdAt: new Date(),
       ...insertUser,
     };
+    
+    console.log('Created user object:', user);
     this.users.set(user.id, user);
+    console.log('User added to storage, total users:', this.users.size);
+    
     return user;
   }
 
