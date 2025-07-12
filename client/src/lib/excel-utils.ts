@@ -2,8 +2,11 @@ import * as XLSX from 'xlsx';
 import { InventoryItem, Transaction, BomGuide } from '@/types/warehouse';
 
 export const exportInventoryToExcel = (inventory: InventoryItem[]) => {
-  const ws = XLSX.utils.json_to_sheet(
-    inventory.map(item => ({
+  // 실제 재고 데이터가 있으면 사용, 없으면 샘플 데이터 제공
+  let dataToExport;
+  
+  if (inventory.length > 0) {
+    dataToExport = inventory.map(item => ({
       '제품코드': item.code,
       '품명': item.name,
       '카테고리': item.category,
@@ -13,8 +16,69 @@ export const exportInventoryToExcel = (inventory: InventoryItem[]) => {
       '단위': item.unit,
       '위치': item.location || '',
       '박스당수량': item.boxSize || 1,
-    }))
-  );
+    }));
+  } else {
+    // 샘플 데이터 (파일로전체동기화 템플릿용)
+    dataToExport = [
+      {
+        '제품코드': '60011059',
+        '품명': 'MK3 GRID, TRACK SUPPORT, 4W, X',
+        '카테고리': '트랙서포트',
+        '제조사': 'LOTTE',
+        '현재고': 150,
+        '최소재고': 20,
+        '단위': 'ea',
+        '위치': 'A구역-A-1-1층',
+        '박스당수량': 75
+      },
+      {
+        '제품코드': '60007658',
+        '품명': 'MK3 GRID, TRACK SUPPORT, 2W, X',
+        '카테고리': '트랙서포트',
+        '제조사': 'LOTTE',
+        '현재고': 200,
+        '최소재고': 30,
+        '단위': 'ea',
+        '위치': 'A구역-A-1-2층',
+        '박스당수량': 100
+      },
+      {
+        '제품코드': '30011554',
+        '품명': '볼트/너트/와셔 세트',
+        '카테고리': '조립부품',
+        '제조사': 'LOTTE',
+        '현재고': 500,
+        '최소재고': 50,
+        '단위': 'ea',
+        '위치': 'B구역-B-2-1층',
+        '박스당수량': 50
+      },
+      {
+        '제품코드': '60010149',
+        '품명': 'TS 스프레더 플레이트, 구멍 1개',
+        '카테고리': '플레이트',
+        '제조사': 'LOTTE',
+        '현재고': 80,
+        '최소재고': 10,
+        '단위': 'ea',
+        '위치': 'C구역-C-1-1층',
+        '박스당수량': 25
+      },
+      {
+        '제품코드': '',
+        '품명': '',
+        '카테고리': '',
+        '제조사': '',
+        '현재고': '',
+        '최소재고': '',
+        '단위': '',
+        '위치': '',
+        '박스당수량': ''
+      }
+    ];
+  }
+  
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
   
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "재고현황");

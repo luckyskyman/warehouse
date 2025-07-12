@@ -437,7 +437,7 @@ export function ExcelManagement() {
               <h3 className="text-lg font-semibold mb-4">4. 재고 추가 / 보충 (안전)</h3>
               <div className="file-upload-zone" onClick={() => addUpdateFileRef.current?.click()}>
                 <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-                <h4 className="font-semibold mb-1">🚚 파일로 추가/보충</h4>
+                <h4 className="font-semibold mb-1">🚚 파일로 재고 추가/보충</h4>
                 <p className="text-sm text-gray-600">
                   "파일로재고추가보충_업로드템플릿" 형식으로 재고를 현재고에 **더합니다.** 기존 재고는 유지됩니다.
                 </p>
