@@ -609,9 +609,10 @@ export class MemStorage implements IStorage {
             return true;
           }
           
-          // Private: 작성자만 조회 가능
+          // Private: 작성자 + 담당자만 조회 가능
           if (diary.visibility === 'private') {
-            return diary.authorId === userId;
+            return diary.authorId === userId || 
+                   (diary.assignedTo && diary.assignedTo.includes(userId));
           }
           
           // Department: 같은 부서 멤버들만 조회 가능
