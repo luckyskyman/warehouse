@@ -119,7 +119,7 @@ export interface WorkDiaryFormData {
   assignedTo: number[];
 }
 
-export type TabName = "bomCheck" | "inventory" | "inbound" | "outbound" | "move" | "warehouse" | "layout" | "excel" | "workDiary";
+export type TabName = "bomCheck" | "inventory" | "inbound" | "outbound" | "move" | "warehouse" | "layout" | "excel" | "workDiary" | "users";
 
 export interface InboundFormData {
   code: string;
