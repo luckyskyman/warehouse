@@ -26,6 +26,12 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
 
+  // Add session ID to headers if available
+  const sessionId = localStorage.getItem('warehouse_session');
+  if (sessionId) {
+    headers["x-session-id"] = sessionId;
+  }
+
   console.log('API request:', { method, url });
 
   const res = await fetch(url, {
