@@ -49,10 +49,8 @@ export default function UserManagement() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserData) => {
-      return await apiRequest("/api/users", {
-        method: "POST",
-        body: JSON.stringify(userData)
-      });
+      const response = await apiRequest("POST", "/api/users", userData);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -75,10 +73,8 @@ export default function UserManagement() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: number; updates: Partial<User> }) => {
-      return await apiRequest(`/api/users/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(updates)
-      });
+      const response = await apiRequest("PATCH", `/api/users/${id}`, updates);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -101,9 +97,8 @@ export default function UserManagement() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/users/${id}`, {
-        method: "DELETE"
-      });
+      const response = await apiRequest("DELETE", `/api/users/${id}`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });

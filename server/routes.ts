@@ -83,8 +83,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/users", requireAdmin, async (req, res) => {
     try {
+      console.log('Creating user with data:', req.body);
+      
       const validatedData = insertUserSchema.parse(req.body);
+      console.log('Validated data:', validatedData);
+      
       const user = await storage.createUser(validatedData);
+      console.log('User created:', user);
       
       // Don't send password in response
       const safeUser = {
@@ -95,7 +100,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       res.status(201).json(safeUser);
     } catch (error) {
-      res.status(400).json({ message: "Invalid data" });
+      console.error('User creation error:', error);
+      res.status(400).json({ 
+        message: "Invalid data", 
+        error: error.message || "Unknown error" 
+      });
     }
   });
 
