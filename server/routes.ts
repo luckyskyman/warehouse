@@ -73,6 +73,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: user.id,
         username: user.username,
         role: user.role,
+        department: user.department,
+        position: user.position,
+        isManager: user.isManager,
         createdAt: user.createdAt
       }));
       res.json(safeUsers);
@@ -879,6 +882,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/work-diary", async (req: any, res) => {
     try {
+      console.log('업무일지 생성 요청 - 세션 사용자:', req.user);
+      console.log('업무일지 생성 요청 - 요청 본문:', req.body);
+      
       // Manual validation and transformation
       const workDiary = {
         title: req.body.title,
@@ -893,6 +899,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         assignedTo: req.body.assignedTo || null,
         visibility: req.body.visibility || 'department',
       };
+      
+      console.log('생성할 업무일지 데이터:', workDiary);
       
       // Basic validation
       if (!workDiary.title || !workDiary.content) {
