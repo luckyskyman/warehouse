@@ -391,7 +391,7 @@ export function ExcelManagement() {
                 <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
                 <h4 className="font-semibold mb-1">📦 재고현황 다운로드</h4>
                 <p className="text-sm text-gray-600">
-                  현재 재고 현황을 엑셀 파일로 내보냅니다.
+                  현재 재고 현황을 엑셀 파일로 내보냅니다. (전체동기화용)
                 </p>
               </div>
 
@@ -399,7 +399,7 @@ export function ExcelManagement() {
                 <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
                 <h4 className="font-semibold mb-1">📊 거래내역 다운로드</h4>
                 <p className="text-sm text-gray-600">
-                  모든 거래 내역을 엑셀 파일로 내보냅니다.
+                  모든 거래 내역을 엑셀 파일로 내보냅니다. (분석전용)
                 </p>
               </div>
 
@@ -407,15 +407,15 @@ export function ExcelManagement() {
                 <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
                 <h4 className="font-semibold mb-1">📋 BOM 목록 다운로드</h4>
                 <p className="text-sm text-gray-600">
-                  자재명세서 목록을 엑셀 파일로 내보냅니다.
+                  자재명세서 목록을 엑셀 파일로 내보냅니다. (분석전용)
                 </p>
               </div>
 
               <div className="file-upload-zone" onClick={exportBlankTemplate}>
                 <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                <h4 className="font-semibold mb-1">📄 빈 양식 다운로드</h4>
+                <h4 className="font-semibold mb-1">📄 업로드 템플릿 다운로드</h4>
                 <p className="text-sm text-gray-600">
-                  입고 작업용 빈 템플릿을 받습니다.
+                  재고추가, 전체동기화, BOM업로드용 샘플 템플릿을 받습니다.
                 </p>
               </div>
 
@@ -439,7 +439,7 @@ export function ExcelManagement() {
                 <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
                 <h4 className="font-semibold mb-1">🚚 파일로 추가/보충</h4>
                 <p className="text-sm text-gray-600">
-                  빈 양식에 작성한 재고를 현재고에 **더합니다.** 기존 재고는 유지됩니다.
+                  템플릿의 "재고추가템플릿" 시트 형식으로 재고를 현재고에 **더합니다.** 기존 재고는 유지됩니다.
                 </p>
                 <input
                   ref={addUpdateFileRef}
@@ -462,7 +462,7 @@ export function ExcelManagement() {
                 <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-500" />
                 <h4 className="font-semibold mb-1">🔄 파일로 전체 동기화</h4>
                 <p className="text-sm text-gray-600">
-                  현재고 목록을 수정한 파일로 재고 전체를 **덮어씁니다.** (엑셀에 없는 품목은 0처리)
+                  "재고현황(파일로전체동기화용)" 파일로 재고 전체를 **덮어씁니다.** (기존 데이터 삭제 후 새로 생성)
                 </p>
                 <input
                   ref={syncFileRef}
