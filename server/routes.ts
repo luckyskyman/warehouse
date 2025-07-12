@@ -881,10 +881,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Work diary routes
   app.get("/api/work-diary", async (req: any, res) => {
     try {
+      // 세션 인증이 실패한 경우 빈 배열 반환
+      if (!req.user?.id) {
+        console.log('[업무일지 조회] 인증되지 않은 사용자 - 빈 배열 반환');
+        return res.json([]);
+      }
+      
       const { startDate, endDate } = req.query;
       const start = startDate ? new Date(startDate as string) : undefined;
       const end = endDate ? new Date(endDate as string) : undefined;
-      const userId = req.user?.id; // 세션에서 사용자 ID 가져오기
+      const userId = req.user.id; // 세션에서 사용자 ID 가져오기
       const diaries = await storage.getWorkDiaries(start, end, userId);
       res.json(diaries);
     } catch (error) {

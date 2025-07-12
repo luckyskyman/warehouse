@@ -630,6 +630,7 @@ export class MemStorage implements IStorage {
             const isAuthor = diary.authorId === userId;
             const isAssigned = diary.assignedTo && diary.assignedTo.includes(userId);
             console.log(`[업무일지 필터링] Private 모드 - 작성자여부: ${isAuthor}, 담당자여부: ${isAssigned}`);
+            console.log(`[업무일지 필터링] Private 모드 디버그 - assignedTo: ${JSON.stringify(diary.assignedTo)}, userId: ${userId}, includes결과: ${diary.assignedTo?.includes(userId)}`);
             return isAuthor || isAssigned;
           }
           
