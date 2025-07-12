@@ -1,11 +1,16 @@
 import { useState, useMemo } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { useBomGuides, useBomGuidesByName, useInventory } from '@/hooks/use-inventory';
 import { BomCheckResult } from '@/types/warehouse';
 
 export function BomCheck() {
   const [selectedGuide, setSelectedGuide] = useState('');
+  const [open, setOpen] = useState(false);
   const { data: bomGuides = [], isLoading: bomLoading } = useBomGuides();
   const { data: bomItems = [], isLoading: bomItemsLoading } = useBomGuidesByName(selectedGuide);
   const { data: inventory = [] } = useInventory();
@@ -68,22 +73,51 @@ export function BomCheck() {
             설치가이드 목록을 불러오는 중...
           </div>
         ) : (
-          <Select value={selectedGuide} onValueChange={setSelectedGuide}>
-            <SelectTrigger className="w-full mt-2">
-              <SelectValue placeholder={guideNames.length > 0 ? "설치가이드를 선택하세요" : "등록된 설치가이드가 없습니다"} />
-            </SelectTrigger>
-            <SelectContent>
-              {guideNames.length > 0 ? (
-                guideNames.map(guideName => (
-                  <SelectItem key={guideName} value={guideName}>{guideName}</SelectItem>
-                ))
-              ) : (
-                <div className="p-2 text-sm text-gray-500">
-                  설치가이드가 없습니다. 먼저 BOM 데이터를 업로드하세요.
-                </div>
-              )}
-            </SelectContent>
-          </Select>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full mt-2 justify-between"
+              >
+                {selectedGuide
+                  ? guideNames.find((guide) => guide === selectedGuide)
+                  : guideNames.length > 0 
+                    ? "설치가이드를 선택하거나 검색하세요..." 
+                    : "등록된 설치가이드가 없습니다"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="설치가이드 검색..." />
+                <CommandList>
+                  <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
+                  <CommandGroup>
+                    {guideNames.map((guide) => (
+                      <CommandItem
+                        key={guide}
+                        value={guide}
+                        onSelect={(currentValue) => {
+                          setSelectedGuide(currentValue === selectedGuide ? "" : currentValue);
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedGuide === guide ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {guide}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         )}
         {!bomLoading && guideNames.length === 0 && (
           <p className="text-sm text-yellow-600 mt-2">
