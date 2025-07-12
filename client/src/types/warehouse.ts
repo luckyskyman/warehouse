@@ -117,6 +117,7 @@ export interface WorkDiaryFormData {
   workDate: Date;
   tags: string[];
   assignedTo: number[];
+  visibility?: "private" | "department" | "public";
 }
 
 export type TabName = "bomCheck" | "inventory" | "inbound" | "outbound" | "move" | "warehouse" | "layout" | "excel" | "workDiary" | "users";

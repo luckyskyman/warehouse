@@ -115,6 +115,9 @@ export class MemStorage implements IStorage {
       username: "admin",
       password: "xormr",
       role: "admin",
+      department: "관리부",
+      position: "관리자",
+      isManager: true,
       createdAt: new Date(),
     };
     const viewerUser: User = {
@@ -122,6 +125,9 @@ export class MemStorage implements IStorage {
       username: "viewer",
       password: "1124",
       role: "viewer",
+      department: "창고부",
+      position: "사원",
+      isManager: false,
       createdAt: new Date(),
     };
     this.users.set(adminUser.id, adminUser);
@@ -177,6 +183,7 @@ export class MemStorage implements IStorage {
         tags: ["입고", "부품"],
         authorId: 1,
         assignedTo: [],
+        visibility: "department",
         createdAt: today,
         updatedAt: today
       },
@@ -191,6 +198,7 @@ export class MemStorage implements IStorage {
         tags: ["재고조사", "발주"],
         authorId: 1,
         assignedTo: [],
+        visibility: "department",
         createdAt: yesterday,
         updatedAt: yesterday
       },
@@ -205,6 +213,7 @@ export class MemStorage implements IStorage {
         tags: ["포크리프트", "정비"],
         authorId: 2,
         assignedTo: [],
+        visibility: "department",
         createdAt: weekAgo,
         updatedAt: weekAgo
       },
@@ -219,6 +228,7 @@ export class MemStorage implements IStorage {
         tags: ["안전", "점검"],
         authorId: 1,
         assignedTo: [],
+        visibility: "public",
         createdAt: monthAgo,
         updatedAt: monthAgo
       }
@@ -584,8 +594,37 @@ export class MemStorage implements IStorage {
   }
 
   // Work diary methods
-  async getWorkDiaries(startDate?: Date, endDate?: Date): Promise<WorkDiary[]> {
+  async getWorkDiaries(startDate?: Date, endDate?: Date, userId?: number): Promise<WorkDiary[]> {
     let diaries = [...this.workDiaries];
+    
+    // 부서별 권한 필터링
+    if (userId) {
+      const user = this.users.get(userId);
+      if (user) {
+        diaries = diaries.filter(diary => {
+          const author = this.users.get(diary.authorId);
+          
+          // Admin은 모든 업무일지 조회 가능
+          if (user.role === 'admin') {
+            return true;
+          }
+          
+          // Private: 작성자만 조회 가능
+          if (diary.visibility === 'private') {
+            return diary.authorId === userId;
+          }
+          
+          // Department: 같은 부서 멤버들만 조회 가능
+          if (diary.visibility === 'department') {
+            return diary.authorId === userId || 
+                   (user.department && author?.department === user.department);
+          }
+          
+          // Public: 모든 사용자 조회 가능
+          return true;
+        });
+      }
+    }
     
     if (startDate || endDate) {
       diaries = diaries.filter(diary => {
