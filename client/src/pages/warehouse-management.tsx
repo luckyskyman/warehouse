@@ -178,7 +178,7 @@ export default function WarehouseManagement() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionId}`
+          'x-session-id': sessionId || ''
         },
         body: JSON.stringify({
           ...data,
@@ -207,7 +207,7 @@ export default function WarehouseManagement() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionId}`
+          'x-session-id': sessionId || ''
         },
         body: JSON.stringify(data)
       });
@@ -232,7 +232,7 @@ export default function WarehouseManagement() {
       const response = await fetch(`/api/work-diary/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${sessionId}`
+          'x-session-id': sessionId || ''
         }
       });
 
