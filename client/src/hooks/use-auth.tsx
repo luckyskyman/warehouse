@@ -7,6 +7,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  sessionId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const login = async (username: string, password: string) => {
     setIsLoading(true);
@@ -31,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
       setUser(data.user);
+      setSessionId(data.sessionId);
       localStorage.setItem('warehouse_user', JSON.stringify(data.user));
       localStorage.setItem('warehouse_session', data.sessionId);
     } catch (error) {
@@ -42,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    setSessionId(null);
     localStorage.removeItem('warehouse_user');
     localStorage.removeItem('warehouse_session');
   };
@@ -52,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedUser && savedSession) {
       try {
         setUser(JSON.parse(savedUser));
+        setSessionId(savedSession);
       } catch (error) {
         localStorage.removeItem('warehouse_user');
         localStorage.removeItem('warehouse_session');
@@ -60,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, sessionId }}>
       {children}
     </AuthContext.Provider>
   );

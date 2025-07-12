@@ -39,7 +39,7 @@ export function WorkDiaryManagement({
     queryFn: async () => {
       const response = await fetch('/api/users', {
         headers: {
-          'Authorization': `Bearer ${sessionId}`
+          'x-session-id': sessionId || ''
         }
       });
       return response.json();
