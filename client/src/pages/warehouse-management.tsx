@@ -230,6 +230,18 @@ export default function WarehouseManagement() {
       const XLSX = await import('xlsx');
       const workbook = XLSX.utils.book_new();
       
+      // 사용자 정보 가져오기 (작성자 정보를 위해)
+      const usersResponse = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${sessionId}`
+        }
+      });
+      const allUsers = await usersResponse.json();
+      const userMap = allUsers.reduce((acc: any, user: any) => {
+        acc[user.id] = user.username;
+        return acc;
+      }, {});
+
       // 보고서 데이터 준비
       const reportData = filteredDiaries.map(diary => ({
         '날짜': new Date(diary.workDate).toLocaleDateString('ko-KR'),
@@ -240,6 +252,7 @@ export default function WarehouseManagement() {
                    diary.priority === 'high' ? '높음' : '긴급',
         '상태': diary.status === 'pending' ? '대기중' : 
                 diary.status === 'in_progress' ? '진행중' : '완료',
+        '작성자': userMap[diary.authorId] || '알 수 없음',
         '내용': diary.content,
         '태그': diary.tags ? diary.tags.join(', ') : '',
         '작성일': new Date(diary.createdAt).toLocaleDateString('ko-KR')
@@ -255,6 +268,7 @@ export default function WarehouseManagement() {
         { wch: 10 }, // 카테고리
         { wch: 10 }, // 우선순위
         { wch: 10 }, // 상태
+        { wch: 12 }, // 작성자
         { wch: 50 }, // 내용
         { wch: 20 }, // 태그
         { wch: 12 }  // 작성일
