@@ -6,7 +6,10 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().default("viewer"), // 'admin' or 'viewer'
+  role: text("role").notNull().default("viewer"), // 'admin', 'viewer', 'manager'
+  department: text("department"), // 부서명
+  position: text("position"), // 직급
+  isManager: boolean("is_manager").default(false), // 부서장 여부
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -77,6 +80,7 @@ export const workDiary = pgTable("work_diary", {
   tags: json("tags"), // Array of tags
   authorId: integer("author_id").notNull(),
   assignedTo: json("assigned_to"), // Array of user IDs
+  visibility: text("visibility").notNull().default("department"), // 'private', 'department', 'public'
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -104,6 +108,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
   role: true,
+  department: true,
+  position: true,
+  isManager: true,
 });
 
 export const insertInventoryItemSchema = createInsertSchema(inventoryItems).pick({
@@ -160,6 +167,7 @@ export const insertWorkDiarySchema = createInsertSchema(workDiary).pick({
   tags: true,
   authorId: true,
   assignedTo: true,
+  visibility: true,
 }).extend({
   workDate: z.union([z.date(), z.string().transform((str) => new Date(str))]),
 });

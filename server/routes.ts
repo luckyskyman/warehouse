@@ -852,12 +852,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Work diary routes
-  app.get("/api/work-diary", async (req, res) => {
+  app.get("/api/work-diary", async (req: any, res) => {
     try {
       const { startDate, endDate } = req.query;
       const start = startDate ? new Date(startDate as string) : undefined;
       const end = endDate ? new Date(endDate as string) : undefined;
-      const diaries = await storage.getWorkDiaries(start, end);
+      const userId = req.user?.id; // 세션에서 사용자 ID 가져오기
+      const diaries = await storage.getWorkDiaries(start, end, userId);
       res.json(diaries);
     } catch (error) {
       res.status(500).json({ message: "Server error" });
@@ -876,7 +877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/work-diary", requireAdmin, async (req, res) => {
+  app.post("/api/work-diary", async (req: any, res) => {
     try {
       // Manual validation and transformation
       const workDiary = {
@@ -888,8 +889,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workDate: new Date(req.body.workDate),
         attachments: req.body.attachments || null,
         tags: req.body.tags || null,
-        authorId: req.body.authorId || 1,
+        authorId: req.user?.id || req.body.authorId || 1,
         assignedTo: req.body.assignedTo || null,
+        visibility: req.body.visibility || 'department',
       };
       
       // Basic validation
@@ -905,9 +907,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/work-diary/:id", requireAdmin, async (req, res) => {
+  app.patch("/api/work-diary/:id", async (req: any, res) => {
     try {
-      const diary = await storage.updateWorkDiary(parseInt(req.params.id), req.body);
+      const diaryId = parseInt(req.params.id);
+      const userId = req.user?.id;
+      
+      // 권한 확인: 작성자 본인 또는 Admin만 수정 가능
+      const existingDiary = await storage.getWorkDiary(diaryId);
+      if (!existingDiary) {
+        return res.status(404).json({ message: "Work diary not found" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || (existingDiary.authorId !== userId && user.role !== 'admin')) {
+        return res.status(403).json({ message: "수정 권한이 없습니다" });
+      }
+      
+      const diary = await storage.updateWorkDiary(diaryId, req.body);
       if (!diary) {
         return res.status(404).json({ message: "Work diary not found" });
       }

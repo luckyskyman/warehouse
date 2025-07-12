@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PermissionGuard } from '@/components/ui/permission-guard';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+import { usePermissions } from '@/hooks/use-permissions';
 import type { WorkDiary, WorkDiaryFormData } from '@/types/warehouse';
 
 interface WorkDiaryProps {
@@ -30,6 +31,7 @@ export function WorkDiaryManagement({
 }: WorkDiaryProps) {
   const { toast } = useToast();
   const { user, sessionId } = useAuth();
+  const permissions = usePermissions();
 
   // 사용자 목록 가져오기
   const { data: users = [] } = useQuery({
@@ -59,7 +61,8 @@ export function WorkDiaryManagement({
     status: 'completed',
     workDate: new Date(),
     tags: [],
-    assignedTo: []
+    assignedTo: [],
+    visibility: 'department'
   });
 
   const categories = ['입고', '출고', '재고조사', '설비점검', '청소', '안전점검', '기타'];
@@ -533,6 +536,22 @@ export function WorkDiaryManagement({
                     placeholder="예: 긴급, 점검필요, 안전"
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="visibility">공개 범위</Label>
+                  <Select value={formData.visibility || 'department'} onValueChange={(value) => {
+                    setFormData({ ...formData, visibility: value });
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="공개 범위를 선택하세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="private">개인용 (본인만 조회)</SelectItem>
+                      <SelectItem value="department">부서용 (같은 부서만 조회)</SelectItem>
+                      <SelectItem value="public">전체 공개 (모든 사용자 조회)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2">
@@ -618,7 +637,7 @@ export function WorkDiaryManagement({
                   </div>
 
                   <div className="flex gap-2 ml-4">
-                    <PermissionGuard permission="canEditDiary">
+                    {permissions.canEditDiaryItem(diary.authorId) && (
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -626,9 +645,9 @@ export function WorkDiaryManagement({
                       >
                         수정
                       </Button>
-                    </PermissionGuard>
+                    )}
 
-                    <PermissionGuard permission="canDeleteDiary">
+                    {permissions.canDeleteDiaryItem(diary.authorId) && (
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -641,7 +660,7 @@ export function WorkDiaryManagement({
                       >
                         삭제
                       </Button>
-                    </PermissionGuard>
+                    )}
                   </div>
                 </div>
               </CardContent>

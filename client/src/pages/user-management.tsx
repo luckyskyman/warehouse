@@ -24,6 +24,9 @@ interface CreateUserData {
   username: string;
   password: string;
   role: string;
+  department?: string;
+  position?: string;
+  isManager?: boolean;
 }
 
 export default function UserManagement() {
@@ -38,7 +41,10 @@ export default function UserManagement() {
   const [formData, setFormData] = useState<CreateUserData>({
     username: "",
     password: "",
-    role: "viewer"
+    role: "viewer",
+    department: "",
+    position: "",
+    isManager: false
   });
 
   // Get all users
@@ -60,7 +66,7 @@ export default function UserManagement() {
         description: "새 사용자가 성공적으로 생성되었습니다.",
       });
       setIsCreateDialogOpen(false);
-      setFormData({ username: "", password: "", role: "viewer" });
+      setFormData({ username: "", password: "", role: "viewer", department: "", position: "", isManager: false });
     },
     onError: (error) => {
       toast({
@@ -257,6 +263,35 @@ export default function UserManagement() {
                     <SelectItem value="admin">관리자</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label htmlFor="department">부서</Label>
+                <Input
+                  id="department"
+                  type="text"
+                  value={formData.department || ""}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  placeholder="부서명을 입력하세요 (예: 창고부, 관리부)"
+                />
+              </div>
+              <div>
+                <Label htmlFor="position">직급</Label>
+                <Input
+                  id="position"
+                  type="text"
+                  value={formData.position || ""}
+                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                  placeholder="직급을 입력하세요 (예: 사원, 과장, 부장)"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isManager"
+                  checked={formData.isManager || false}
+                  onChange={(e) => setFormData({ ...formData, isManager: e.target.checked })}
+                />
+                <Label htmlFor="isManager">부서장 권한</Label>
               </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
