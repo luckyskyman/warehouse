@@ -145,7 +145,8 @@ export function WorkDiaryManagement({
         status: 'completed',
         workDate: new Date(),
         tags: [],
-        assignedTo: []
+        assignedTo: [],
+        visibility: 'department'
       });
     } catch (error) {
       toast({ 
@@ -166,7 +167,8 @@ export function WorkDiaryManagement({
       status: diary.status,
       workDate: new Date(diary.workDate),
       tags: diary.tags || [],
-      assignedTo: diary.assignedTo || []
+      assignedTo: diary.assignedTo || [],
+      visibility: diary.visibility || 'department'
     });
     setIsFormOpen(true);
   };
@@ -540,13 +542,13 @@ export function WorkDiaryManagement({
                 <div className="space-y-2">
                   <Label htmlFor="visibility">공개 범위</Label>
                   <Select value={formData.visibility || 'department'} onValueChange={(value) => {
-                    setFormData({ ...formData, visibility: value });
+                    setFormData({ ...formData, visibility: value as any });
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="공개 범위를 선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="private">개인용 (본인만 조회)</SelectItem>
+                      <SelectItem value="private">개인용 (본인 + 담당자만 조회)</SelectItem>
                       <SelectItem value="department">부서용 (같은 부서만 조회)</SelectItem>
                       <SelectItem value="public">전체 공개 (모든 사용자 조회)</SelectItem>
                     </SelectContent>
