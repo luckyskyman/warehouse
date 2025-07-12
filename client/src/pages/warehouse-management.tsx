@@ -11,6 +11,7 @@ import { WarehouseStatus } from '@/components/warehouse/warehouse-status';
 import { LayoutManagement } from '@/components/warehouse/layout-management';
 import { ExcelManagement } from '@/components/warehouse/excel-management';
 import { WorkDiaryManagement } from '@/components/warehouse/work-diary';
+import UserManagement from '@/pages/user-management';
 import { Button } from '@/components/ui/button';
 import { TabName } from '@/types/warehouse';
 import { useQuery } from '@tanstack/react-query';
@@ -61,6 +62,7 @@ export default function WarehouseManagement() {
     { id: 'layout', label: '🔧 창고 구조 관리', roles: ['admin'] },
     { id: 'excel', label: '📊 엑셀관리', roles: ['admin', 'viewer'] },
     { id: 'workDiary', label: '📋 업무일지', roles: ['admin', 'viewer'] },
+    { id: 'users', label: '👥 사용자 관리', roles: ['admin'] },
   ] as const;
 
   const filteredTabs = tabs.filter(tab => tab.roles.includes(user.role));
@@ -93,6 +95,8 @@ export default function WarehouseManagement() {
             onExportReport={handleExportWorkDiaryReport}
           />
         );
+      case 'users':
+        return <UserManagement />;
       default:
         return <BomCheck />;
     }

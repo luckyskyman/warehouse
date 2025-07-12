@@ -15,6 +15,9 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
 
   // Inventory management
   getInventoryItems(): Promise<InventoryItem[]>;
@@ -150,8 +153,69 @@ export class MemStorage implements IStorage {
   }
 
   private initializeSampleInventory() {
-    // 재고현황 초기화 - 빈 상태로 시작
-    // 실제 입고 프로세스를 통해 재고 추가 가능
+    // 알림 기능 테스트를 위한 샘플 재고 데이터
+    const sampleItems = [
+      {
+        id: this.currentItemId++,
+        code: "PART-001",
+        name: "표준 볼트 M8x20",
+        category: "볼트/너트",
+        manufacturer: "현대상사",
+        stock: 2,
+        minStock: 10,
+        unit: "ea",
+        location: "A구역-A-1-1층",
+        boxSize: 100,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: this.currentItemId++,
+        code: "PART-002",
+        name: "육각너트 M8",
+        category: "볼트/너트",
+        manufacturer: "현대상사",
+        stock: 0,
+        minStock: 15,
+        unit: "ea",
+        location: "A구역-A-1-2층",
+        boxSize: 200,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: this.currentItemId++,
+        code: "PART-003",
+        name: "와셔 M8",
+        category: "부속품",
+        manufacturer: "삼성산업",
+        stock: 5,
+        minStock: 20,
+        unit: "ea",
+        location: "A구역-A-2-1층",
+        boxSize: 500,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: this.currentItemId++,
+        code: "PART-004",
+        name: "전선 2.5SQ",
+        category: "전기재료",
+        manufacturer: "엘지전선",
+        stock: 100,
+        minStock: 10,
+        unit: "m",
+        location: "B구역-B-1-1층",
+        boxSize: 100,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
+    sampleItems.forEach(item => {
+      this.inventoryItems.set(item.id.toString(), item);
+    });
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -175,6 +239,23 @@ export class MemStorage implements IStorage {
     };
     this.users.set(user.id, user);
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, ...updates };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    return this.users.delete(id);
   }
 
   async getInventoryItems(): Promise<InventoryItem[]> {
