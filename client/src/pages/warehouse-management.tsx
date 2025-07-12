@@ -186,9 +186,99 @@ export default function WarehouseManagement() {
 
   const handleExportWorkDiaryReport = async (type: 'daily' | 'monthly' | 'yearly', date: Date) => {
     try {
-      // 보고서 생성 로직 (추후 구현)
       toast({ title: `${type === 'daily' ? '일별' : type === 'monthly' ? '월별' : '년별'} 보고서 생성 중...` });
+      
+      // 날짜 범위 계산
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      
+      if (type === 'daily') {
+        // 일별: 선택된 날짜 하루
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (type === 'monthly') {
+        // 월별: 선택된 날짜가 속한 월 전체
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(0);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (type === 'yearly') {
+        // 년별: 선택된 날짜가 속한 년 전체
+        startDate.setMonth(0, 1);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(11, 31);
+        endDate.setHours(23, 59, 59, 999);
+      }
+      
+      // 해당 기간의 업무일지 필터링
+      const filteredDiaries = workDiaries.filter(diary => {
+        const diaryDate = new Date(diary.workDate);
+        return diaryDate >= startDate && diaryDate <= endDate;
+      });
+      
+      if (filteredDiaries.length === 0) {
+        toast({ 
+          title: "보고서 생성 완료", 
+          description: "해당 기간에 업무일지가 없습니다.",
+          variant: "destructive" 
+        });
+        return;
+      }
+      
+      // 엑셀 파일 생성
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.utils.book_new();
+      
+      // 보고서 데이터 준비
+      const reportData = filteredDiaries.map(diary => ({
+        '날짜': new Date(diary.workDate).toLocaleDateString('ko-KR'),
+        '제목': diary.title,
+        '카테고리': diary.category,
+        '우선순위': diary.priority === 'low' ? '낮음' : 
+                   diary.priority === 'normal' ? '보통' : 
+                   diary.priority === 'high' ? '높음' : '긴급',
+        '상태': diary.status === 'pending' ? '대기중' : 
+                diary.status === 'in_progress' ? '진행중' : '완료',
+        '내용': diary.content,
+        '태그': diary.tags ? diary.tags.join(', ') : '',
+        '작성일': new Date(diary.createdAt).toLocaleDateString('ko-KR')
+      }));
+      
+      // 워크시트 생성
+      const worksheet = XLSX.utils.json_to_sheet(reportData);
+      
+      // 열 너비 설정
+      const columnWidths = [
+        { wch: 12 }, // 날짜
+        { wch: 30 }, // 제목
+        { wch: 10 }, // 카테고리
+        { wch: 10 }, // 우선순위
+        { wch: 10 }, // 상태
+        { wch: 50 }, // 내용
+        { wch: 20 }, // 태그
+        { wch: 12 }  // 작성일
+      ];
+      worksheet['!cols'] = columnWidths;
+      
+      // 워크북에 워크시트 추가
+      const sheetName = `${type === 'daily' ? '일별' : type === 'monthly' ? '월별' : '년별'}_업무일지`;
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      
+      // 파일명 생성
+      const dateStr = date.toISOString().split('T')[0];
+      const fileName = `업무일지_${type === 'daily' ? '일별' : type === 'monthly' ? '월별' : '년별'}_${dateStr}.xlsx`;
+      
+      // 파일 다운로드
+      XLSX.writeFile(workbook, fileName);
+      
+      toast({ 
+        title: "보고서 생성 완료", 
+        description: `${filteredDiaries.length}개의 업무일지가 포함된 보고서가 다운로드되었습니다.`
+      });
+      
     } catch (error) {
+      console.error('보고서 생성 오류:', error);
       toast({ 
         title: "오류가 발생했습니다.", 
         description: "보고서 생성에 실패했습니다.",
