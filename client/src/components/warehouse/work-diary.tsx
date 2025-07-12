@@ -31,6 +31,9 @@ export function WorkDiaryManagement({
   const [selectedDiary, setSelectedDiary] = useState<WorkDiary | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
+  const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [formData, setFormData] = useState<WorkDiaryFormData>({
     title: '',
     content: '',
@@ -58,10 +61,41 @@ export function WorkDiaryManagement({
 
   const filteredDiaries = workDiaries.filter(diary => {
     if (filterCategory !== 'all' && diary.category !== filterCategory) return false;
-    if (filterDate) {
-      const diaryDate = new Date(diary.workDate).toISOString().split('T')[0];
-      if (!diaryDate.startsWith(filterDate)) return false;
+    
+    const diaryDate = new Date(diary.workDate);
+    const today = new Date();
+    
+    // 날짜 범위 필터링
+    if (dateRange === 'today') {
+      const todayStr = today.toISOString().split('T')[0];
+      const diaryDateStr = diaryDate.toISOString().split('T')[0];
+      if (diaryDateStr !== todayStr) return false;
+    } else if (dateRange === 'week') {
+      const weekAgo = new Date(today);
+      weekAgo.setDate(today.getDate() - 7);
+      if (diaryDate < weekAgo) return false;
+    } else if (dateRange === 'month') {
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(today.getMonth() - 1);
+      if (diaryDate < monthAgo) return false;
+    } else if (dateRange === 'custom') {
+      if (startDate) {
+        const start = new Date(startDate);
+        if (diaryDate < start) return false;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (diaryDate > end) return false;
+      }
     }
+    
+    // 개별 날짜 필터링 (기존 기능 유지)
+    if (filterDate) {
+      const diaryDateStr = diaryDate.toISOString().split('T')[0];
+      if (!diaryDateStr.startsWith(filterDate)) return false;
+    }
+    
     return true;
   });
 
@@ -174,44 +208,192 @@ export function WorkDiaryManagement({
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4 items-end">
-            <div className="space-y-2">
-              <Label>카테고리</Label>
-              <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-4">
+            <div className="flex gap-4 items-end flex-wrap">
+              <div className="space-y-2">
+                <Label>카테고리</Label>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체</SelectItem>
+                    {categories.map(category => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label>날짜</Label>
-              <Input 
-                type="date" 
-                value={filterDate} 
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="w-40"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label>날짜 범위</Label>
+                <Select value={dateRange} onValueChange={(value) => {
+                  setDateRange(value as any);
+                  if (value !== 'custom') {
+                    setStartDate('');
+                    setEndDate('');
+                  }
+                  if (value !== 'all') {
+                    setFilterDate('');
+                  }
+                }}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체</SelectItem>
+                    <SelectItem value="today">오늘</SelectItem>
+                    <SelectItem value="week">최근 7일</SelectItem>
+                    <SelectItem value="month">최근 30일</SelectItem>
+                    <SelectItem value="custom">사용자 정의</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setFilterCategory('all');
-                setFilterDate('');
-              }}
-            >
-              필터 초기화
-            </Button>
+              {dateRange === 'custom' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>시작 날짜</Label>
+                    <Input 
+                      type="date" 
+                      value={startDate} 
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-40"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>종료 날짜</Label>
+                    <Input 
+                      type="date" 
+                      value={endDate} 
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-40"
+                    />
+                  </div>
+                </>
+              )}
+
+              {dateRange === 'all' && (
+                <div className="space-y-2">
+                  <Label>특정 날짜</Label>
+                  <Input 
+                    type="date" 
+                    value={filterDate} 
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="w-40"
+                    placeholder="YYYY-MM-DD"
+                  />
+                </div>
+              )}
+
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setFilterCategory('all');
+                  setFilterDate('');
+                  setDateRange('all');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+              >
+                필터 초기화
+              </Button>
+            </div>
+            
+            {/* 빠른 날짜 선택 버튼 */}
+            <div className="flex gap-2 flex-wrap">
+              <Button 
+                variant={dateRange === 'today' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => {
+                  setDateRange('today');
+                  setFilterDate('');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+              >
+                오늘
+              </Button>
+              <Button 
+                variant={dateRange === 'week' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => {
+                  setDateRange('week');
+                  setFilterDate('');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+              >
+                이번 주
+              </Button>
+              <Button 
+                variant={dateRange === 'month' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => {
+                  setDateRange('month');
+                  setFilterDate('');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+              >
+                이번 달
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  const yesterday = new Date();
+                  yesterday.setDate(yesterday.getDate() - 1);
+                  const yesterdayStr = yesterday.toISOString().split('T')[0];
+                  setFilterDate(yesterdayStr);
+                  setDateRange('all');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+              >
+                어제
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* 필터 결과 표시 */}
+      {(dateRange !== 'all' || filterCategory !== 'all' || filterDate) && (
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-blue-700">
+            <span className="font-medium">필터 적용됨:</span>
+            {filterCategory !== 'all' && (
+              <Badge variant="outline">카테고리: {filterCategory}</Badge>
+            )}
+            {dateRange === 'today' && (
+              <Badge variant="outline">오늘</Badge>
+            )}
+            {dateRange === 'week' && (
+              <Badge variant="outline">최근 7일</Badge>
+            )}
+            {dateRange === 'month' && (
+              <Badge variant="outline">최근 30일</Badge>
+            )}
+            {dateRange === 'custom' && (startDate || endDate) && (
+              <Badge variant="outline">
+                {startDate && endDate 
+                  ? `${startDate} ~ ${endDate}`
+                  : startDate 
+                    ? `${startDate} 이후`
+                    : `${endDate} 이전`
+                }
+              </Badge>
+            )}
+            {filterDate && (
+              <Badge variant="outline">날짜: {filterDate}</Badge>
+            )}
+            <span className="ml-2 text-blue-600">
+              {filteredDiaries.length}개 결과 표시
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Work Diary Form */}
       {isFormOpen && (

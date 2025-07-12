@@ -145,11 +145,88 @@ export class MemStorage implements IStorage {
 
     // Initialize BOM guides based on installation guides from OC documents
     this.initializeBomGuides();
+
+    // Initialize sample work diary data
+    this.initializeSampleWorkDiaries();
   }
 
   private initializeBomGuides() {
     // BOM 데이터 초기화 - 빈 상태로 시작
     this.bomGuides = [];
+  }
+
+  private initializeSampleWorkDiaries() {
+    // 날짜 검색 테스트를 위한 샘플 업무일지 데이터
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
+    const monthAgo = new Date(today);
+    monthAgo.setMonth(today.getMonth() - 1);
+
+    const sampleDiaries = [
+      {
+        id: this.currentWorkDiaryId++,
+        title: "오늘 입고 작업 완료",
+        content: "새 부품들이 도착해서 입고 작업을 진행했습니다. 전체 물량 확인 후 적절한 위치에 배치했습니다.",
+        category: "입고",
+        priority: "normal",
+        status: "completed",
+        workDate: today,
+        tags: ["입고", "부품"],
+        authorId: 1,
+        assignedTo: [],
+        createdAt: today,
+        updatedAt: today
+      },
+      {
+        id: this.currentWorkDiaryId++,
+        title: "어제 재고 조사 실시",
+        content: "A구역 전체 재고 실사를 진행했습니다. 일부 부족한 품목들이 발견되어 발주 요청했습니다.",
+        category: "재고조사",
+        priority: "high",
+        status: "completed",
+        workDate: yesterday,
+        tags: ["재고조사", "발주"],
+        authorId: 1,
+        assignedTo: [],
+        createdAt: yesterday,
+        updatedAt: yesterday
+      },
+      {
+        id: this.currentWorkDiaryId++,
+        title: "설비 점검 및 정비",
+        content: "포크리프트 정기 점검을 실시했습니다. 오일 교환과 배터리 점검을 완료했습니다.",
+        category: "설비점검",
+        priority: "normal",
+        status: "completed",
+        workDate: weekAgo,
+        tags: ["포크리프트", "정비"],
+        authorId: 2,
+        assignedTo: [],
+        createdAt: weekAgo,
+        updatedAt: weekAgo
+      },
+      {
+        id: this.currentWorkDiaryId++,
+        title: "월초 안전 점검",
+        content: "창고 내 안전 시설물 점검을 실시했습니다. 소화기, 안전 표지판 등을 확인했습니다.",
+        category: "안전점검",
+        priority: "high",
+        status: "completed",
+        workDate: monthAgo,
+        tags: ["안전", "점검"],
+        authorId: 1,
+        assignedTo: [],
+        createdAt: monthAgo,
+        updatedAt: monthAgo
+      }
+    ];
+
+    sampleDiaries.forEach(diary => {
+      this.workDiaries.push(diary);
+    });
   }
 
   private initializeSampleInventory() {
