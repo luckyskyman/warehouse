@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, MessageSquare, FileText, PlusCircle, Download, User, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PermissionGuard } from '@/components/ui/permission-guard';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
 import type { WorkDiary, WorkDiaryFormData } from '@/types/warehouse';
 
 interface WorkDiaryProps {
@@ -27,6 +29,21 @@ export function WorkDiaryManagement({
   onExportReport 
 }: WorkDiaryProps) {
   const { toast } = useToast();
+  const { user, sessionId } = useAuth();
+
+  // 사용자 목록 가져오기
+  const { data: users = [] } = useQuery({
+    queryKey: ['/api/users'],
+    queryFn: async () => {
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${sessionId}`
+        }
+      });
+      return response.json();
+    },
+    enabled: !!user && !!sessionId
+  });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDiary, setSelectedDiary] = useState<WorkDiary | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -495,8 +512,11 @@ export function WorkDiaryManagement({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">담당자 없음</SelectItem>
-                      <SelectItem value="1">관리자 (admin)</SelectItem>
-                      <SelectItem value="2">조회자 (viewer)</SelectItem>
+                      {users.map((user: any) => (
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.username} ({user.role === 'admin' ? '관리자' : '일반사용자'})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -568,12 +588,14 @@ export function WorkDiaryManagement({
                       </div>
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
-                        작성자 ID: {diary.authorId}
+                        작성자: {users.find((u: any) => u.id === diary.authorId)?.username || '알 수 없음'}
                       </div>
                       {diary.assignedTo && diary.assignedTo.length > 0 && (
                         <div className="flex items-center gap-1">
                           <MessageSquare className="h-4 w-4" />
-                          담당자 ID: {diary.assignedTo.join(', ')}
+                          담당자: {diary.assignedTo.map((id: number) => 
+                            users.find((u: any) => u.id === id)?.username || `ID:${id}`
+                          ).join(', ')}
                         </div>
                       )}
                       <div className="flex items-center gap-1">

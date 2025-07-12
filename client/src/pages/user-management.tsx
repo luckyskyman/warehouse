@@ -34,6 +34,7 @@ export default function UserManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState<CreateUserData>({
     username: "",
     password: "",
@@ -183,6 +184,12 @@ export default function UserManagement() {
     }
   };
 
+  // 사용자 검색 필터링
+  const filteredUsers = users.filter(user => 
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const getRoleBadge = (role: string) => {
     return role === "admin" ? (
       <Badge variant="destructive">관리자</Badge>
@@ -264,6 +271,23 @@ export default function UserManagement() {
         </Dialog>
       </div>
 
+      {/* 검색 필터 */}
+      <div className="mb-4">
+        <div className="flex gap-4 items-center">
+          <div className="flex-1">
+            <Input
+              placeholder="사용자명 또는 역할로 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          <div className="text-sm text-gray-600">
+            전체 {users.length}명 중 {filteredUsers.length}명 표시
+          </div>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>사용자 목록</CardTitle>
@@ -285,7 +309,7 @@ export default function UserManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user: User) => (
+                {filteredUsers.map((user: User) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.username}</TableCell>
                     <TableCell>{getRoleBadge(user.role)}</TableCell>
