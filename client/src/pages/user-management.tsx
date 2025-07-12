@@ -94,7 +94,7 @@ const UserDropdown = () => {
 };
 
 export default function UserManagement() {
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -114,7 +114,7 @@ export default function UserManagement() {
   // Get all users
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["/api/users"],
-    enabled: user?.role === "admin"
+    enabled: currentUser?.role === "admin"
   });
 
   // Create user mutation
@@ -240,7 +240,7 @@ export default function UserManagement() {
   };
 
   const handleDeleteUser = (userId: number) => {
-    if (userId === user?.id) {
+    if (userId === currentUser?.id) {
       toast({
         title: "삭제 불가",
         description: "본인 계정은 삭제할 수 없습니다.",
@@ -440,7 +440,7 @@ export default function UserManagement() {
                           variant="destructive"
                           size="sm"
                           onClick={() => handleDeleteUser(user.id)}
-                          disabled={user.id === user?.id}
+                          disabled={deleteUserMutation.isPending}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
