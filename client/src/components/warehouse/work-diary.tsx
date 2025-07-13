@@ -183,10 +183,7 @@ export function WorkDiaryManagement({
         description: "업무가 완료 처리되었습니다."
       });
       
-      // 추가적으로 강제 새로고침하여 즉시 반영 (잠시 대기 후 자동 새로고침)
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      // 완료 처리 후 자동으로 캐시가 새로고침됨 - 별도 처리 불필요
     } catch (error) {
       console.error('업무 완료 처리 오류:', error);
       toast({
