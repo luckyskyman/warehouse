@@ -23,54 +23,46 @@ import { ChevronDown, User, LogOut } from 'lucide-react';
 const UserDropdown = () => {
   const { user, logout } = useAuth();
   
-  const getUserDisplayName = () => {
-    if (!user) return '';
-    
-    let displayName = user.username;
-    let roleText = user.role === 'admin' ? '관리자' : '일반사용자';
-    
-    // 부서와 직급 정보가 있으면 추가
-    if (user.department || user.position) {
-      const departmentInfo = [];
-      if (user.department) departmentInfo.push(user.department);
-      if (user.position) departmentInfo.push(user.position);
-      if (user.isManager) departmentInfo.push('부서장');
-      
-      if (departmentInfo.length > 0) {
-        displayName += ` (${departmentInfo.join('/')})`;
-      }
-    } else {
-      displayName += ` (${roleText})`;
-    }
-    
-    return displayName;
-  };
+  if (!user) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button 
           variant="outline" 
-          className="bg-white/90 hover:bg-white border-gray-300 shadow-sm"
+          className="bg-white/90 hover:bg-white border-gray-300 shadow-sm max-w-48"
         >
-          <User className="w-4 h-4 mr-2" />
-          {getUserDisplayName()}
-          <ChevronDown className="w-4 h-4 ml-2" />
+          <User className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="truncate">{user.username}</span>
+          {user.isManager && (
+            <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full flex-shrink-0">
+              부서장
+            </span>
+          )}
+          <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
         <div className="px-3 py-2">
-          <p className="text-sm font-medium">{user.username}</p>
-          {user.department && (
-            <p className="text-xs text-gray-500">{user.department}</p>
-          )}
-          {user.position && (
-            <p className="text-xs text-gray-500">{user.position}</p>
-          )}
-          <p className="text-xs text-gray-500">
-            {user.role === 'admin' ? '관리자' : '일반사용자'}
-            {user.isManager && ' • 부서장'}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium">{user.username}</p>
+            {user.isManager && (
+              <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                부서장
+              </span>
+            )}
+          </div>
+          <div className="mt-1 space-y-1">
+            {user.department && (
+              <p className="text-xs text-gray-500">📍 {user.department}</p>
+            )}
+            {user.position && (
+              <p className="text-xs text-gray-500">💼 {user.position}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              🔑 {user.role === 'admin' ? '관리자' : '일반사용자'}
+            </p>
+          </div>
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600">
