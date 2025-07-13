@@ -52,20 +52,38 @@ export function useCompleteWorkDiary() {
       const response = await apiRequest('POST', `/api/work-diary/${diaryId}/complete`);
       return response.json();
     },
+    onMutate: async (diaryId) => {
+      // 낙관적 업데이트: 즉시 UI를 업데이트
+      await queryClient.cancelQueries({ queryKey: ['/api/work-diary'] });
+      
+      // 이전 상태 백업
+      const previousWorkDiaries = queryClient.getQueryData(['/api/work-diary']);
+      
+      // 즉시 상태 업데이트
+      queryClient.setQueryData(['/api/work-diary'], (old: any) => {
+        if (!old) return old;
+        return old.map((diary: any) => 
+          diary.id === diaryId 
+            ? { ...diary, status: 'completed' }
+            : diary
+        );
+      });
+      
+      return { previousWorkDiaries };
+    },
+    onError: (err, diaryId, context) => {
+      // 오류 발생 시 이전 상태로 롤백
+      if (context?.previousWorkDiaries) {
+        queryClient.setQueryData(['/api/work-diary'], context.previousWorkDiaries);
+      }
+      console.error('완료 처리 실패:', err);
+    },
     onSuccess: async (data, diaryId) => {
-      console.log('완료 처리 성공, 캐시 무효화 시작');
-      
-      // 모든 관련 캐시 완전 제거
-      queryClient.removeQueries({ queryKey: ['/api/work-diary'] });
-      queryClient.removeQueries({ queryKey: ['/api/notifications'] });
-      
-      // 즉시 새로 불러오기
+      // 성공 시 서버 데이터로 동기화
       await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['/api/work-diary'] }),
-        queryClient.refetchQueries({ queryKey: ['/api/notifications'] })
+        queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/notifications'] })
       ]);
-      
-      console.log('캐시 무효화 완료');
     },
   });
 }

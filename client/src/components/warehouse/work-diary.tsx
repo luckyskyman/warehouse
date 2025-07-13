@@ -183,11 +183,6 @@ export function WorkDiaryManagement({
         title: "업무 완료 처리",
         description: "업무가 완료 처리되었습니다."
       });
-      
-      // 완료 처리 후 강제 페이지 새로고침으로 확실한 업데이트
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
     } catch (error) {
       console.error('업무 완료 처리 오류:', error);
       toast({
@@ -670,11 +665,20 @@ export function WorkDiaryManagement({
                         variant="default" 
                         size="sm"
                         onClick={() => handleCompleteWork(diary.id)}
-                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-all duration-200"
                         disabled={completeWorkDiary.isPending}
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        {completeWorkDiary.isPending ? '처리중...' : '완료'}
+                        {completeWorkDiary.isPending ? (
+                          <>
+                            <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                            처리중...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            완료
+                          </>
+                        )}
                       </Button>
                     )}
                     
@@ -684,9 +688,9 @@ export function WorkDiaryManagement({
                         variant="outline" 
                         size="sm"
                         disabled
-                        className="text-green-600 border-green-600"
+                        className="text-green-600 border-green-600 bg-green-50 transition-all duration-200"
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
                         완료됨
                       </Button>
                     )}
