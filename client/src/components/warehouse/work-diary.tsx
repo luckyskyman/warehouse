@@ -183,6 +183,7 @@ export function WorkDiaryManagement({
         description: "업무가 완료 처리되었습니다."
       });
     } catch (error) {
+      console.error('업무 완료 처리 오류:', error);
       toast({
         title: "오류가 발생했습니다.",
         description: "업무 완료 처리에 실패했습니다.",
@@ -663,11 +664,24 @@ export function WorkDiaryManagement({
                         variant="default" 
                         size="sm"
                         onClick={() => handleCompleteWork(diary.id)}
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                         disabled={completeWorkDiary.isPending}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-1" />
-                        완료
+                        {completeWorkDiary.isPending ? '처리중...' : '완료'}
+                      </Button>
+                    )}
+                    
+                    {/* 완료된 업무일지 표시 */}
+                    {diary.assignedTo?.includes(user?.id || 0) && diary.status === 'completed' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled
+                        className="text-green-600 border-green-600"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        완료됨
                       </Button>
                     )}
 

@@ -669,6 +669,9 @@ export class MemStorage implements IStorage {
     if (diary.status === 'pending' && diary.assignedTo?.includes(userId)) {
       await this.updateWorkDiaryStatus(id, 'in_progress', userId);
       console.log(`[업무일지 상태] ID:${id} - 담당자 ${userId}가 최초 조회하여 대기중 → 진행중으로 변경`);
+      
+      // 상태가 변경된 업무일지를 다시 조회해서 반환
+      return this.workDiaries.find(d => d.id === id);
     }
 
     return diary;

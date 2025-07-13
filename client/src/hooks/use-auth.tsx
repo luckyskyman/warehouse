@@ -38,10 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('warehouse_session', data.sessionId);
       
       // 로그인 시 권한별 캐시 무효화 (페이지 새로고침 없음)
-      await queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.clear(); // 전체 캐시 초기화로 권한 변경 즉시 반영
+      
+      // 주요 데이터 다시 가져오기
+      await queryClient.prefetchQuery({ queryKey: ['/api/work-diary'] });
+      await queryClient.prefetchQuery({ queryKey: ['/api/users'] });
+      await queryClient.prefetchQuery({ queryKey: ['/api/notifications'] });
     } catch (error) {
       throw error instanceof Error ? error : new Error('로그인에 실패했습니다.');
     } finally {

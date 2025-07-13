@@ -985,9 +985,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "인증이 필요합니다" });
       }
       
+      // 업무일지 조회 및 권한 확인
+      const diary = await storage.getWorkDiary(diaryId);
+      if (!diary) {
+        return res.status(404).json({ message: "업무일지를 찾을 수 없습니다" });
+      }
+      
+      // 이미 완료된 업무일지인지 확인
+      if (diary.status === 'completed') {
+        return res.json({ message: "이미 완료된 업무입니다", alreadyCompleted: true });
+      }
+      
+      // 담당자 권한 확인
+      if (!diary.assignedTo?.includes(userId)) {
+        return res.status(403).json({ message: "업무 완료 권한이 없습니다" });
+      }
+      
       const success = await storage.updateWorkDiaryStatus(diaryId, 'completed', userId);
       if (!success) {
-        return res.status(404).json({ message: "Work diary not found" });
+        return res.status(500).json({ message: "업무 완료 처리에 실패했습니다" });
       }
       
       res.json({ message: "업무가 완료 처리되었습니다" });
