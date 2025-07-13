@@ -36,6 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionId(data.sessionId);
       localStorage.setItem('warehouse_user', JSON.stringify(data.user));
       localStorage.setItem('warehouse_session', data.sessionId);
+      
+      // 로그인 시 페이지 새로고침으로 캐시 무효화
+      window.location.reload();
     } catch (error) {
       throw error instanceof Error ? error : new Error('로그인에 실패했습니다.');
     } finally {
