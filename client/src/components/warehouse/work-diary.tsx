@@ -661,40 +661,39 @@ export function WorkDiaryManagement({
 
                   <div className="flex gap-2 ml-4">
                     {/* 완료 처리 버튼 - 담당자에게만 표시 */}
-                    {diary.assignedTo?.includes(user?.id || 0) && (
-                      <>
-                        {diary.status !== 'completed' ? (
-                          <Button 
-                            variant="default" 
-                            size="sm"
-                            onClick={() => handleCompleteWork(diary.id)}
-                            className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-all duration-200"
-                            disabled={completeWorkDiary.isPending}
-                          >
-                            {completeWorkDiary.isPending ? (
-                              <>
-                                <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                처리중...
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle2 className="h-4 w-4 mr-1" />
-                                완료
-                              </>
-                            )}
-                          </Button>
+                    {diary.assignedTo?.includes(user?.id || 0) && diary.status !== 'completed' && (
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => handleCompleteWork(diary.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-all duration-200"
+                        disabled={completeWorkDiary.isPending}
+                      >
+                        {completeWorkDiary.isPending ? (
+                          <>
+                            <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                            처리중...
+                          </>
                         ) : (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            disabled
-                            className="text-green-600 border-green-600 bg-green-50 transition-all duration-200"
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
-                            완료됨
-                          </Button>
+                          <>
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            완료
+                          </>
                         )}
-                      </>
+                      </Button>
+                    )}
+                    
+                    {/* 완료된 업무일지 표시 */}
+                    {diary.assignedTo?.includes(user?.id || 0) && diary.status === 'completed' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled
+                        className="text-green-600 border-green-600 bg-green-50 transition-all duration-200"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
+                        완료됨
+                      </Button>
                     )}
 
                     {permissions.canEditDiaryItem(diary.authorId) && (
