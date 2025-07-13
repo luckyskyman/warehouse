@@ -18,6 +18,9 @@ interface User {
   id: number;
   username: string;
   role: string;
+  department?: string;
+  position?: string;
+  isManager?: boolean;
   createdAt: string;
 }
 
@@ -253,11 +256,28 @@ export default function UserManagement() {
     user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getRoleBadge = (role: string) => {
-    return role === "admin" ? (
-      <Badge variant="destructive">관리자</Badge>
-    ) : (
-      <Badge variant="secondary">일반사용자</Badge>
+  const getUserRoleDisplay = (user: User) => {
+    // 부서와 직급 정보가 있는 경우
+    if (user.department || user.position) {
+      const parts = [];
+      if (user.department) parts.push(user.department);
+      if (user.position) parts.push(user.position);
+      if (user.isManager) parts.push("부서장");
+      
+      const roleText = parts.length > 0 ? parts.join(" ") : (user.role === "admin" ? "관리자" : "일반사용자");
+      
+      return (
+        <Badge variant={user.role === "admin" ? "destructive" : "secondary"}>
+          {roleText}
+        </Badge>
+      );
+    }
+    
+    // 기본 시스템 역할만 표시
+    return (
+      <Badge variant={user.role === "admin" ? "destructive" : "secondary"}>
+        {user.role === "admin" ? "관리자" : "일반사용자"}
+      </Badge>
     );
   };
 
@@ -418,7 +438,7 @@ export default function UserManagement() {
                 {filteredUsers.map((user: User) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.username}</TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell>{getUserRoleDisplay(user)}</TableCell>
                     <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
