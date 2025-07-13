@@ -37,7 +37,11 @@ export function useMarkNotificationRead() {
       return response.json();
     },
     onSuccess: () => {
+      // 알림 읽음 처리 후 업무일지 상태도 함께 새로고침
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] });
+      // 즉시 새로고침하여 상태 변경사항 반영
+      queryClient.refetchQueries({ queryKey: ['/api/work-diary'] });
     },
   });
 }
@@ -48,14 +52,19 @@ export function useCompleteWorkDiary() {
       const response = await apiRequest('POST', `/api/work-diary/${diaryId}/complete`);
       return response.json();
     },
-    onSuccess: (data, diaryId) => {
-      // 업무일지 목록과 개별 업무일지 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-      // 특정 업무일지 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: ['/api/work-diary', diaryId] });
-      // 전체 업무일지 목록 강제 새로고침
-      queryClient.refetchQueries({ queryKey: ['/api/work-diary'] });
+    onSuccess: async (data, diaryId) => {
+      // 즉시 캐시 무효화 및 새로고침으로 실시간 반영
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/notifications'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/work-diary', diaryId] })
+      ]);
+      
+      // 강제 새로고침으로 즉시 UI 업데이트
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['/api/work-diary'] }),
+        queryClient.refetchQueries({ queryKey: ['/api/notifications'] })
+      ]);
     },
   });
 }
