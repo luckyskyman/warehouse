@@ -56,6 +56,7 @@ export function WorkDiaryManagement({
   const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [completedDiaries, setCompletedDiaries] = useState<Set<number>>(new Set());
   const [formData, setFormData] = useState<WorkDiaryFormData>({
     title: '',
     content: '',
@@ -178,6 +179,10 @@ export function WorkDiaryManagement({
 
   const handleCompleteWork = async (diaryId: number) => {
     console.log('완료 버튼 클릭 - diaryId:', diaryId);
+    
+    // 즉시 UI 업데이트
+    setCompletedDiaries(prev => new Set(prev).add(diaryId));
+    
     try {
       await completeWorkDiary.mutateAsync(diaryId);
       toast({
@@ -186,6 +191,12 @@ export function WorkDiaryManagement({
       });
     } catch (error) {
       console.error('업무 완료 처리 오류:', error);
+      // 오류 시 롤백
+      setCompletedDiaries(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(diaryId);
+        return newSet;
+      });
       toast({
         title: "오류가 발생했습니다.",
         description: "업무 완료 처리에 실패했습니다.",
@@ -618,8 +629,8 @@ export function WorkDiaryManagement({
                       <Badge className={getPriorityStyle(diary.priority)}>
                         {priorities.find(p => p.value === diary.priority)?.label}
                       </Badge>
-                      <Badge className={getStatusStyle(diary.status)}>
-                        {statusOptions.find(s => s.value === diary.status)?.label}
+                      <Badge className={getStatusStyle(completedDiaries.has(diary.id) ? 'completed' : diary.status)}>
+                        {statusOptions.find(s => s.value === (completedDiaries.has(diary.id) ? 'completed' : diary.status))?.label}
                       </Badge>
                     </div>
 
@@ -661,39 +672,40 @@ export function WorkDiaryManagement({
 
                   <div className="flex gap-2 ml-4">
                     {/* 완료 처리 버튼 - 담당자에게만 표시 */}
-                    {diary.assignedTo?.includes(user?.id || 0) && diary.status !== 'completed' && (
-                      <Button 
-                        variant="default" 
-                        size="sm"
-                        onClick={() => handleCompleteWork(diary.id)}
-                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-all duration-200"
-                        disabled={completeWorkDiary.isPending}
-                      >
-                        {completeWorkDiary.isPending ? (
-                          <>
-                            <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                            처리중...
-                          </>
+                    {diary.assignedTo?.includes(user?.id || 0) && (
+                      <>
+                        {diary.status !== 'completed' && !completedDiaries.has(diary.id) ? (
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => handleCompleteWork(diary.id)}
+                            className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 transition-all duration-200"
+                            disabled={completeWorkDiary.isPending}
+                          >
+                            {completeWorkDiary.isPending ? (
+                              <>
+                                <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                처리중...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
+                                완료
+                              </>
+                            )}
+                          </Button>
                         ) : (
-                          <>
-                            <CheckCircle2 className="h-4 w-4 mr-1" />
-                            완료
-                          </>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            disabled
+                            className="text-green-600 border-green-600 bg-green-50 transition-all duration-200"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
+                            완료됨
+                          </Button>
                         )}
-                      </Button>
-                    )}
-                    
-                    {/* 완료된 업무일지 표시 */}
-                    {diary.assignedTo?.includes(user?.id || 0) && diary.status === 'completed' && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        disabled
-                        className="text-green-600 border-green-600 bg-green-50 transition-all duration-200"
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
-                        완료됨
-                      </Button>
+                      </>
                     )}
 
                     {permissions.canEditDiaryItem(diary.authorId) && (

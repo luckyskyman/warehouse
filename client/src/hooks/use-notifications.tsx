@@ -54,14 +54,11 @@ export function useCompleteWorkDiary() {
     },
     onSuccess: async (data, diaryId) => {
       console.log('완료 처리 성공 - 서버 응답:', data);
-      
-      // 완료 후 페이지 새로고침으로 확실한 상태 동기화
-      setTimeout(() => {
-        window.location.reload();
-      }, 300);
+      // 서버 성공 시에는 아무것도 하지 않음 (이미 UI 업데이트됨)
     },
     onError: (err) => {
       console.error('완료 처리 실패:', err);
+      // 오류 시에만 롤백하도록 상위 컴포넌트에 알림
     },
   });
 }
