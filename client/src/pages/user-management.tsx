@@ -169,7 +169,8 @@ export default function UserManagement() {
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest("DELETE", `/api/users/${id}`);
-      return response.json();
+      // DELETE는 204 응답으로 body가 없으므로 json() 호출하지 않음
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
