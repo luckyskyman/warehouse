@@ -79,7 +79,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { 
           id: user.id, 
           username: user.username, 
-          role: user.role 
+          role: user.role,
+          department: user.department,
+          position: user.position,
+          isManager: user.isManager
         },
         sessionId: sessionId
       });
