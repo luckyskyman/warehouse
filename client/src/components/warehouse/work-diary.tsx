@@ -184,10 +184,10 @@ export function WorkDiaryManagement({
         description: "업무가 완료 처리되었습니다."
       });
       
-      // 완료 처리 후 즉시 반영을 위한 추가 처리
+      // 완료 처리 후 강제 페이지 새로고침으로 확실한 업데이트
       setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ['/api/work-diary'] });
-      }, 100);
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error('업무 완료 처리 오류:', error);
       toast({
