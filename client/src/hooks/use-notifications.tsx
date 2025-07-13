@@ -52,53 +52,16 @@ export function useCompleteWorkDiary() {
       const response = await apiRequest('POST', `/api/work-diary/${diaryId}/complete`);
       return response.json();
     },
-    onMutate: async (diaryId) => {
-      // 낙관적 업데이트: 즉시 UI를 업데이트
-      await queryClient.cancelQueries({ queryKey: ['/api/work-diary'] });
-      
-      // 이전 상태 백업
-      const previousWorkDiaries = queryClient.getQueryData(['/api/work-diary']);
-      
-      console.log('낙관적 업데이트 시작 - diaryId:', diaryId);
-      console.log('이전 데이터:', previousWorkDiaries);
-      
-      // 즉시 상태 업데이트
-      queryClient.setQueryData(['/api/work-diary'], (old: any) => {
-        if (!old) return old;
-        const updated = old.map((diary: any) => {
-          if (diary.id === diaryId) {
-            console.log('업무일지 상태 변경:', diary.id, diary.status, '→ completed');
-            return { ...diary, status: 'completed' };
-          }
-          return diary;
-        });
-        console.log('업데이트된 데이터:', updated);
-        return updated;
-      });
-      
-      return { previousWorkDiaries };
-    },
-    onError: (err, diaryId, context) => {
-      // 오류 발생 시 이전 상태로 롤백
-      if (context?.previousWorkDiaries) {
-        queryClient.setQueryData(['/api/work-diary'], context.previousWorkDiaries);
-      }
-      console.error('완료 처리 실패:', err);
-    },
     onSuccess: async (data, diaryId) => {
       console.log('완료 처리 성공 - 서버 응답:', data);
-      // 성공 시에는 캐시 무효화 대신 특정 업무일지만 업데이트
-      queryClient.setQueryData(['/api/work-diary'], (old: any) => {
-        if (!old) return old;
-        return old.map((diary: any) => 
-          diary.id === diaryId 
-            ? { ...diary, status: 'completed' }
-            : diary
-        );
-      });
       
-      // 알림만 새로고침
-      await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      // 완료 후 페이지 새로고침으로 확실한 상태 동기화
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
+    },
+    onError: (err) => {
+      console.error('완료 처리 실패:', err);
     },
   });
 }
