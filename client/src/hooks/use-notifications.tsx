@@ -36,12 +36,12 @@ export function useMarkNotificationRead() {
       const response = await apiRequest('POST', `/api/notifications/${notificationId}/read`);
       return response.json();
     },
-    onSuccess: () => {
-      // 알림 읽음 처리 후 업무일지 상태도 함께 새로고침
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] });
-      // 즉시 새로고침하여 상태 변경사항 반영
-      queryClient.refetchQueries({ queryKey: ['/api/work-diary'] });
+    onSuccess: async () => {
+      // 알림 읽음 처리 후 업무일지 상태도 함께 새로고침 (부드럽게)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/notifications'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] })
+      ]);
     },
   });
 }
@@ -53,17 +53,11 @@ export function useCompleteWorkDiary() {
       return response.json();
     },
     onSuccess: async (data, diaryId) => {
-      // 즉시 캐시 무효화 및 새로고침으로 실시간 반영
+      // 완료 처리 후 부드러운 캐시 무효화
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] }),
         queryClient.invalidateQueries({ queryKey: ['/api/notifications'] }),
         queryClient.invalidateQueries({ queryKey: ['/api/work-diary', diaryId] })
-      ]);
-      
-      // 강제 새로고침으로 즉시 UI 업데이트
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['/api/work-diary'] }),
-        queryClient.refetchQueries({ queryKey: ['/api/notifications'] })
       ]);
     },
   });
