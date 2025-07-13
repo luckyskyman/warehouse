@@ -53,12 +53,23 @@ export function useCompleteWorkDiary() {
       return response.json();
     },
     onSuccess: async (data, diaryId) => {
-      // 완료 처리 후 부드러운 캐시 무효화
+      // 완료 처리 후 즉시 캐시 무효화 및 강제 새로고침
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] }),
         queryClient.invalidateQueries({ queryKey: ['/api/notifications'] }),
         queryClient.invalidateQueries({ queryKey: ['/api/work-diary', diaryId] })
       ]);
+      
+      // 강제 새로고침으로 즉시 UI 업데이트
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['/api/work-diary'] }),
+        queryClient.refetchQueries({ queryKey: ['/api/notifications'] })
+      ]);
+      
+      // 추가 보험: 잠시 후 한 번 더 새로고침
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/work-diary'] });
+      }, 200);
     },
   });
 }

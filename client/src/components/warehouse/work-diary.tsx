@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useCompleteWorkDiary } from '@/hooks/use-notifications';
+import { queryClient } from '@/lib/queryClient';
 import type { WorkDiary, WorkDiaryFormData } from '@/types/warehouse';
 
 interface WorkDiaryProps {
@@ -183,7 +184,10 @@ export function WorkDiaryManagement({
         description: "업무가 완료 처리되었습니다."
       });
       
-      // 완료 처리 후 자동으로 캐시가 새로고침됨 - 별도 처리 불필요
+      // 완료 처리 후 즉시 반영을 위한 추가 처리
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/work-diary'] });
+      }, 100);
     } catch (error) {
       console.error('업무 완료 처리 오류:', error);
       toast({
