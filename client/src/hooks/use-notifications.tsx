@@ -48,9 +48,14 @@ export function useCompleteWorkDiary() {
       const response = await apiRequest('POST', `/api/work-diary/${diaryId}/complete`);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, diaryId) => {
+      // 업무일지 목록과 개별 업무일지 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      // 특정 업무일지 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ['/api/work-diary', diaryId] });
+      // 전체 업무일지 목록 강제 새로고침
+      queryClient.refetchQueries({ queryKey: ['/api/work-diary'] });
     },
   });
 }
