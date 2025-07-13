@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User } from '@/types/warehouse';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 interface AuthContextType {
   user: User | null;
@@ -37,8 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('warehouse_user', JSON.stringify(data.user));
       localStorage.setItem('warehouse_session', data.sessionId);
       
-      // 로그인 시 페이지 새로고침으로 캐시 무효화
-      window.location.reload();
+      // 로그인 시 권한별 캐시 무효화 (페이지 새로고침 없음)
+      await queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     } catch (error) {
       throw error instanceof Error ? error : new Error('로그인에 실패했습니다.');
     } finally {

@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ChevronDown, User, LogOut } from 'lucide-react';
+import { NotificationBell } from '@/components/ui/notification-bell';
 
 // 사용자 드롭다운 컴포넌트
 const UserDropdown = () => {
@@ -369,7 +370,8 @@ export default function WarehouseManagement() {
             <h1 className="text-4xl font-bold text-center text-gray-900 mb-4 text-shadow">
               🏭 창고 물품 재고 관리시스템
             </h1>
-            <div className="absolute top-0 right-0">
+            <div className="absolute top-0 right-0 flex items-center gap-3">
+              <NotificationBell />
               <UserDropdown />
             </div>
           </div>

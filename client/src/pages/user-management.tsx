@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Plus, Edit2, Trash2, Shield, User, LogOut, ChevronDown } from "lucide-react";
+import { NotificationBell } from '@/components/ui/notification-bell';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -290,7 +291,8 @@ export default function UserManagement() {
             <h1 className="text-4xl font-bold text-center text-gray-900 mb-4 text-shadow">
               🏭 창고 물품 재고 관리시스템
             </h1>
-            <div className="absolute top-0 right-0">
+            <div className="absolute top-0 right-0 flex items-center gap-3">
+              <NotificationBell />
               <UserDropdown />
             </div>
           </div>
