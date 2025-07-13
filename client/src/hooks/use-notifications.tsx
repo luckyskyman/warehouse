@@ -86,11 +86,19 @@ export function useCompleteWorkDiary() {
       console.error('완료 처리 실패:', err);
     },
     onSuccess: async (data, diaryId) => {
-      // 성공 시 서버 데이터로 동기화
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['/api/work-diary'] }),
-        queryClient.invalidateQueries({ queryKey: ['/api/notifications'] })
-      ]);
+      console.log('완료 처리 성공 - 서버 응답:', data);
+      // 성공 시에는 캐시 무효화 대신 특정 업무일지만 업데이트
+      queryClient.setQueryData(['/api/work-diary'], (old: any) => {
+        if (!old) return old;
+        return old.map((diary: any) => 
+          diary.id === diaryId 
+            ? { ...diary, status: 'completed' }
+            : diary
+        );
+      });
+      
+      // 알림만 새로고침
+      await queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     },
   });
 }
