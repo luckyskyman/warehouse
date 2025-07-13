@@ -177,6 +177,7 @@ export function WorkDiaryManagement({
   };
 
   const handleCompleteWork = async (diaryId: number) => {
+    console.log('완료 버튼 클릭 - diaryId:', diaryId);
     try {
       await completeWorkDiary.mutateAsync(diaryId);
       toast({
