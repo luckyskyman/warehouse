@@ -130,191 +130,22 @@ export class MemStorage implements IStorage {
       isManager: false,
       createdAt: new Date(),
     };
-    const leeDongJe: User = {
-      id: this.currentUserId++,
-      username: "이동제",
-      password: "1124",
-      role: "viewer",
-      department: "창고부",
-      position: "소장",
-      isManager: true,
-      createdAt: new Date(),
-    };
     this.users.set(adminUser.id, adminUser);
     this.users.set(viewerUser.id, viewerUser);
-    this.users.set(leeDongJe.id, leeDongJe);
 
-    // Create basic warehouse layout only
-    const basicLayout: WarehouseLayout[] = [
-      { id: this.currentLayoutId++, zoneName: "A구역", subZoneName: "A-1", floors: ["1층", "2층", "3층"], createdAt: new Date() },
-      { id: this.currentLayoutId++, zoneName: "A구역", subZoneName: "A-2", floors: ["1층", "2층", "3층"], createdAt: new Date() },
-      { id: this.currentLayoutId++, zoneName: "B구역", subZoneName: "B-1", floors: ["1층", "2층", "3층"], createdAt: new Date() },
-      { id: this.currentLayoutId++, zoneName: "B구역", subZoneName: "B-2", floors: ["1층", "2층", "3층"], createdAt: new Date() },
-      { id: this.currentLayoutId++, zoneName: "C구역", subZoneName: "C-1", floors: ["1층", "2층", "3층"], createdAt: new Date() },
-      { id: this.currentLayoutId++, zoneName: "C구역", subZoneName: "C-2", floors: ["1층", "2층", "3층"], createdAt: new Date() },
-      { id: this.currentLayoutId++, zoneName: "D구역", subZoneName: "D-1", floors: ["1층", "2층", "3층"], createdAt: new Date() },
-      { id: this.currentLayoutId++, zoneName: "D구역", subZoneName: "D-2", floors: ["1층", "2층", "3층"], createdAt: new Date() },
-    ];
-    this.warehouseLayout = basicLayout;
+    // 창고 레이아웃 초기화 - 빈 상태로 시작
+    this.warehouseLayout = [];
 
-    // Initialize sample inventory items for BOM checking
-    this.initializeSampleInventory();
-
-    // Initialize BOM guides based on installation guides from OC documents
-    this.initializeBomGuides();
-
-    // Initialize sample work diary data
-    this.initializeSampleWorkDiaries();
-  }
-
-  private initializeBomGuides() {
-    // BOM 데이터 초기화 - 빈 상태로 시작
+    // 모든 데이터를 빈 상태로 초기화
     this.bomGuides = [];
+    this.workDiaries = [];
+    this.workDiaryComments = [];
+    this.workNotifications = [];
+    this.transactions = [];
+    this.exchangeQueue = [];
   }
 
-  private initializeSampleWorkDiaries() {
-    // 날짜 검색 테스트를 위한 샘플 업무일지 데이터
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const weekAgo = new Date(today);
-    weekAgo.setDate(today.getDate() - 7);
-    const monthAgo = new Date(today);
-    monthAgo.setMonth(today.getMonth() - 1);
 
-    const sampleDiaries = [
-      {
-        id: this.currentWorkDiaryId++,
-        title: "오늘 입고 작업 완료",
-        content: "새 부품들이 도착해서 입고 작업을 진행했습니다. 전체 물량 확인 후 적절한 위치에 배치했습니다.",
-        category: "입고",
-        priority: "normal",
-        status: "completed",
-        workDate: today,
-        tags: ["입고", "부품"],
-        authorId: 1,
-        assignedTo: [],
-        visibility: "department",
-        createdAt: today,
-        updatedAt: today
-      },
-      {
-        id: this.currentWorkDiaryId++,
-        title: "어제 재고 조사 실시",
-        content: "A구역 전체 재고 실사를 진행했습니다. 일부 부족한 품목들이 발견되어 발주 요청했습니다.",
-        category: "재고조사",
-        priority: "high",
-        status: "completed",
-        workDate: yesterday,
-        tags: ["재고조사", "발주"],
-        authorId: 1,
-        assignedTo: [],
-        visibility: "department",
-        createdAt: yesterday,
-        updatedAt: yesterday
-      },
-      {
-        id: this.currentWorkDiaryId++,
-        title: "설비 점검 및 정비",
-        content: "포크리프트 정기 점검을 실시했습니다. 오일 교환과 배터리 점검을 완료했습니다.",
-        category: "설비점검",
-        priority: "normal",
-        status: "completed",
-        workDate: weekAgo,
-        tags: ["포크리프트", "정비"],
-        authorId: 2,
-        assignedTo: [],
-        visibility: "department",
-        createdAt: weekAgo,
-        updatedAt: weekAgo
-      },
-      {
-        id: this.currentWorkDiaryId++,
-        title: "월초 안전 점검",
-        content: "창고 내 안전 시설물 점검을 실시했습니다. 소화기, 안전 표지판 등을 확인했습니다.",
-        category: "안전점검",
-        priority: "high",
-        status: "completed",
-        workDate: monthAgo,
-        tags: ["안전", "점검"],
-        authorId: 1,
-        assignedTo: [],
-        visibility: "public",
-        createdAt: monthAgo,
-        updatedAt: monthAgo
-      }
-    ];
-
-    sampleDiaries.forEach(diary => {
-      this.workDiaries.push(diary);
-    });
-  }
-
-  private initializeSampleInventory() {
-    // 알림 기능 테스트를 위한 샘플 재고 데이터
-    const sampleItems = [
-      {
-        id: this.currentItemId++,
-        code: "PART-001",
-        name: "표준 볼트 M8x20",
-        category: "볼트/너트",
-        manufacturer: "현대상사",
-        stock: 2,
-        minStock: 10,
-        unit: "ea",
-        location: "A구역-A-1-1층",
-        boxSize: 100,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: this.currentItemId++,
-        code: "PART-002",
-        name: "육각너트 M8",
-        category: "볼트/너트",
-        manufacturer: "현대상사",
-        stock: 0,
-        minStock: 15,
-        unit: "ea",
-        location: "A구역-A-1-2층",
-        boxSize: 200,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: this.currentItemId++,
-        code: "PART-003",
-        name: "와셔 M8",
-        category: "부속품",
-        manufacturer: "삼성산업",
-        stock: 5,
-        minStock: 20,
-        unit: "ea",
-        location: "A구역-A-2-1층",
-        boxSize: 500,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: this.currentItemId++,
-        code: "PART-004",
-        name: "전선 2.5SQ",
-        category: "전기재료",
-        manufacturer: "엘지전선",
-        stock: 100,
-        minStock: 10,
-        unit: "m",
-        location: "B구역-B-1-1층",
-        boxSize: 100,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
-
-    sampleItems.forEach(item => {
-      this.inventoryItems.set(item.id.toString(), item);
-    });
-  }
 
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
