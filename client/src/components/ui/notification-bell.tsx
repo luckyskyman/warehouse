@@ -58,6 +58,11 @@ export function NotificationBell() {
   const handleNotificationClick = async (notification: WorkNotification) => {
     if (!notification.read) {
       await markAsRead.mutateAsync(notification.id);
+      
+      // 알림 클릭 후 즉시 업무일지 데이터 새로고침
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
     }
     // 해당 업무일지로 이동하는 로직 추가 가능
   };

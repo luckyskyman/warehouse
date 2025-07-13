@@ -908,7 +908,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!diary) {
         return res.status(404).json({ message: "Work diary not found" });
       }
-      res.json(diary);
+      
+      // 상태 변경이 있었을 수 있으므로 최신 데이터로 다시 조회
+      const updatedDiary = await storage.getWorkDiary(parseInt(req.params.id));
+      res.json(updatedDiary || diary);
     } catch (error) {
       res.status(500).json({ message: "Server error" });
     }
