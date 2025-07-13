@@ -187,7 +187,7 @@ export default function UserManagement() {
     }
   });
 
-  if (user?.role !== "admin") {
+  if (currentUser?.role !== "admin") {
     return (
       <div className="warehouse-content">
         <div className="text-center">
