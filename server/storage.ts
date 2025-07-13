@@ -661,8 +661,49 @@ export class MemStorage implements IStorage {
     return diaries.sort((a, b) => new Date(b.workDate).getTime() - new Date(a.workDate).getTime());
   }
 
-  async getWorkDiary(id: number): Promise<WorkDiary | undefined> {
-    return this.workDiaries.find(diary => diary.id === id);
+  async getWorkDiary(id: number, userId?: number): Promise<WorkDiary | undefined> {
+    const diary = this.workDiaries.find(diary => diary.id === id);
+    if (!diary || !userId) return diary;
+
+    // 담당자가 최초 조회 시 상태를 pending → in_progress로 변경
+    if (diary.status === 'pending' && diary.assignedTo?.includes(userId)) {
+      await this.updateWorkDiaryStatus(id, 'in_progress', userId);
+      console.log(`[업무일지 상태] ID:${id} - 담당자 ${userId}가 최초 조회하여 대기중 → 진행중으로 변경`);
+    }
+
+    return diary;
+  }
+
+  // 업무일지 상태 변경 및 알림 생성
+  async updateWorkDiaryStatus(diaryId: number, newStatus: 'pending' | 'in_progress' | 'completed', userId: number): Promise<boolean> {
+    const diary = await this.updateWorkDiary(diaryId, { status: newStatus });
+    if (!diary) return false;
+
+    const user = this.users.get(userId);
+    const author = this.users.get(diary.authorId);
+    if (!user || !author) return false;
+
+    // 상태 변경 알림을 작성자에게 전송 (자신이 작성한 것이 아닌 경우)
+    if (diary.authorId !== userId) {
+      let message = '';
+      if (newStatus === 'in_progress') {
+        message = `${user.username}님이 업무일지를 확인했습니다: ${diary.title}`;
+      } else if (newStatus === 'completed') {
+        message = `${user.username}님이 업무를 완료했습니다: ${diary.title}`;
+      }
+
+      if (message) {
+        await this.createWorkNotification({
+          userId: diary.authorId,
+          diaryId: diary.id,
+          type: 'status_change',
+          message
+        });
+        console.log(`[상태 변경 알림] ${message}`);
+      }
+    }
+
+    return true;
   }
 
   async createWorkDiary(insertDiary: InsertWorkDiary): Promise<WorkDiary> {
@@ -670,10 +711,52 @@ export class MemStorage implements IStorage {
       id: this.currentWorkDiaryId++,
       createdAt: new Date(),
       updatedAt: new Date(),
+      status: 'pending', // 새 업무일지는 대기중 상태로 시작
       ...insertDiary,
     };
     this.workDiaries.push(diary);
+    
+    // 공개범위에 따른 자동 알림 생성
+    await this.createNotificationsForWorkDiary(diary);
+    
     return diary;
+  }
+
+  // 업무일지 공개범위별 알림 생성
+  private async createNotificationsForWorkDiary(diary: WorkDiary): Promise<void> {
+    const author = this.users.get(diary.authorId);
+    if (!author) return;
+
+    let targetUserIds: number[] = [];
+
+    if (diary.visibility === 'private') {
+      // Private: 지정된 담당자들만
+      targetUserIds = diary.assignedTo || [];
+    } else if (diary.visibility === 'department') {
+      // Department: 같은 부서의 모든 사용자들
+      const allUsers = Array.from(this.users.values());
+      targetUserIds = allUsers
+        .filter(user => user.department === author.department && user.id !== diary.authorId)
+        .map(user => user.id);
+    } else if (diary.visibility === 'public') {
+      // Public: 모든 사용자들
+      const allUsers = Array.from(this.users.values());
+      targetUserIds = allUsers
+        .filter(user => user.id !== diary.authorId)
+        .map(user => user.id);
+    }
+
+    // 각 대상 사용자에게 알림 생성
+    for (const userId of targetUserIds) {
+      await this.createWorkNotification({
+        userId,
+        diaryId: diary.id,
+        type: 'new_diary',
+        message: `${author.username}님이 새로운 업무일지를 작성했습니다: ${diary.title}`
+      });
+    }
+
+    console.log(`[업무일지 알림] ${diary.title} - ${targetUserIds.length}명에게 알림 생성 (공개범위: ${diary.visibility})`);
   }
 
   async updateWorkDiary(id: number, updates: Partial<WorkDiary>): Promise<WorkDiary | undefined> {

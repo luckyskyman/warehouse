@@ -901,9 +901,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/work-diary/:id", async (req, res) => {
+  app.get("/api/work-diary/:id", async (req: any, res) => {
     try {
-      const diary = await storage.getWorkDiary(parseInt(req.params.id));
+      const userId = req.user?.id;
+      const diary = await storage.getWorkDiary(parseInt(req.params.id), userId);
       if (!diary) {
         return res.status(404).json({ message: "Work diary not found" });
       }
@@ -924,7 +925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: req.body.content,
         category: req.body.category || '기타',
         priority: req.body.priority || 'normal',
-        status: req.body.status || 'completed',
+        status: 'pending', // 새 업무일지는 항상 대기중으로 시작
         workDate: new Date(req.body.workDate),
         attachments: req.body.attachments || null,
         tags: req.body.tags || null,
@@ -974,6 +975,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 업무일지 완료 처리
+  app.post("/api/work-diary/:id/complete", async (req: any, res) => {
+    try {
+      const diaryId = parseInt(req.params.id);
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "인증이 필요합니다" });
+      }
+      
+      const success = await storage.updateWorkDiaryStatus(diaryId, 'completed', userId);
+      if (!success) {
+        return res.status(404).json({ message: "Work diary not found" });
+      }
+      
+      res.json({ message: "업무가 완료 처리되었습니다" });
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.delete("/api/work-diary/:id", requireAdmin, async (req, res) => {
     try {
       const deleted = await storage.deleteWorkDiary(parseInt(req.params.id));
@@ -981,6 +1003,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Work diary not found" });
       }
       res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // 알림 관련 API
+  app.get("/api/notifications", async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.json([]);
+      }
+      
+      const notifications = await storage.getWorkNotifications(userId);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/notifications/:id/read", async (req: any, res) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      const success = await storage.markNotificationAsRead(notificationId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      res.json({ message: "알림이 읽음 처리되었습니다" });
     } catch (error) {
       res.status(500).json({ message: "Server error" });
     }

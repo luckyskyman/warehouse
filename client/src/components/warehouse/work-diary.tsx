@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MessageSquare, FileText, PlusCircle, Download, User, Clock } from 'lucide-react';
+import { Calendar, MessageSquare, FileText, PlusCircle, Download, User, Clock, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PermissionGuard } from '@/components/ui/permission-guard';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useCompleteWorkDiary } from '@/hooks/use-notifications';
 import type { WorkDiary, WorkDiaryFormData } from '@/types/warehouse';
 
 interface WorkDiaryProps {
@@ -32,6 +33,7 @@ export function WorkDiaryManagement({
   const { toast } = useToast();
   const { user, sessionId } = useAuth();
   const permissions = usePermissions();
+  const completeWorkDiary = useCompleteWorkDiary();
 
   // 사용자 목록 가져오기
   const { data: users = [] } = useQuery({
@@ -171,6 +173,22 @@ export function WorkDiaryManagement({
       visibility: diary.visibility || 'department'
     });
     setIsFormOpen(true);
+  };
+
+  const handleCompleteWork = async (diaryId: number) => {
+    try {
+      await completeWorkDiary.mutateAsync(diaryId);
+      toast({
+        title: "업무 완료 처리",
+        description: "업무가 완료 처리되었습니다."
+      });
+    } catch (error) {
+      toast({
+        title: "오류가 발생했습니다.",
+        description: "업무 완료 처리에 실패했습니다.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getPriorityStyle = (priority: string) => {
@@ -639,6 +657,20 @@ export function WorkDiaryManagement({
                   </div>
 
                   <div className="flex gap-2 ml-4">
+                    {/* 완료 처리 버튼 - 담당자에게만 표시 */}
+                    {diary.assignedTo?.includes(user?.id || 0) && diary.status !== 'completed' && (
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => handleCompleteWork(diary.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        disabled={completeWorkDiary.isPending}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        완료
+                      </Button>
+                    )}
+
                     {permissions.canEditDiaryItem(diary.authorId) && (
                       <Button 
                         variant="outline" 
