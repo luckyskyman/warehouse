@@ -185,8 +185,8 @@ export function WorkDiaryManagement({
       
       // 추가적으로 강제 새로고침하여 즉시 반영 (잠시 대기 후 자동 새로고침)
       setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ['/api/work-diary'] });
-      }, 100);
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error('업무 완료 처리 오류:', error);
       toast({

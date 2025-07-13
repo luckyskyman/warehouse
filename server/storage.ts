@@ -608,6 +608,33 @@ export class MemStorage implements IStorage {
   async getWorkDiaries(startDate?: Date, endDate?: Date, userId?: number): Promise<WorkDiary[]> {
     let diaries = [...this.workDiaries];
     
+    // 담당자 업무일지 상태 자동 업데이트 (pending → in_progress)
+    if (userId) {
+      const user = this.users.get(userId);
+      if (user) {
+        for (const diary of diaries) {
+          // 담당자가 대기중인 업무일지를 조회할 때 자동으로 진행중으로 변경
+          const isAssignee = diary.assignedTo && Array.isArray(diary.assignedTo) 
+            ? diary.assignedTo.includes(userId)
+            : diary.assignedTo === userId;
+            
+          if (diary.status === 'pending' && isAssignee) {
+            console.log(`[업무일지 목록 조회] ID:${diary.id} - 담당자 ${user.username}(${userId})가 조회하여 대기중 → 진행중으로 변경`);
+            diary.status = 'in_progress';
+            diary.updatedAt = new Date().toISOString();
+            
+            // 상태 변경 알림 생성
+            await this.createWorkNotification({
+              userId: diary.authorId,
+              diaryId: diary.id,
+              type: 'status_change',
+              message: `${user.username}님이 업무를 확인했습니다.`
+            });
+          }
+        }
+      }
+    }
+    
     // 부서별 권한 필터링
     if (userId) {
       const user = this.users.get(userId);
@@ -663,15 +690,31 @@ export class MemStorage implements IStorage {
 
   async getWorkDiary(id: number, userId?: number): Promise<WorkDiary | undefined> {
     const diary = this.workDiaries.find(diary => diary.id === id);
-    if (!diary || !userId) return diary;
+    if (!diary) return undefined;
+    
+    // userId가 없으면 그냥 반환
+    if (!userId) return diary;
 
     // 담당자가 최초 조회 시 상태를 pending → in_progress로 변경
-    if (diary.status === 'pending' && diary.assignedTo?.includes(userId)) {
-      await this.updateWorkDiaryStatus(id, 'in_progress', userId);
-      console.log(`[업무일지 상태] ID:${id} - 담당자 ${userId}가 최초 조회하여 대기중 → 진행중으로 변경`);
+    const isAssignee = diary.assignedTo && Array.isArray(diary.assignedTo) 
+      ? diary.assignedTo.includes(userId)
+      : diary.assignedTo === userId;
       
-      // 상태가 변경된 업무일지를 다시 조회해서 반환
-      return this.workDiaries.find(d => d.id === id);
+    if (diary.status === 'pending' && isAssignee) {
+      console.log(`[업무일지 상태] ID:${id} - 담당자 ${userId}가 최초 조회하여 대기중 → 진행중으로 변경`);
+      diary.status = 'in_progress';
+      diary.updatedAt = new Date().toISOString();
+      
+      // 상태 변경 알림 생성
+      const user = this.users.get(userId);
+      if (user) {
+        await this.createWorkNotification({
+          userId: diary.authorId,
+          diaryId: diary.id,
+          type: 'status_change',
+          message: `${user.username}님이 업무를 확인했습니다.`
+        });
+      }
     }
 
     return diary;
