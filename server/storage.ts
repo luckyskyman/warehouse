@@ -9,6 +9,12 @@ import {
   type WorkDiaryComment, type InsertWorkDiaryComment,
   type WorkNotification, type InsertWorkNotification
 } from "@shared/schema";
+import { db } from "./db";
+import { 
+  users, inventoryItems, transactions, bomGuides, warehouseLayout, 
+  exchangeQueue, workDiary, workDiaryComments, workNotifications 
+} from "@shared/schema";
+import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -729,4 +735,253 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// 데이터베이스 기반 저장소 클래스
+export class DatabaseStorage implements IStorage {
+  constructor() {
+    this.initializeData();
+  }
+
+  private async initializeData() {
+    try {
+      // 기본 사용자 계정이 없으면 생성
+      const existingAdmin = await this.getUserByUsername("admin");
+      if (!existingAdmin) {
+        await this.createUser({
+          username: "admin",
+          password: "xormr", 
+          role: "admin",
+          department: "관리부",
+          position: "관리자",
+          isManager: true
+        });
+      }
+
+      const existingViewer = await this.getUserByUsername("viewer");
+      if (!existingViewer) {
+        await this.createUser({
+          username: "viewer",
+          password: "1124",
+          role: "viewer", 
+          department: "창고부",
+          position: "사원",
+          isManager: false
+        });
+      }
+    } catch (error) {
+      console.log('초기 데이터 설정 중 오류 (정상적일 수 있음):', error);
+    }
+  }
+
+  // User management
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(asc(users.createdAt));
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const result = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Inventory management
+  async getInventoryItems(): Promise<InventoryItem[]> {
+    return await db.select().from(inventoryItems).orderBy(asc(inventoryItems.code));
+  }
+
+  async getInventoryItem(code: string): Promise<InventoryItem | undefined> {
+    const result = await db.select().from(inventoryItems).where(eq(inventoryItems.code, code)).limit(1);
+    return result[0];
+  }
+
+  async createInventoryItem(insertItem: InsertInventoryItem): Promise<InventoryItem> {
+    const result = await db.insert(inventoryItems).values(insertItem).returning();
+    return result[0];
+  }
+
+  async updateInventoryItem(code: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
+    const result = await db.update(inventoryItems).set(updates).where(eq(inventoryItems.code, code)).returning();
+    return result[0];
+  }
+
+  async deleteInventoryItem(code: string): Promise<boolean> {
+    const result = await db.delete(inventoryItems).where(eq(inventoryItems.code, code));
+    return result.rowCount > 0;
+  }
+
+  // Transaction management
+  async getTransactions(): Promise<Transaction[]> {
+    return await db.select().from(transactions).orderBy(desc(transactions.createdAt));
+  }
+
+  async getTransactionsByItemCode(itemCode: string): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(eq(transactions.itemCode, itemCode)).orderBy(desc(transactions.createdAt));
+  }
+
+  async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
+    const result = await db.insert(transactions).values(insertTransaction).returning();
+    return result[0];
+  }
+
+  // BOM management
+  async getBomGuides(): Promise<BomGuide[]> {
+    return await db.select().from(bomGuides).orderBy(asc(bomGuides.guideName));
+  }
+
+  async getBomGuidesByName(guideName: string): Promise<BomGuide[]> {
+    return await db.select().from(bomGuides).where(eq(bomGuides.guideName, guideName));
+  }
+
+  async createBomGuide(insertBom: InsertBomGuide): Promise<BomGuide> {
+    const result = await db.insert(bomGuides).values(insertBom).returning();
+    return result[0];
+  }
+
+  async deleteBomGuidesByName(guideName: string): Promise<boolean> {
+    const result = await db.delete(bomGuides).where(eq(bomGuides.guideName, guideName));
+    return result.rowCount > 0;
+  }
+
+  // Warehouse layout
+  async getWarehouseLayout(): Promise<WarehouseLayout[]> {
+    return await db.select().from(warehouseLayout).orderBy(asc(warehouseLayout.zoneName));
+  }
+
+  async createWarehouseZone(insertLayout: InsertWarehouseLayout): Promise<WarehouseLayout> {
+    const result = await db.insert(warehouseLayout).values(insertLayout).returning();
+    return result[0];
+  }
+
+  async deleteWarehouseZone(id: number): Promise<boolean> {
+    const result = await db.delete(warehouseLayout).where(eq(warehouseLayout.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Exchange queue
+  async getExchangeQueue(): Promise<ExchangeQueue[]> {
+    return await db.select().from(exchangeQueue).orderBy(desc(exchangeQueue.createdAt));
+  }
+
+  async createExchangeQueueItem(insertItem: InsertExchangeQueue): Promise<ExchangeQueue> {
+    const result = await db.insert(exchangeQueue).values(insertItem).returning();
+    return result[0];
+  }
+
+  async processExchangeQueueItem(id: number): Promise<boolean> {
+    const result = await db.delete(exchangeQueue).where(eq(exchangeQueue.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Work diary
+  async getWorkDiaries(startDate?: Date, endDate?: Date, userId?: number): Promise<WorkDiary[]> {
+    let query = db.select().from(workDiary);
+    
+    if (startDate && endDate) {
+      query = query.where(and(
+        gte(workDiary.workDate, startDate),
+        lte(workDiary.workDate, endDate)
+      ));
+    }
+    
+    return await query.orderBy(desc(workDiary.workDate));
+  }
+
+  async getWorkDiary(id: number, userId?: number): Promise<WorkDiary | undefined> {
+    const result = await db.select().from(workDiary).where(eq(workDiary.id, id)).limit(1);
+    return result[0];
+  }
+
+  async updateWorkDiaryStatus(diaryId: number, newStatus: 'pending' | 'in_progress' | 'completed', userId: number): Promise<boolean> {
+    const result = await db.update(workDiary).set({ status: newStatus }).where(eq(workDiary.id, diaryId));
+    return result.rowCount > 0;
+  }
+
+  async createWorkDiary(insertDiary: InsertWorkDiary): Promise<WorkDiary> {
+    const result = await db.insert(workDiary).values(insertDiary).returning();
+    return result[0];
+  }
+
+  async updateWorkDiary(id: number, updates: Partial<WorkDiary>): Promise<WorkDiary | undefined> {
+    const result = await db.update(workDiary).set(updates).where(eq(workDiary.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteWorkDiary(id: number): Promise<boolean> {
+    const result = await db.delete(workDiary).where(eq(workDiary.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Work diary comments
+  async getWorkDiaryComments(diaryId: number): Promise<WorkDiaryComment[]> {
+    return await db.select().from(workDiaryComments).where(eq(workDiaryComments.diaryId, diaryId)).orderBy(asc(workDiaryComments.createdAt));
+  }
+
+  async createWorkDiaryComment(insertComment: InsertWorkDiaryComment): Promise<WorkDiaryComment> {
+    const result = await db.insert(workDiaryComments).values(insertComment).returning();
+    return result[0];
+  }
+
+  async deleteWorkDiaryComment(id: number): Promise<boolean> {
+    const result = await db.delete(workDiaryComments).where(eq(workDiaryComments.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Work notifications
+  async getWorkNotifications(userId: number): Promise<WorkNotification[]> {
+    return await db.select().from(workNotifications).where(eq(workNotifications.userId, userId)).orderBy(desc(workNotifications.createdAt));
+  }
+
+  async createWorkNotification(insertNotification: InsertWorkNotification): Promise<WorkNotification> {
+    const result = await db.insert(workNotifications).values(insertNotification).returning();
+    return result[0];
+  }
+
+  async markNotificationAsRead(id: number): Promise<boolean> {
+    const result = await db.update(workNotifications).set({ read: true }).where(eq(workNotifications.id, id));
+    return result.rowCount > 0;
+  }
+
+  // 데이터 초기화 기능
+  async resetAllData(): Promise<boolean> {
+    console.log('모든 데이터 초기화 시작...');
+    
+    try {
+      // 모든 테이블 데이터 삭제 (사용자와 창고레이아웃 제외)
+      await db.delete(workNotifications);
+      await db.delete(workDiaryComments);
+      await db.delete(workDiary);
+      await db.delete(exchangeQueue);
+      await db.delete(transactions);
+      await db.delete(bomGuides);
+      await db.delete(inventoryItems);
+      // 사용자와 창고레이아웃은 유지
+      
+      console.log('모든 데이터 초기화 완료');
+      return true;
+    } catch (error) {
+      console.error('데이터 초기화 실패:', error);
+      return false;
+    }
+  }
+}
+
+// 환경에 따라 저장소 선택
+export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemStorage();
