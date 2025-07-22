@@ -202,23 +202,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertInventoryItemSchema.parse(req.body);
       console.log('Validated data:', validatedData);
       
-      // 동일한 제품코드와 위치의 기존 재고 확인
+      // 동일한 제품코드의 기존 재고 확인 (위치 무관)
       const allItems = await storage.getInventoryItems();
       console.log('All items count:', allItems.length);
-      console.log('Looking for code:', validatedData.code, 'location:', validatedData.location);
+      console.log('Looking for code:', validatedData.code, 'new location:', validatedData.location);
       
-      const existingItem = allItems.find(item => 
-        item.code === validatedData.code && item.location === validatedData.location
-      );
+      // 같은 제품코드의 기존 항목 찾기
+      const existingItem = allItems.find(item => item.code === validatedData.code);
       
       console.log('Found existing item:', existingItem ? 'YES' : 'NO');
-      
-      // 같은 제품코드로 다른 위치의 항목이 있는지도 확인
-      const sameCodeItems = allItems.filter(item => item.code === validatedData.code);
-      console.log('Items with same code:', sameCodeItems.length, sameCodeItems.map(item => ({ id: item.id, location: item.location })));
+      if (existingItem) {
+        console.log('Existing item details:', { id: existingItem.id, location: existingItem.location, stock: existingItem.stock });
+      }
 
       if (existingItem) {
-        // 기존 항목 업데이트 (수량 추가)
+        // 기존 항목 업데이트 (수량 추가 및 위치 업데이트)
         console.log('Updating existing item with additional stock:', existingItem.stock + (validatedData.stock || 0));
         const updatedItem = await storage.updateInventoryItemById(existingItem.id, {
           stock: existingItem.stock + (validatedData.stock || 0),
@@ -226,6 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: validatedData.category,
           manufacturer: validatedData.manufacturer,
           unit: validatedData.unit,
+          location: validatedData.location, // 위치도 업데이트
           minStock: validatedData.minStock,
           boxSize: validatedData.boxSize,
         });
