@@ -2,11 +2,12 @@ import * as XLSX from 'xlsx';
 import { InventoryItem, Transaction, BomGuide } from '@/types/warehouse';
 
 export const exportInventoryToExcel = (inventory: InventoryItem[]) => {
-  // 실제 재고 데이터가 있으면 사용, 없으면 샘플 데이터 제공
+  // 실제 재고가 있는 아이템들만 필터링
+  const stockedItems = inventory.filter(item => item.stock > 0);
   let dataToExport;
   
-  if (inventory.length > 0) {
-    dataToExport = inventory.map(item => ({
+  if (stockedItems.length > 0) {
+    dataToExport = stockedItems.map(item => ({
       '제품코드': item.code,
       '품명': item.name,
       '카테고리': item.category,
