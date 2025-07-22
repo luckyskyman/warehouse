@@ -128,16 +128,86 @@ export const exportBlankTemplate = () => {
     { '제품코드': '60007658', '품명': 'MK3 GRID, TRACK SUPPORT, 2W, X', '수량': 100, '위치': 'A구역-A-1-2층', '비고': '재고 보충' },
     { '제품코드': '30011554', '품명': '볼트/너트/와셔 세트', '수량': 200, '위치': 'B구역-B-2-1층', '비고': '대량 입고' },
     { '제품코드': '60010149', '품명': 'TS 스프레더 플레이트, 구멍 1개', '수량': 75, '위치': 'C구역-C-1-1층', '비고': '추가 보충' },
-    { '제품코드': '', '품명': '', '수량': '', '위치': '', '비고': '' },
-    { '제품코드': '', '품명': '', '수량': '', '위치': '', '비고': '' },
     { '제품코드': '', '품명': '', '수량': '', '위치': '', '비고': '' }
   ];
 
+  // 제품 마스터용 템플릿
+  const masterTemplate = [
+    { '제품코드': '60011059', '품명': 'MK3 GRID, TRACK SUPPORT, 4W, X', '카테고리': '트랙서포트', '제조사': 'LOTTE', '박스당수량': 75, '단위': 'ea', '최소재고': 20 },
+    { '제품코드': '60007658', '품명': 'MK3 GRID, TRACK SUPPORT, 2W, X', '카테고리': '트랙서포트', '제조사': 'LOTTE', '박스당수량': 100, '단위': 'ea', '최소재고': 30 },
+    { '제품코드': '30011554', '품명': '볼트/너트/와셔 세트', '카테고리': '조립부품', '제조사': 'LOTTE', '박스당수량': 50, '단위': 'ea', '최소재고': 50 },
+    { '제품코드': '', '품명': '', '카테고리': '', '제조사': '', '박스당수량': '', '단위': '', '최소재고': '' }
+  ];
+
+  // BOM 템플릿
+  const bomTemplate = [
+    { '설치가이드명': 'mk3-ts-2x-2y-s', '필요부품코드': '30011554', '필요수량': 8 },
+    { '설치가이드명': 'mk3-ts-2x-2y-s', '필요부품코드': '60010149', '필요수량': 4 },
+    { '설치가이드명': 'mk3-ts-2x-2y-s', '필요부품코드': '60010152', '필요수량': 4 },
+    { '설치가이드명': '', '필요부품코드': '', '필요수량': '' }
+  ];
+
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(addUpdateTemplate);
-  XLSX.utils.book_append_sheet(wb, ws, "재고추가보충템플릿");
   
-  XLSX.writeFile(wb, "파일로재고추가보충_업로드템플릿.xlsx");
+  // 여러 시트 생성
+  const ws1 = XLSX.utils.json_to_sheet(addUpdateTemplate);
+  const ws2 = XLSX.utils.json_to_sheet(masterTemplate);
+  const ws3 = XLSX.utils.json_to_sheet(bomTemplate);
+  
+  XLSX.utils.book_append_sheet(wb, ws1, "재고추가보충");
+  XLSX.utils.book_append_sheet(wb, ws2, "제품마스터");
+  XLSX.utils.book_append_sheet(wb, ws3, "BOM명세서");
+  
+  XLSX.writeFile(wb, "창고관리_통합업로드템플릿.xlsx");
+};
+
+// 데이터 검증 함수
+export const validateExcelData = (data: any[], type: 'master' | 'inventory' | 'bom'): { valid: any[], errors: string[] } => {
+  const errors: string[] = [];
+  const valid: any[] = [];
+
+  data.forEach((row, index) => {
+    const rowNumber = index + 2; // Excel row number (starting from 2, accounting for header)
+    
+    if (type === 'master') {
+      if (!row['제품코드'] || String(row['제품코드']).trim() === '') {
+        errors.push(`${rowNumber}행: 제품코드가 누락되었습니다.`);
+        return;
+      }
+      valid.push(row);
+    }
+    
+    if (type === 'inventory') {
+      if (!row['제품코드'] || String(row['제품코드']).trim() === '') {
+        errors.push(`${rowNumber}행: 제품코드가 누락되었습니다.`);
+        return;
+      }
+      const quantity = parseInt(row['수량']);
+      if (isNaN(quantity) || quantity <= 0) {
+        errors.push(`${rowNumber}행: 유효한 수량을 입력해주세요.`);
+        return;
+      }
+      valid.push(row);
+    }
+    
+    if (type === 'bom') {
+      if (!row['설치가이드명'] && !row['필요부품코드']) {
+        return; // Skip completely empty rows
+      }
+      if (!row['필요부품코드'] || String(row['필요부품코드']).trim() === '') {
+        errors.push(`${rowNumber}행: 필요부품코드가 누락되었습니다.`);
+        return;
+      }
+      const quantity = parseInt(row['필요수량']);
+      if (isNaN(quantity) || quantity <= 0) {
+        errors.push(`${rowNumber}행: 유효한 필요수량을 입력해주세요.`);
+        return;
+      }
+      valid.push(row);
+    }
+  });
+
+  return { valid, errors };
 };
 
 export const parseExcelFile = (file: File): Promise<any[]> => {
