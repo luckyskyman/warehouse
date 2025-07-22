@@ -95,6 +95,7 @@ export function InventoryTable() {
 
   const filteredInventory = useMemo(() => {
     return inventory
+      .filter(item => item.stock > 0) // 재고가 있는 아이템만 표시
       .filter(item =>
         item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase())
