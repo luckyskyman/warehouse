@@ -158,27 +158,33 @@ export function InboundForm() {
         return;
       }
 
-      const subZoneParts = data.subZone.split('-');
-      const subZoneNumber = subZoneParts.length > 1 ? subZoneParts[1] : subZoneParts[0];
+      // 위치 정보 정확한 파싱
+      let subZoneNumber;
+      if (data.subZone.includes('-')) {
+        const parts = data.subZone.split('-');
+        subZoneNumber = parts.length > 1 ? parts[1] : parts[0];
+      } else {
+        subZoneNumber = data.subZone;
+      }
+      
       const location = `${data.zone}-${subZoneNumber}-${data.floor.replace('층', '')}`;
+      const finalQuantity = unitType === 'box' ? data.quantity * boxSize : data.quantity;
 
-      // Check if item already exists at this specific location
+      // 동일한 위치의 기존 재고 항목 찾기
       const existingItem = inventory.find(item => 
         item.code === data.code && item.location === location
       );
 
       if (existingItem) {
-        // Update existing item at same location - just add quantity
+        // 기존 항목의 재고만 증가
         await updateInventoryItem.mutateAsync({
           code: data.code,
           updates: {
-            category: data.category || '기타',
-            manufacturer: data.manufacturer || '',
             stock: existingItem.stock + finalQuantity,
           }
         });
 
-        // Create transaction for existing item
+        // 기존 재고 업데이트 트랜잭션 생성
         await createTransaction.mutateAsync({
           type: 'inbound',
           itemCode: data.code,
@@ -189,7 +195,7 @@ export function InboundForm() {
           userId: user?.id || 1,
         });
       } else {
-        // Create new item with proper data format
+        // 새로운 위치에 재고 항목 생성
         const newItemData = {
           code: data.code.trim(),
           name: data.name.trim(),
@@ -202,11 +208,9 @@ export function InboundForm() {
           boxSize: data.boxSize || 1,
         };
 
-        console.log('Creating new inventory item:', newItemData);
-
         await createInventoryItem.mutateAsync(newItemData);
 
-        // Create transaction for new item
+        // 신규 재고 입고 트랜잭션 생성
         await createTransaction.mutateAsync({
           type: 'inbound',
           itemCode: data.code,
