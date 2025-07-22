@@ -130,6 +130,34 @@ export function InboundForm() {
 
   const onSubmit = async (data: InboundFormData) => {
     try {
+      // 필수 필드 검증
+      if (!data.code?.trim()) {
+        toast({
+          title: "입고 실패",
+          description: "제품코드를 입력해주세요.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!data.name?.trim()) {
+        toast({
+          title: "입고 실패", 
+          description: "품명을 입력해주세요.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!data.zone || !data.subZone || !data.floor) {
+        toast({
+          title: "입고 실패",
+          description: "구역, 세부구역, 층수를 모두 선택해주세요.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const location = `${data.zone}-${data.subZone.split('-')[1]}-${data.floor.replace('층', '')}`;
       const finalQuantity = unitType === 'box' ? data.quantity * boxSize : data.quantity;
 
@@ -143,8 +171,8 @@ export function InboundForm() {
         await updateInventoryItem.mutateAsync({
           code: data.code,
           updates: {
-            category: data.category,
-            manufacturer: data.manufacturer,
+            category: data.category || '기타',
+            manufacturer: data.manufacturer || '',
             stock: existingItem.stock + finalQuantity,
           }
         });
@@ -156,22 +184,26 @@ export function InboundForm() {
           itemName: data.name,
           quantity: finalQuantity,
           toLocation: location,
-          memo: data.memo,
-          userId: user?.id,
+          memo: data.memo || '',
+          userId: user?.id || 1,
         });
       } else {
-        // Create new item
-        await createInventoryItem.mutateAsync({
-          code: data.code,
-          name: data.name,
-          category: data.category,
-          manufacturer: data.manufacturer,
+        // Create new item with proper data format
+        const newItemData = {
+          code: data.code.trim(),
+          name: data.name.trim(),
+          category: data.category || '기타',
+          manufacturer: data.manufacturer?.trim() || '',
           stock: finalQuantity,
-          minStock: data.minStock,
-          unit: data.unit,
+          minStock: data.minStock || 0,
+          unit: data.unit || 'ea',
           location: location,
           boxSize: data.boxSize || 1,
-        });
+        };
+
+        console.log('Creating new inventory item:', newItemData);
+
+        await createInventoryItem.mutateAsync(newItemData);
 
         // Create transaction for new item
         await createTransaction.mutateAsync({
@@ -180,8 +212,8 @@ export function InboundForm() {
           itemName: data.name,
           quantity: finalQuantity,
           toLocation: location,
-          memo: data.memo,
-          userId: user?.id,
+          memo: data.memo || '',
+          userId: user?.id || 1,
         });
       }
 

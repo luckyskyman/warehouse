@@ -198,11 +198,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/inventory", requireAdmin, async (req, res) => {
     try {
+      console.log('Creating inventory item with data:', req.body);
       const validatedData = insertInventoryItemSchema.parse(req.body);
+      console.log('Validated data:', validatedData);
+      
       const item = await storage.createInventoryItem(validatedData);
+      console.log('Created item:', item);
       res.status(201).json(item);
     } catch (error) {
-      res.status(400).json({ message: "Invalid data" });
+      console.error('Inventory item creation error:', error);
+      if (error.errors) {
+        // Zod validation error
+        res.status(400).json({ 
+          message: "Invalid data", 
+          errors: error.errors,
+          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+        });
+      } else {
+        res.status(400).json({ 
+          message: "Invalid data", 
+          error: error.message || "Unknown error" 
+        });
+      }
     }
   });
 
