@@ -40,7 +40,7 @@ export function InboundForm() {
   const [codeOpen, setCodeOpen] = useState(false);
   const [selectedCode, setSelectedCode] = useState('');
   const [searchValue, setSearchValue] = useState('');
-  
+
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: inventory = [] } = useInventory();
@@ -79,29 +79,29 @@ export function InboundForm() {
 
     return uniqueItems.filter(item => {
       if (!searchValue) return true;
-      
+
       const searchLower = searchValue.toLowerCase();
       const codeString = String(item.code).toLowerCase();
       const nameString = item.name.toLowerCase();
-      
+
       // 제품코드는 시작 부분 매칭 또는 포함 매칭, 품명은 포함 매칭
       return codeString.startsWith(searchLower) || 
              codeString.includes(searchLower) || 
              nameString.includes(searchLower);
     }).sort((a, b) => {
       if (!searchValue) return 0;
-      
+
       const searchLower = searchValue.toLowerCase();
       const aCodeString = String(a.code).toLowerCase();
       const bCodeString = String(b.code).toLowerCase();
-      
+
       // 우선순위: 1) 시작 매칭 2) 완전 매칭 3) 포함 매칭
       const aStartsWithSearch = aCodeString.startsWith(searchLower);
       const bStartsWithSearch = bCodeString.startsWith(searchLower);
-      
+
       if (aStartsWithSearch && !bStartsWithSearch) return -1;
       if (!aStartsWithSearch && bStartsWithSearch) return 1;
-      
+
       return 0;
     });
   }, [inventory, searchValue]);
@@ -110,7 +110,7 @@ export function InboundForm() {
   const handleCodeSelect = (code: string) => {
     setSelectedCode(code);
     setValue('code', code);
-    
+
     // 기존 재고에서 해당 제품 찾기
     const existingItem = inventory.find(item => item.code === code);
     if (existingItem) {
@@ -158,14 +158,15 @@ export function InboundForm() {
         return;
       }
 
-      const location = `${data.zone}-${data.subZone.split('-')[1]}-${data.floor.replace('층', '')}`;
-      const finalQuantity = unitType === 'box' ? data.quantity * boxSize : data.quantity;
+      const subZoneParts = data.subZone.split('-');
+      const subZoneNumber = subZoneParts.length > 1 ? subZoneParts[1] : subZoneParts[0];
+      const location = `${data.zone}-${subZoneNumber}-${data.floor.replace('층', '')}`;
 
       // Check if item already exists at this specific location
       const existingItem = inventory.find(item => 
         item.code === data.code && item.location === location
       );
-      
+
       if (existingItem) {
         // Update existing item at same location - just add quantity
         await updateInventoryItem.mutateAsync({
