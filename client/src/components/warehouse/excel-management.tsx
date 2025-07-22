@@ -57,7 +57,7 @@ export function ExcelManagement() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ items: valid })
+        body: JSON.stringify({ items: data })
       });
 
       console.log('BOM upload response status:', response.status);
