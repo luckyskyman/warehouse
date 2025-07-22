@@ -210,9 +210,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (existingItem) {
         // 기존 항목 업데이트 (수량 추가)
-        console.log('Updating existing item with additional stock:', existingItem.stock + validatedData.stock);
+        console.log('Updating existing item with additional stock:', existingItem.stock + (validatedData.stock || 0));
         const updatedItem = await storage.updateInventoryItemById(existingItem.id, {
-          stock: existingItem.stock + validatedData.stock,
+          stock: existingItem.stock + (validatedData.stock || 0),
           name: validatedData.name,
           category: validatedData.category,
           manufacturer: validatedData.manufacturer,
@@ -228,14 +228,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Created item:', item);
         res.status(201).json(item);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Inventory item creation error:', error);
       if (error.errors) {
         // Zod validation error
         res.status(400).json({ 
           message: "Invalid data", 
           errors: error.errors,
-          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+          details: error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
         });
       } else {
         res.status(400).json({ 

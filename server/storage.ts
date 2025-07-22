@@ -800,7 +800,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Inventory management
@@ -831,7 +831,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteInventoryItem(code: string): Promise<boolean> {
     const result = await db.delete(inventoryItems).where(eq(inventoryItems.code, code));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Transaction management
@@ -864,7 +864,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBomGuidesByName(guideName: string): Promise<boolean> {
     const result = await db.delete(bomGuides).where(eq(bomGuides.guideName, guideName));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Warehouse layout
@@ -879,7 +879,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWarehouseZone(id: number): Promise<boolean> {
     const result = await db.delete(warehouseLayout).where(eq(warehouseLayout.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Exchange queue
@@ -894,7 +894,7 @@ export class DatabaseStorage implements IStorage {
 
   async processExchangeQueueItem(id: number): Promise<boolean> {
     const result = await db.delete(exchangeQueue).where(eq(exchangeQueue.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Work diary
@@ -918,7 +918,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateWorkDiaryStatus(diaryId: number, newStatus: 'pending' | 'in_progress' | 'completed', userId: number): Promise<boolean> {
     const result = await db.update(workDiary).set({ status: newStatus }).where(eq(workDiary.id, diaryId));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async createWorkDiary(insertDiary: InsertWorkDiary): Promise<WorkDiary> {
@@ -933,7 +933,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWorkDiary(id: number): Promise<boolean> {
     const result = await db.delete(workDiary).where(eq(workDiary.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Work diary comments
@@ -948,7 +948,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWorkDiaryComment(id: number): Promise<boolean> {
     const result = await db.delete(workDiaryComments).where(eq(workDiaryComments.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Work notifications
@@ -963,7 +963,7 @@ export class DatabaseStorage implements IStorage {
 
   async markNotificationAsRead(id: number): Promise<boolean> {
     const result = await db.update(workNotifications).set({ read: true }).where(eq(workNotifications.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // 데이터 초기화 기능
