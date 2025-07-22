@@ -45,12 +45,20 @@ export function ExcelManagement() {
     if (!file) return;
 
     try {
+      toast({
+        title: "BOM 업로드 시작",
+        description: "파일을 분석하고 있습니다...",
+      });
+
       console.log('Starting BOM upload for file:', file.name);
 
       const data = await parseExcelFile(file);
       console.log('Parsed BOM data:', data.length, 'items');
-      console.log('Sample BOM data:', data.slice(0, 2));
-      console.log('Available columns:', data.length > 0 ? Object.keys(data[0]) : []);
+
+      toast({
+        title: "서버 업로드 중",
+        description: `${data.length}개 항목을 처리하고 있습니다. 잠시만 기다려주세요...`,
+      });
 
       const response = await fetch('/api/upload/bom', {
         method: 'POST',
@@ -96,11 +104,20 @@ export function ExcelManagement() {
     if (!file) return;
 
     try {
+      toast({
+        title: "마스터 업로드 시작",
+        description: "파일을 분석하고 있습니다...",
+      });
+
       console.log('Starting master upload for file:', file.name);
 
       const data = await parseExcelFile(file);
       console.log('Parsed master data:', data.length, 'items');
-      console.log('Sample data:', data.slice(0, 2));
+
+      toast({
+        title: "서버 처리 중",
+        description: `${data.length}개 제품을 처리하고 있습니다. 대량 데이터의 경우 시간이 소요될 수 있습니다...`,
+      });
 
       const response = await fetch('/api/upload/master', {
         method: 'POST',

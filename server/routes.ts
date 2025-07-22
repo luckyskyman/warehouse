@@ -564,52 +564,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('Master upload request:', { itemCount: items.length });
-      const createdItems = [];
       
+      // 1. 전체 재고 목록을 한 번만 조회
+      const allInventoryItems = await storage.getInventoryItems();
+      const existingItemsMap = new Map(allInventoryItems.map(item => [item.code, item]));
+      
+      const itemsToCreate = [];
+      const itemsToUpdate = [];
+      
+      // 2. 메모리에서 빠르게 분류
       for (const item of items) {
-        const code = String(item['제품코드'] || item.code || '');
-        
+        const code = String(item['제품코드'] || item.code || '').trim();
         if (!code) continue;
         
-        // 기존 아이템 확인
-        const existingItem = await storage.getInventoryItem(code);
+        const existingItem = existingItemsMap.get(code);
         
         if (existingItem) {
-          // 기존 아이템 업데이트 (재고 수량은 유지)
-          const updatedItem = await storage.updateInventoryItem(code, {
-            name: String(item['품명'] || item.name || existingItem.name),
-            category: String(item['카테고리'] || item.category || existingItem.category),
-            manufacturer: String(item['제조사'] || item.manufacturer || existingItem.manufacturer),
-            minStock: Number(item['최소재고'] || item.minStock || existingItem.minStock),
-            unit: String(item['단위'] || item.unit || existingItem.unit),
-            boxSize: Number(item['박스당수량'] || item.boxSize || existingItem.boxSize),
+          // 업데이트 대상
+          itemsToUpdate.push({
+            code: code,
+            updates: {
+              name: String(item['품명'] || item.name || existingItem.name),
+              category: String(item['카테고리'] || item.category || existingItem.category),
+              manufacturer: String(item['제조사'] || item.manufacturer || existingItem.manufacturer),
+              minStock: Number(item['최소재고'] || item.minStock || existingItem.minStock),
+              unit: String(item['단위'] || item.unit || existingItem.unit),
+              boxSize: Number(item['박스당수량'] || item.boxSize || existingItem.boxSize),
+            }
           });
-          if (updatedItem) {
-            console.log('Updated existing item:', code);
-            createdItems.push(updatedItem);
-          }
         } else {
-          // 새 아이템 생성
-          const newItem = {
+          // 신규 생성 대상
+          itemsToCreate.push({
             code: code,
             name: String(item['품명'] || item.name || ''),
             category: String(item['카테고리'] || item.category || '기타'),
             manufacturer: String(item['제조사'] || item.manufacturer || ''),
-            stock: 0, // Initial stock is 0 for master items
+            stock: 0,
             minStock: Number(item['최소재고'] || item.minStock || 0),
             unit: String(item['단위'] || item.unit || 'ea'),
             location: null,
             boxSize: Number(item['박스당수량'] || item.boxSize || 1),
-          };
-          
-          const created = await storage.createInventoryItem(newItem);
-          console.log('Created new item:', code);
-          createdItems.push(created);
+          });
         }
       }
+      
+      // 3. 배치 처리 실행
+      const results = [];
+      
+      // 신규 아이템들 병렬 처리 (배치 크기 제한)
+      const batchSize = 50;
+      for (let i = 0; i < itemsToCreate.length; i += batchSize) {
+        const batch = itemsToCreate.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(item => storage.createInventoryItem(item).catch(err => {
+            console.error('Failed to create item:', item.code, err.message);
+            return null;
+          }))
+        );
+        results.push(...batchResults.filter(item => item !== null));
+      }
+      
+      // 업데이트 아이템들 병렬 처리
+      for (let i = 0; i < itemsToUpdate.length; i += batchSize) {
+        const batch = itemsToUpdate.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(({ code, updates }) => 
+            storage.updateInventoryItem(code, updates).catch(err => {
+              console.error('Failed to update item:', code, err.message);
+              return null;
+            })
+          )
+        );
+        results.push(...batchResults.filter(item => item !== null));
+      }
 
-      console.log('Master upload complete:', { processed: createdItems.length });
-      res.json({ created: createdItems.length, items: createdItems });
+      console.log('Master upload complete:', { 
+        processed: results.length,
+        created: itemsToCreate.length,
+        updated: itemsToUpdate.length 
+      });
+      
+      res.json({ 
+        created: results.length, 
+        items: results.slice(0, 10) // 응답 크기 제한
+      });
     } catch (error) {
       console.error('Master upload error:', error);
       res.status(500).json({ message: "Server error" });
@@ -624,18 +662,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('BOM upload request:', { itemCount: items.length });
-      console.log('Sample BOM items:', items.slice(0, 2));
 
-      // 기존 BOM 데이터 모두 삭제 (덮어쓰기)
+      // 1. 기존 BOM 데이터 전체 삭제 (한 번에)
       const existingBomGuides = await storage.getBomGuides();
       const uniqueGuideNames = Array.from(new Set(existingBomGuides.map(bom => bom.guideName)));
-      console.log('Deleting existing BOM guides:', uniqueGuideNames);
       
-      for (const guideName of uniqueGuideNames) {
-        await storage.deleteBomGuidesByName(guideName);
+      // 삭제 작업을 병렬 처리
+      if (uniqueGuideNames.length > 0) {
+        await Promise.all(uniqueGuideNames.map(guideName => 
+          storage.deleteBomGuidesByName(guideName)
+        ));
+        console.log('Deleted existing BOM guides:', uniqueGuideNames.length);
       }
 
-      const createdBoms = [];
+      // 2. 새로운 BOM 데이터 준비
+      const validBomItems = [];
       let currentGuideName = '';
       
       for (const item of items) {
@@ -643,30 +684,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const itemCode = String(item['필요부품코드'] || item.itemCode || '').trim();
         const requiredQuantity = Number(item['필요수량'] || item.requiredQuantity || 0);
 
-        // 새로운 가이드명이 있으면 업데이트, 없으면 이전 가이드명 사용
         if (guideName) {
           currentGuideName = guideName;
         }
 
-        const bomItem = {
-          guideName: currentGuideName,
-          itemCode: itemCode,
-          requiredQuantity: requiredQuantity,
-        };
-
-        console.log('Processing BOM item:', bomItem);
-
-        if (bomItem.guideName && bomItem.itemCode && bomItem.requiredQuantity > 0) {
-          const created = await storage.createBomGuide(bomItem);
-          createdBoms.push(created);
-          console.log('Created BOM item:', created.id);
-        } else {
-          console.log('Skipped invalid BOM item:', bomItem);
+        if (currentGuideName && itemCode && requiredQuantity > 0) {
+          validBomItems.push({
+            guideName: currentGuideName,
+            itemCode: itemCode,
+            requiredQuantity: requiredQuantity,
+          });
         }
       }
 
-      console.log('BOM upload complete:', { processed: createdBoms.length });
-      res.json({ created: createdBoms.length, items: createdBoms });
+      // 3. 새로운 BOM 데이터를 배치로 생성
+      const createdBoms = [];
+      const batchSize = 100;
+      
+      for (let i = 0; i < validBomItems.length; i += batchSize) {
+        const batch = validBomItems.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(bomItem => 
+            storage.createBomGuide(bomItem).catch(err => {
+              console.error('Failed to create BOM item:', bomItem, err.message);
+              return null;
+            })
+          )
+        );
+        createdBoms.push(...batchResults.filter(item => item !== null));
+      }
+
+      console.log('BOM upload complete:', { 
+        processed: createdBoms.length,
+        validItems: validBomItems.length 
+      });
+      
+      res.json({ 
+        created: createdBoms.length, 
+        items: createdBoms.slice(0, 10) // 응답 크기 제한
+      });
     } catch (error) {
       console.error('BOM upload error:', error);
       res.status(500).json({ message: "Server error" });
