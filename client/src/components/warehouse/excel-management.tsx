@@ -24,7 +24,7 @@ export function ExcelManagement() {
   const restoreFileRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
-  
+
   // Debug permissions for deployment
   const userData = localStorage.getItem('warehouse_user');
   const sessionData = localStorage.getItem('warehouse_session');
@@ -33,7 +33,7 @@ export function ExcelManagement() {
     hasSession: !!sessionData,
     userRole: userData ? JSON.parse(userData).role : 'none'
   });
-  
+
   const { data: inventory = [] } = useInventory();
   const { data: transactions = [] } = useTransactions();
   const { data: bomGuides = [] } = useBomGuides();
@@ -46,7 +46,7 @@ export function ExcelManagement() {
 
     try {
       console.log('Starting BOM upload for file:', file.name);
-      
+
       const data = await parseExcelFile(file);
       console.log('Parsed BOM data:', data.length, 'items');
       console.log('Sample BOM data:', data.slice(0, 2));
@@ -57,17 +57,17 @@ export function ExcelManagement() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ items: data })
+        body: JSON.stringify({ items: valid })
       });
-      
+
       console.log('BOM upload response status:', response.status);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('BOM upload failed:', errorData);
         throw new Error(errorData.message || `HTTP ${response.status}: BOM 업로드가 실패했습니다.`);
       }
-      
+
       const result = await response.json();
       console.log('BOM upload result:', result);
 
@@ -97,7 +97,7 @@ export function ExcelManagement() {
 
     try {
       console.log('Starting master upload for file:', file.name);
-      
+
       const data = await parseExcelFile(file);
       console.log('Parsed master data:', data.length, 'items');
       console.log('Sample data:', data.slice(0, 2));
@@ -109,15 +109,15 @@ export function ExcelManagement() {
         },
         body: JSON.stringify({ items: data })
       });
-      
+
       console.log('Upload response status:', response.status);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Upload failed:', errorData);
         throw new Error(errorData.message || `HTTP ${response.status}: 업로드가 실패했습니다.`);
       }
-      
+
       const result = await response.json();
       console.log('Master upload result:', result);
 
