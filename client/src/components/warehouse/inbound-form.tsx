@@ -166,7 +166,7 @@ export function InboundForm() {
       } else {
         subZoneNumber = data.subZone;
       }
-      
+
       const location = `${data.zone}-${subZoneNumber}-${data.floor.replace('층', '')}`;
       const finalQuantity = unitType === 'box' ? data.quantity * boxSize : data.quantity;
 
@@ -195,7 +195,7 @@ export function InboundForm() {
           userId: user?.id || 1,
         });
       } else {
-        // 새로운 위치에 재고 항목 생성
+        // 다른 위치에 기존 재고가 있거나 완전히 새로운 제품인 경우 - 새 위치에 새로운 재고 항목 생성
         const newItemData = {
           code: data.code.trim(),
           name: data.name.trim(),
