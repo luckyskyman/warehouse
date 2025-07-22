@@ -30,6 +30,7 @@ export interface IStorage {
   getInventoryItem(code: string): Promise<InventoryItem | undefined>;
   createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem>;
   updateInventoryItem(code: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined>;
+  updateInventoryItemById(id: number, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined>;
   deleteInventoryItem(code: string): Promise<boolean>;
 
   // Transaction management
@@ -819,6 +820,12 @@ export class DatabaseStorage implements IStorage {
 
   async updateInventoryItem(code: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
     const result = await db.update(inventoryItems).set(updates).where(eq(inventoryItems.code, code)).returning();
+    return result[0];
+  }
+
+  // ID로 특정 재고 항목 업데이트
+  async updateInventoryItemById(id: number, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined> {
+    const result = await db.update(inventoryItems).set(updates).where(eq(inventoryItems.id, id)).returning();
     return result[0];
   }
 

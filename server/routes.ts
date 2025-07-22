@@ -202,9 +202,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertInventoryItemSchema.parse(req.body);
       console.log('Validated data:', validatedData);
       
-      const item = await storage.createInventoryItem(validatedData);
-      console.log('Created item:', item);
-      res.status(201).json(item);
+      // 동일한 제품코드와 위치의 기존 재고 확인
+      const allItems = await storage.getInventoryItems();
+      const existingItem = allItems.find(item => 
+        item.code === validatedData.code && item.location === validatedData.location
+      );
+
+      if (existingItem) {
+        // 기존 항목 업데이트 (수량 추가)
+        console.log('Updating existing item with additional stock:', existingItem.stock + validatedData.stock);
+        const updatedItem = await storage.updateInventoryItemById(existingItem.id, {
+          stock: existingItem.stock + validatedData.stock,
+          name: validatedData.name,
+          category: validatedData.category,
+          manufacturer: validatedData.manufacturer,
+          unit: validatedData.unit,
+          minStock: validatedData.minStock,
+          boxSize: validatedData.boxSize,
+        });
+        console.log('Updated item:', updatedItem);
+        res.status(200).json(updatedItem);
+      } else {
+        // 새 항목 생성
+        const item = await storage.createInventoryItem(validatedData);
+        console.log('Created item:', item);
+        res.status(201).json(item);
+      }
     } catch (error) {
       console.error('Inventory item creation error:', error);
       if (error.errors) {
