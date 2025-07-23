@@ -859,30 +859,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log('Existing inventory cleared');
 
-      // Add new items
-      const createdItems = [];
-      const errors = [];
+      // 중복 제품코드 처리를 위한 Map 생성
+      const uniqueItems = new Map();
+      const duplicateWarnings = [];
       
+      // 1단계: 중복 제거 및 데이터 병합
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        try {
-          const code = String(item['제품코드'] || item.code || '').trim();
-          
-          if (!code) {
-            errors.push(`Row ${i + 1}: Missing product code`);
-            continue;
-          }
-          
+        const code = String(item['제품코드'] || item.code || '').trim();
+        
+        if (!code) {
+          duplicateWarnings.push(`Row ${i + 1}: Missing product code`);
+          continue;
+        }
+        
+        if (uniqueItems.has(code)) {
+          const existing = uniqueItems.get(code);
+          // 중복된 경우 재고량 합산
+          const currentStock = Number(item['현재고'] || item.stock || 0);
+          existing.stock += currentStock;
+          duplicateWarnings.push(`Row ${i + 1}: Duplicate code ${code} - stock merged (${currentStock} added)`);
+        } else {
           const stock = Number(item['현재고'] || item.stock || 0);
           const minStock = Number(item['최소재고'] || item.minStock || 0);
           const boxSize = Number(item['박스당수량'] || item.boxSize || 1);
           
           if (isNaN(stock) || isNaN(minStock) || isNaN(boxSize)) {
-            errors.push(`Row ${i + 1}: Invalid numeric values - stock: ${item['현재고']}, minStock: ${item['최소재고']}, boxSize: ${item['박스당수량']}`);
+            duplicateWarnings.push(`Row ${i + 1}: Invalid numeric values - stock: ${item['현재고']}, minStock: ${item['최소재고']}, boxSize: ${item['박스당수량']}`);
             continue;
           }
 
-          const newItem = {
+          uniqueItems.set(code, {
             code: code,
             name: String(item['품명'] || item.name || code).trim(),
             category: String(item['카테고리'] || item.category || '기타').trim(),
@@ -892,15 +899,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             unit: String(item['단위'] || item.unit || 'ea').trim(),
             location: String(item['위치'] || item.location || '').trim() || null,
             boxSize: boxSize,
-          };
+            rowIndex: i + 1
+          });
+        }
+      }
+
+      console.log(`Processing ${uniqueItems.size} unique items (${duplicateWarnings.length} duplicates merged)`);
+      
+      // 2단계: 고유 아이템들 생성
+      const createdItems = [];
+      const errors = [];
+      let processedCount = 0;
+      
+      for (const [code, itemData] of uniqueItems) {
+        try {
+          processedCount++;
+          console.log(`Creating item ${processedCount}/${uniqueItems.size}: ${code} (stock: ${itemData.stock})`);
           
-          console.log(`Creating item ${i + 1}/${items.length}: ${code}`);
-          const created = await storage.createInventoryItem(newItem);
+          const created = await storage.createInventoryItem({
+            code: itemData.code,
+            name: itemData.name,
+            category: itemData.category,
+            manufacturer: itemData.manufacturer,
+            stock: itemData.stock,
+            minStock: itemData.minStock,
+            unit: itemData.unit,
+            location: itemData.location,
+            boxSize: itemData.boxSize,
+          });
+          
           createdItems.push(created);
           
-        } catch (itemError) {
-          console.error(`Failed to create item ${i + 1}:`, itemError.message);
-          errors.push(`Row ${i + 1}: ${itemError.message}`);
+        } catch (itemError: any) {
+          console.error(`Failed to create item ${code}:`, itemError.message);
+          errors.push(`${code}: ${itemError.message}`);
         }
       }
 
