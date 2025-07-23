@@ -215,7 +215,20 @@ export function ExcelManagement() {
     if (!file) return;
 
     try {
+      toast({
+        title: "전체 동기화 시작",
+        description: "파일을 분석하고 있습니다...",
+      });
+
+      console.log('Starting sync upload for file:', file.name);
+      
       const data = await parseExcelFile(file);
+      console.log('Parsed sync data:', data.length, 'items');
+
+      toast({
+        title: "서버 처리 중",
+        description: `${data.length}개 항목을 동기화 중입니다. 기존 데이터는 모두 삭제되고 새로운 데이터로 교체됩니다...`,
+      });
 
       const response = await fetch('/api/upload/inventory-sync', {
         method: 'POST',
@@ -223,19 +236,45 @@ export function ExcelManagement() {
         body: JSON.stringify({ items: data })
       });
 
-      if (!response.ok) throw new Error('동기화 실패');
+      console.log('Sync response status:', response.status);
 
-      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Sync failed:', errorData);
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: 동기화가 실패했습니다.`);
+      }
+
+      const result = await response.json();
+      console.log('Sync upload result:', result);
+
+      // 모든 관련 쿼리 새로고침
+      await queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+
+      const successMessage = result.errors > 0 
+        ? `${result.synced}개 생성 완료 (${result.total}개 중 ${result.errors}개 오류)`
+        : `${result.synced}개 제품이 성공적으로 동기화되었습니다.`;
 
       toast({
-        title: "재고 동기화 완료",
-        description: "모든 재고가 업로드한 파일과 동기화되었습니다.",
+        title: "전체 동기화 완료",
+        description: successMessage,
       });
+
+      // 오류가 있는 경우 상세 정보도 표시
+      if (result.errors > 0 && result.errorDetails?.length > 0) {
+        console.warn('Sync errors:', result.errorDetails);
+        toast({
+          title: "처리 중 일부 오류 발생",
+          description: `첫 번째 오류: ${result.errorDetails[0]}`,
+          variant: "destructive",
+        });
+      }
+
     } catch (error) {
+      console.error('Sync upload error:', error);
       toast({
         title: "동기화 실패",
-        description: "파일 형식을 확인해주세요.",
+        description: error instanceof Error ? error.message : "파일 형식을 확인해주세요.",
         variant: "destructive",
       });
     }
