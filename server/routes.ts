@@ -826,41 +826,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/upload/inventory-sync", async (req, res) => {
     try {
+      console.log('Inventory sync upload started');
       const { items } = req.body;
+      
       if (!Array.isArray(items)) {
+        console.error('Items is not an array:', typeof items);
         return res.status(400).json({ message: "Items must be an array" });
       }
 
-      // Clear existing inventory
-      const existingItems = await storage.getInventoryItems();
-      for (const item of existingItems) {
-        await storage.deleteInventoryItem(item.code);
+      console.log(`Processing ${items.length} items for full sync`);
+      
+      // Sample data validation
+      if (items.length > 0) {
+        const sampleItem = items[0];
+        console.log('Sample item structure:', {
+          keys: Object.keys(sampleItem),
+          values: Object.values(sampleItem).slice(0, 3)
+        });
       }
+
+      // Clear existing inventory
+      console.log('Clearing existing inventory...');
+      const existingItems = await storage.getInventoryItems();
+      console.log(`Found ${existingItems.length} existing items to delete`);
+      
+      for (const item of existingItems) {
+        try {
+          await storage.deleteInventoryItem(item.code);
+        } catch (deleteError) {
+          console.error(`Failed to delete item ${item.code}:`, deleteError.message);
+        }
+      }
+      console.log('Existing inventory cleared');
 
       // Add new items
       const createdItems = [];
-      for (const item of items) {
-        const code = String(item['제품코드'] || item.code || '');
-        if (code) {
+      const errors = [];
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        try {
+          const code = String(item['제품코드'] || item.code || '').trim();
+          
+          if (!code) {
+            errors.push(`Row ${i + 1}: Missing product code`);
+            continue;
+          }
+          
+          const stock = Number(item['현재고'] || item.stock || 0);
+          const minStock = Number(item['최소재고'] || item.minStock || 0);
+          const boxSize = Number(item['박스당수량'] || item.boxSize || 1);
+          
+          if (isNaN(stock) || isNaN(minStock) || isNaN(boxSize)) {
+            errors.push(`Row ${i + 1}: Invalid numeric values - stock: ${item['현재고']}, minStock: ${item['최소재고']}, boxSize: ${item['박스당수량']}`);
+            continue;
+          }
+
           const newItem = {
             code: code,
-            name: String(item['품명'] || item.name || code),
-            category: String(item['카테고리'] || item.category || '기타'),
-            manufacturer: String(item['제조사'] || item.manufacturer || ''),
-            stock: Number(item['현재고'] || item.stock || 0),
-            minStock: Number(item['최소재고'] || item.minStock || 0),
-            unit: String(item['단위'] || item.unit || 'ea'),
-            location: String(item['위치'] || item.location || ''),
-            boxSize: Number(item['박스당수량'] || item.boxSize || 1),
+            name: String(item['품명'] || item.name || code).trim(),
+            category: String(item['카테고리'] || item.category || '기타').trim(),
+            manufacturer: String(item['제조사'] || item.manufacturer || '').trim(),
+            stock: stock,
+            minStock: minStock,
+            unit: String(item['단위'] || item.unit || 'ea').trim(),
+            location: String(item['위치'] || item.location || '').trim() || null,
+            boxSize: boxSize,
           };
+          
+          console.log(`Creating item ${i + 1}/${items.length}: ${code}`);
           const created = await storage.createInventoryItem(newItem);
           createdItems.push(created);
+          
+        } catch (itemError) {
+          console.error(`Failed to create item ${i + 1}:`, itemError.message);
+          errors.push(`Row ${i + 1}: ${itemError.message}`);
         }
       }
 
-      res.json({ synced: createdItems.length, items: createdItems });
+      console.log('Inventory sync complete:', { 
+        processed: items.length,
+        created: createdItems.length,
+        errors: errors.length 
+      });
+
+      if (errors.length > 0) {
+        console.log('Sync errors:', errors.slice(0, 10)); // Log first 10 errors
+      }
+
+      res.json({ 
+        synced: createdItems.length, 
+        total: items.length,
+        errors: errors.length,
+        errorDetails: errors.slice(0, 5) // Return first 5 errors
+      });
+      
     } catch (error) {
-      res.status(500).json({ message: "Server error" });
+      console.error('Inventory sync error:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({ 
+        message: "Server error", 
+        error: error.message,
+        details: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
     }
   });
 
