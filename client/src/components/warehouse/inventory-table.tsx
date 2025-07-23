@@ -90,7 +90,7 @@ export function InventoryTable() {
   const availableFloors = (selectedZone && selectedSubZone)
     ? Array.from(new Set(warehouseLayout
         .filter(layout => layout.zoneName === selectedZone && layout.subZoneName === selectedSubZone)
-        .map(layout => layout.floorLevel)))
+        .flatMap(layout => layout.floors || [])))
     : [];
 
   const filteredInventory = useMemo(() => {
@@ -219,7 +219,7 @@ export function InventoryTable() {
                   <SelectContent>
                     {availableFloors.map((floor) => (
                       <SelectItem key={floor} value={floor}>
-                        {floor}층
+                        {floor}
                       </SelectItem>
                     ))}
                   </SelectContent>
