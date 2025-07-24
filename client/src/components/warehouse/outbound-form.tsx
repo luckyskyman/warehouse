@@ -306,7 +306,7 @@ export function OutboundForm() {
 
               <div className="space-y-2">
                 <Label htmlFor="reason">출고 사유</Label>
-                <Select onValueChange={(value) => setValue('reason', value)}>
+                <Select value={watch('reason') || ''} onValueChange={(value) => setValue('reason', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="출고 사유 선택" />
                   </SelectTrigger>
@@ -343,7 +343,7 @@ export function OutboundForm() {
             <Button
               type="submit"
               className="btn-warehouse-warning"
-              disabled={createTransaction.isPending || !selectedItem}
+              disabled={createTransaction.isPending || !selectedItem || !watch('reason')}
             >
               {createTransaction.isPending ? '처리 중...' : '출고 처리'}
             </Button>
