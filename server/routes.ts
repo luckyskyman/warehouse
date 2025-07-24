@@ -296,7 +296,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/transactions", requireAdmin, async (req, res) => {
     try {
+      console.log(`[트랜잭션 생성] 요청 데이터:`, req.body);
       const validatedData = insertTransactionSchema.parse(req.body);
+      console.log(`[트랜잭션 생성] 검증된 데이터: 타입=${validatedData.type}, 사유=${validatedData.reason}, 제품=${validatedData.itemCode}`);
       const transaction = await storage.createTransaction(validatedData);
 
       // Update inventory based on transaction type

@@ -46,8 +46,13 @@ export function useCreateTransaction() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (transaction: any) => apiRequest('POST', '/api/transactions', transaction),
+    mutationFn: (transaction: any) => {
+      console.log('[클라이언트] 트랜잭션 생성 요청:', transaction);
+      return apiRequest('POST', '/api/transactions', transaction);
+    },
     onSuccess: (data, variables) => {
+      console.log('[클라이언트] 트랜잭션 생성 성공:', variables);
+      
       // 모든 관련 캐시를 무효화
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
@@ -56,10 +61,16 @@ export function useCreateTransaction() {
       // 불량품 교환 출고인 경우 추가적으로 캐시를 강제 새로고침
       if (variables.reason === '불량품 교환 출고') {
         console.log('[React Query] 불량품 교환 출고 처리 완료 - 캐시 강제 새로고침');
-        queryClient.removeQueries({ queryKey: ['/api/exchange-queue'] });
-        queryClient.refetchQueries({ queryKey: ['/api/exchange-queue'] });
+        // 약간의 지연 후 캐시 새로고침 (서버 처리 완료 대기)
+        setTimeout(() => {
+          queryClient.removeQueries({ queryKey: ['/api/exchange-queue'] });
+          queryClient.refetchQueries({ queryKey: ['/api/exchange-queue'] });
+        }, 500);
       }
     },
+    onError: (error, variables) => {
+      console.error('[클라이언트] 트랜잭션 생성 실패:', error, variables);
+    }
   });
 }
 
