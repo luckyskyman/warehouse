@@ -47,10 +47,18 @@ export function useCreateTransaction() {
   
   return useMutation({
     mutationFn: (transaction: any) => apiRequest('POST', '/api/transactions', transaction),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // 모든 관련 캐시를 무효화
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/exchange-queue'] });
+      
+      // 불량품 교환 출고인 경우 추가적으로 캐시를 강제 새로고침
+      if (variables.reason === '불량품 교환 출고') {
+        console.log('[React Query] 불량품 교환 출고 처리 완료 - 캐시 강제 새로고침');
+        queryClient.removeQueries({ queryKey: ['/api/exchange-queue'] });
+        queryClient.refetchQueries({ queryKey: ['/api/exchange-queue'] });
+      }
     },
   });
 }

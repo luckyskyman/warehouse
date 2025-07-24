@@ -404,12 +404,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             validatedData.fromLocation = outboundLocations.join(', ');
 
             // 교환 대기 목록에 추가
-            await storage.createExchangeQueueItem({
+            console.log(`[불량품 교환 출고] 교환 대기 목록 생성 시작: ${validatedData.itemCode}, 수량: ${validatedData.quantity}`);
+            const exchangeItem = await storage.createExchangeQueueItem({
               itemCode: validatedData.itemCode,
               itemName: validatedData.itemName,
               quantity: validatedData.quantity,
               outboundDate: new Date()
             });
+            console.log(`[불량품 교환 출고] 교환 대기 목록 생성 완료: ID ${exchangeItem.id}`);
           } else {
             return res.status(400).json({ message: "Insufficient stock" });
           }
