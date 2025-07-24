@@ -363,65 +363,57 @@ export class MemStorage implements IStorage {
     
     console.log(`교환 처리 시작: ${item.itemCode}, 수량: ${item.quantity}`);
     
-    // 교환 처리 시 원래 불량품이 출고된 위치로 반환
-    // 불량품 교환 출고 트랜잭션에서 위치 정보 찾기
-    const allTransactions = this.transactions.filter(t => 
+    // 해당 교환 항목과 동일한 시점에 생성된 불량품 교환 출고 트랜잭션 찾기
+    const exchangeOutboundTransactions = this.transactions.filter(t => 
       t.itemCode === item.itemCode && 
       t.type === "outbound" && 
-      t.reason === "불량품 교환 출고"
+      t.reason === "불량품 교환 출고" &&
+      // 교환 대기 항목 생성 시간과 비슷한 시점의 트랜잭션만 찾기 (1분 오차 허용)
+      Math.abs(new Date(t.createdAt).getTime() - new Date(item.createdAt).getTime()) < 60000
     ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    const originalOutbound = allTransactions[0];
-    const returnLocation = originalOutbound?.fromLocation;
+    const originalOutbound = exchangeOutboundTransactions[0];
+    const returnLocations = originalOutbound?.fromLocation;
     
-    console.log(`교환 처리 시작: ${item.itemCode}, 수량: ${item.quantity}, 반환 위치: ${returnLocation}`);
+    console.log(`교환 처리: ${item.itemCode}, 수량: ${item.quantity}, 반환 위치: ${returnLocations}`);
     
     const allItems = Array.from(this.inventoryItems.values());
+    let remainingQuantity = item.quantity;
     
-    if (returnLocation) {
-      // 원래 위치로 반환
-      const targetItem = allItems.find(inventoryItem => 
-        inventoryItem.code === item.itemCode && inventoryItem.location === returnLocation
-      );
+    if (returnLocations && returnLocations.includes(',')) {
+      // 여러 위치에서 출고된 경우 - 위치별로 비례 분배하여 반환
+      const locations = returnLocations.split(', ').map(loc => loc.trim());
+      console.log(`여러 위치 반환: ${locations.join(', ')}`);
       
-      if (targetItem) {
-        // 해당 위치에 기존 재고가 있으면 가산
-        console.log(`원래 위치 ${returnLocation}에 기존 재고: ${targetItem.stock}, 가산 후: ${targetItem.stock + item.quantity}`);
-        await this.updateInventoryItemById(targetItem.id, {
-          stock: targetItem.stock + item.quantity
-        });
-        console.log(`원래 위치로 재고 가산 완료`);
-      } else {
-        // 해당 위치에 재고가 없으면 새로 생성
-        const masterItem = allItems.find(inventoryItem => inventoryItem.code === item.itemCode);
-        if (masterItem) {
-          await this.createInventoryItem({
-            code: masterItem.code,
-            name: masterItem.name,
-            category: masterItem.category,
-            manufacturer: masterItem.manufacturer,
-            stock: item.quantity,
-            minStock: masterItem.minStock,
-            unit: masterItem.unit,
-            location: returnLocation,
-            boxSize: masterItem.boxSize
-          });
-          console.log(`원래 위치 ${returnLocation}에 새 재고 항목 생성 완료`);
-        }
+      // 각 위치별로 균등 분배 (정확한 분배 로직은 복잡하므로 균등 분배)
+      const quantityPerLocation = Math.floor(remainingQuantity / locations.length);
+      const extraQuantity = remainingQuantity % locations.length;
+      
+      for (let i = 0; i < locations.length; i++) {
+        const location = locations[i];
+        const quantityToReturn = quantityPerLocation + (i < extraQuantity ? 1 : 0);
+        
+        await this.returnToLocation(item.itemCode, location, quantityToReturn, allItems);
+        remainingQuantity -= quantityToReturn;
       }
-    } else {
-      // 위치 정보가 없으면 첫 번째 항목에 가산
+    } else if (returnLocations) {
+      // 단일 위치 반환
+      await this.returnToLocation(item.itemCode, returnLocations, remainingQuantity, allItems);
+      remainingQuantity = 0;
+    }
+    
+    // 위치 정보가 없거나 남은 수량이 있는 경우 첫 번째 항목에 가산
+    if (remainingQuantity > 0) {
       const itemsWithCode = allItems.filter(inventoryItem => 
         inventoryItem.code === item.itemCode
       );
       
       if (itemsWithCode.length > 0) {
         const firstItem = itemsWithCode[0];
-        console.log(`위치 정보 없음, 첫 번째 항목에 가산: ${firstItem.stock + item.quantity}`);
+        console.log(`남은 수량 ${remainingQuantity}을 첫 번째 항목에 가산: ${firstItem.stock} → ${firstItem.stock + remainingQuantity}`);
         await this.updateInventoryItemById(firstItem.id, {
-          stock: firstItem.stock + item.quantity
+          stock: firstItem.stock + remainingQuantity
         });
-        console.log(`재고 가산 완료`);
       }
     }
     
@@ -431,7 +423,7 @@ export class MemStorage implements IStorage {
       itemCode: item.itemCode,
       itemName: item.itemName,
       quantity: item.quantity,
-      toLocation: returnLocation || '위치없음',
+      toLocation: returnLocations || '위치없음',
       reason: '불량품교환 새제품 입고',
       memo: `교환대기목록 ID: ${id}에서 처리됨`,
       userId: 1 // 시스템 처리
@@ -440,6 +432,39 @@ export class MemStorage implements IStorage {
     item.processed = true;
     console.log(`교환 처리 완료`);
     return true;
+  }
+
+  // 헬퍼 메서드: 특정 위치에 재고 반환
+  private async returnToLocation(itemCode: string, location: string, quantity: number, allItems: InventoryItem[]): Promise<void> {
+    const targetItem = allItems.find(inventoryItem => 
+      inventoryItem.code === itemCode && inventoryItem.location === location
+    );
+    
+    if (targetItem) {
+      // 해당 위치에 기존 재고가 있으면 가산
+      console.log(`위치 ${location}에 기존 재고: ${targetItem.stock}, 가산 후: ${targetItem.stock + quantity}`);
+      await this.updateInventoryItemById(targetItem.id, {
+        stock: targetItem.stock + quantity
+      });
+      console.log(`위치 ${location}에 재고 가산 완료`);
+    } else {
+      // 해당 위치에 재고가 없으면 새로 생성
+      const masterItem = allItems.find(inventoryItem => inventoryItem.code === itemCode);
+      if (masterItem) {
+        await this.createInventoryItem({
+          code: masterItem.code,
+          name: masterItem.name,
+          category: masterItem.category,
+          manufacturer: masterItem.manufacturer,
+          stock: quantity,
+          minStock: masterItem.minStock,
+          unit: masterItem.unit,
+          location: location,
+          boxSize: masterItem.boxSize
+        });
+        console.log(`위치 ${location}에 새 재고 항목 생성 완료 (수량: ${quantity})`);
+      }
+    }
   }
 
   // Work diary methods
@@ -893,8 +918,108 @@ export class DatabaseStorage implements IStorage {
   }
 
   async processExchangeQueueItem(id: number): Promise<boolean> {
+    // 교환 대기 항목 조회
+    const items = await db.select().from(exchangeQueue).where(eq(exchangeQueue.id, id));
+    const item = items[0];
+    if (!item) return false;
+    
+    console.log(`교환 처리 시작: ${item.itemCode}, 수량: ${item.quantity}`);
+    
+    // 해당 교환 항목과 동일한 시점에 생성된 불량품 교환 출고 트랜잭션 찾기
+    const exchangeOutboundTransactions = await db.select().from(transactions).where(
+      and(
+        eq(transactions.itemCode, item.itemCode),
+        eq(transactions.type, "outbound"),
+        eq(transactions.reason, "불량품 교환 출고")
+      )
+    ).orderBy(desc(transactions.createdAt));
+    
+    const originalOutbound = exchangeOutboundTransactions[0];
+    const returnLocations = originalOutbound?.fromLocation;
+    
+    console.log(`교환 처리: ${item.itemCode}, 수량: ${item.quantity}, 반환 위치: ${returnLocations}`);
+    
+    const allItems = await db.select().from(inventoryItems).where(eq(inventoryItems.code, item.itemCode));
+    let remainingQuantity = item.quantity;
+    
+    if (returnLocations && returnLocations.includes(',')) {
+      // 여러 위치에서 출고된 경우 - 위치별로 비례 분배하여 반환
+      const locations = returnLocations.split(', ').map(loc => loc.trim());
+      console.log(`여러 위치 반환: ${locations.join(', ')}`);
+      
+      // 각 위치별로 균등 분배
+      const quantityPerLocation = Math.floor(remainingQuantity / locations.length);
+      const extraQuantity = remainingQuantity % locations.length;
+      
+      for (let i = 0; i < locations.length; i++) {
+        const location = locations[i];
+        const quantityToReturn = quantityPerLocation + (i < extraQuantity ? 1 : 0);
+        
+        await this.returnToLocationDB(item.itemCode, location, quantityToReturn, allItems);
+        remainingQuantity -= quantityToReturn;
+      }
+    } else if (returnLocations) {
+      // 단일 위치 반환
+      await this.returnToLocationDB(item.itemCode, returnLocations, remainingQuantity, allItems);
+      remainingQuantity = 0;
+    }
+    
+    // 위치 정보가 없거나 남은 수량이 있는 경우 첫 번째 항목에 가산
+    if (remainingQuantity > 0 && allItems.length > 0) {
+      const firstItem = allItems[0];
+      console.log(`남은 수량 ${remainingQuantity}을 첫 번째 항목에 가산: ${firstItem.stock} → ${firstItem.stock + remainingQuantity}`);
+      await db.update(inventoryItems).set({
+        stock: firstItem.stock + remainingQuantity
+      }).where(eq(inventoryItems.id, firstItem.id));
+    }
+    
+    // 트랜잭션 이력 생성 (불량품교환 새제품 입고)
+    await db.insert(transactions).values({
+      type: 'inbound',
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      quantity: item.quantity,
+      toLocation: returnLocations || '위치없음',
+      reason: '불량품교환 새제품 입고',
+      memo: `교환대기목록 ID: ${id}에서 처리됨`,
+      userId: 1 // 시스템 처리
+    });
+    
+    // 교환 대기 항목 삭제
     const result = await db.delete(exchangeQueue).where(eq(exchangeQueue.id, id));
+    console.log(`교환 처리 완료`);
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // 헬퍼 메서드: 특정 위치에 재고 반환 (DB 버전)
+  private async returnToLocationDB(itemCode: string, location: string, quantity: number, allItems: any[]): Promise<void> {
+    const targetItem = allItems.find(item => item.location === location);
+    
+    if (targetItem) {
+      // 해당 위치에 기존 재고가 있으면 가산
+      console.log(`위치 ${location}에 기존 재고: ${targetItem.stock}, 가산 후: ${targetItem.stock + quantity}`);
+      await db.update(inventoryItems).set({
+        stock: targetItem.stock + quantity
+      }).where(eq(inventoryItems.id, targetItem.id));
+      console.log(`위치 ${location}에 재고 가산 완료`);
+    } else {
+      // 해당 위치에 재고가 없으면 새로 생성
+      const masterItem = allItems[0];
+      if (masterItem) {
+        await db.insert(inventoryItems).values({
+          code: masterItem.code,
+          name: masterItem.name,
+          category: masterItem.category,
+          manufacturer: masterItem.manufacturer,
+          stock: quantity,
+          minStock: masterItem.minStock,
+          unit: masterItem.unit,
+          location: location,
+          boxSize: masterItem.boxSize
+        });
+        console.log(`위치 ${location}에 새 재고 항목 생성 완료 (수량: ${quantity})`);
+      }
+    }
   }
 
   // Work diary
