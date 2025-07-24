@@ -136,7 +136,12 @@ export function OutboundForm() {
         description: `${selectedItem.name} ${data.quantity}${selectedItem.unit}이(가) 출고되었습니다.`,
       });
 
-      reset();
+      reset({
+        code: '',
+        quantity: 0,
+        reason: '',
+        memo: ''
+      });
       setSelectedItem(null);
       setSelectedCodeState('');
       setCodeOpen(false);
