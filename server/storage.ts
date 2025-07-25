@@ -28,6 +28,7 @@ export interface IStorage {
   // Inventory management
   getInventoryItems(): Promise<InventoryItem[]>;
   getInventoryItem(code: string): Promise<InventoryItem | undefined>;
+  getInventoryItemById(id: number): Promise<InventoryItem | undefined>;
   createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem>;
   updateInventoryItem(code: string, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined>;
   updateInventoryItemById(id: number, updates: Partial<InventoryItem>): Promise<InventoryItem | undefined>;
@@ -220,6 +221,12 @@ export class MemStorage implements IStorage {
     return Array.from(this.inventoryItems.values()).find(item => 
       item.code === code && item.location === location
     );
+  }
+
+  // ID로 특정 재고 항목 찾기
+  async getInventoryItemById(id: number): Promise<InventoryItem | undefined> {
+    const key = `${id}`;
+    return this.inventoryItems.get(key);
   }
 
   async createInventoryItem(insertItem: InsertInventoryItem): Promise<InventoryItem> {
@@ -835,6 +842,11 @@ export class DatabaseStorage implements IStorage {
 
   async getInventoryItem(code: string): Promise<InventoryItem | undefined> {
     const result = await db.select().from(inventoryItems).where(eq(inventoryItems.code, code)).limit(1);
+    return result[0];
+  }
+
+  async getInventoryItemById(id: number): Promise<InventoryItem | undefined> {
+    const result = await db.select().from(inventoryItems).where(eq(inventoryItems.id, id)).limit(1);
     return result[0];
   }
 

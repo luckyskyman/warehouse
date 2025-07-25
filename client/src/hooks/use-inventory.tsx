@@ -36,6 +36,30 @@ export function useUpdateInventoryItem() {
   });
 }
 
+export function useDeleteInventoryItem() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (code: string) => apiRequest('DELETE', `/api/inventory/${code}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+    },
+  });
+}
+
+export function useAdjustInventoryItem() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, newStock, reason }: { id: number; newStock: number; reason: string }) => 
+      apiRequest('PATCH', `/api/inventory/${id}/adjust`, { newStock, reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+    },
+  });
+}
+
 export function useTransactions(itemCode?: string) {
   return useQuery({
     queryKey: itemCode ? ['/api/transactions', itemCode] : ['/api/transactions'],

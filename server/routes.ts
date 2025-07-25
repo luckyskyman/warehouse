@@ -278,6 +278,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 수량 조정 API
+  app.patch("/api/inventory/:id/adjust", requireAdmin, async (req, res) => {
+    try {
+      const { newStock, reason } = req.body;
+      const itemId = parseInt(req.params.id);
+
+      if (typeof newStock !== 'number' || newStock < 0) {
+        return res.status(400).json({ message: "Invalid stock amount" });
+      }
+
+      if (!reason) {
+        return res.status(400).json({ message: "Reason is required" });
+      }
+
+      // 기존 재고 항목 찾기
+      const item = await storage.getInventoryItemById(itemId);
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      const oldStock = item.stock;
+      const stockDifference = newStock - oldStock;
+
+      // 재고 업데이트
+      await storage.updateInventoryItemById(itemId, { stock: newStock });
+
+      // 조정 트랜잭션 생성
+      await storage.createTransaction({
+        type: 'adjustment',
+        itemCode: item.code,
+        itemName: item.name,
+        quantity: Math.abs(stockDifference),
+        reason: `재고 조정 (${reason}): ${oldStock} → ${newStock}`,
+        toLocation: item.location,
+        userId: (req as any).user?.id || 1
+      });
+
+      console.log(`재고 조정 완료: ${item.name} (${oldStock} → ${newStock}), 사유: ${reason}`);
+      
+      res.json({ 
+        message: "Stock adjusted successfully",
+        oldStock,
+        newStock,
+        difference: stockDifference
+      });
+    } catch (error) {
+      console.error("재고 조정 오류:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // Transaction routes
   app.get("/api/transactions", async (req, res) => {
     try {
