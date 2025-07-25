@@ -6,13 +6,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertTriangle, Package, TrendingDown } from 'lucide-react';
+import { AlertTriangle, Package, TrendingDown, Download } from 'lucide-react';
+import { exportShortageItemsToExcel } from '@/lib/excel-utils';
+import { useToast } from '@/hooks/use-toast';
 
 export function StatsGrid() {
   const { stats } = useInventoryStats();
   const { data: inventory = [] } = useInventory();
   const isMobile = useIsMobile();
   const [shortageModalOpen, setShortageModalOpen] = useState(false);
+  const { toast } = useToast();
 
   // 전체 재고 통계 계산
   const filteredStats = useMemo(() => {
@@ -58,6 +61,22 @@ export function StatsGrid() {
         return <Badge variant="secondary" className="text-xs bg-yellow-500 text-white">부족</Badge>;
       default:
         return <Badge variant="outline" className="text-xs">주의</Badge>;
+    }
+  };
+
+  const handleExportShortageItems = () => {
+    try {
+      exportShortageItemsToExcel(shortageItems);
+      toast({
+        title: "엑셀 내보내기 완료",
+        description: `${shortageItems.length}개 부족품목이 엑셀 파일로 저장되었습니다.`,
+      });
+    } catch (error) {
+      toast({
+        title: "내보내기 실패",
+        description: "엑셀 파일 생성 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -171,9 +190,20 @@ export function StatsGrid() {
               <TrendingDown className="h-4 w-4 inline mr-1" />
               총 {shortageItems.length}개 품목이 부족합니다
             </div>
-            <Button onClick={() => setShortageModalOpen(false)}>
-              닫기
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleExportShortageItems}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={shortageItems.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                엑셀 내보내기
+              </Button>
+              <Button onClick={() => setShortageModalOpen(false)}>
+                닫기
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -122,6 +122,63 @@ export const exportBomToExcel = (bomGuides: BomGuide[]) => {
   XLSX.writeFile(wb, "BOM목록(분석전용).xlsx");
 };
 
+export const exportShortageItemsToExcel = (shortageItems: InventoryItem[]) => {
+  const getUrgencyText = (item: InventoryItem) => {
+    if (item.stock < 0) return '긴급';
+    if (item.stock === 0) return '매우부족';
+    if (item.stock < item.minStock * 0.5) return '부족';
+    return '주의';
+  };
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
+                    new Date().toTimeString().split(' ')[0].replace(/:/g, '');
+  
+  const dataToExport = shortageItems.map(item => {
+    const shortageAmount = item.minStock - item.stock;
+    const recommendedOrder = Math.max(shortageAmount, item.minStock);
+    
+    return {
+      '긴급도': getUrgencyText(item),
+      '제품코드': item.code,
+      '제품명': item.name,
+      '카테고리': item.category,
+      '제조사': item.manufacturer || '',
+      '현재고': item.stock,
+      '최소재고': item.minStock,
+      '부족량': shortageAmount,
+      '위치': item.location || '미지정',
+      '발주추천수량': recommendedOrder,
+      '단위': item.unit,
+      '박스당수량': item.boxSize || 1,
+      '비고': item.stock < 0 ? '긴급발주필요' : item.stock === 0 ? '즉시발주' : '계획발주'
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  
+  // 컬럼 너비 조정
+  const colWidths = [
+    { wch: 10 }, // 긴급도
+    { wch: 15 }, // 제품코드
+    { wch: 30 }, // 제품명
+    { wch: 12 }, // 카테고리
+    { wch: 10 }, // 제조사
+    { wch: 10 }, // 현재고
+    { wch: 10 }, // 최소재고
+    { wch: 10 }, // 부족량
+    { wch: 15 }, // 위치
+    { wch: 12 }, // 발주추천수량
+    { wch: 8 },  // 단위
+    { wch: 12 }, // 박스당수량
+    { wch: 12 }  // 비고
+  ];
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "부족품목현황");
+  XLSX.writeFile(wb, `부족품목_현황_${timestamp}.xlsx`);
+};
+
 export const exportBlankTemplate = () => {
   // 사용법 안내 시트
   const instructionTemplate = [
