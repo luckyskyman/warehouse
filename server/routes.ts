@@ -668,15 +668,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Master upload request:', { itemCount: items.length });
       
-      // 1. 전체 재고 목록을 한 번만 조회
-      const allInventoryItems = await storage.getInventoryItems();
-      const existingItemsMap = new Map(allInventoryItems.map(item => [item.code, item]));
-      
-      const itemsToCreate = [];
-      const itemsToUpdate = [];
-      
-      // 2. 메모리에서 빠르게 분류
+      const itemsToProcess = [];
       let skippedCount = 0;
+      
+      // 1. 데이터 전처리 및 검증
       for (const item of items) {
         const code = String(item['제품코드'] || item.code || '').trim();
         if (!code) {
@@ -685,71 +680,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
         
-        const existingItem = existingItemsMap.get(code);
-        
-        if (existingItem) {
-          // 업데이트 대상
-          itemsToUpdate.push({
-            code: code,
-            updates: {
-              name: String(item['품명'] || item.name || existingItem.name),
-              category: String(item['카테고리'] || item.category || existingItem.category),
-              manufacturer: String(item['제조사'] || item.manufacturer || existingItem.manufacturer),
-              minStock: parseInt(item['최소재고'] || item.minStock || existingItem.minStock) || 0,
-              unit: String(item['단위'] || item.unit || existingItem.unit),
-              boxSize: parseInt(item['박스당수량'] || item.boxSize || existingItem.boxSize) || 1,
-            }
-          });
-        } else {
-          // 신규 생성 대상
-          itemsToCreate.push({
-            code: code,
-            name: String(item['품명'] || item.name || ''),
-            category: String(item['카테고리'] || item.category || '기타'),
-            manufacturer: String(item['제조사'] || item.manufacturer || ''),
-            stock: parseInt(item['현재고'] || item.stock) || 0,
-            minStock: parseInt(item['최소재고'] || item.minStock) || 0,
-            unit: String(item['단위'] || item.unit || 'ea'),
-            location: String(item['위치'] || item.location || '').trim() || null,
-            boxSize: parseInt(item['박스당수량'] || item.boxSize) || 1,
-          });
-        }
+        itemsToProcess.push({
+          code: code,
+          name: String(item['품명'] || item.name || ''),
+          category: String(item['카테고리'] || item.category || '기타'),
+          manufacturer: String(item['제조사'] || item.manufacturer || ''),
+          stock: parseInt(item['현재고'] || item.stock) || 0,
+          minStock: parseInt(item['최소재고'] || item.minStock) || 0,
+          unit: String(item['단위'] || item.unit || 'ea'),
+          location: String(item['위치'] || item.location || '').trim() || null,
+          boxSize: parseInt(item['박스당수량'] || item.boxSize) || 1,
+        });
       }
       
-      // 3. 배치 처리 실행
+      // 2. 한 번만 기존 인벤토리 조회 후 캐시
+      console.log('Loading existing inventory for comparison...');
+      const existingItems = await storage.getInventoryItems();
+      const existingItemsMap = new Map(existingItems.map(item => [item.code, item]));
+      console.log('Existing inventory loaded:', existingItems.length, 'items');
+      
+      // 3. UPSERT 방식으로 처리 - 존재하면 업데이트, 없으면 생성
       const results = [];
-      
-      // 신규 아이템들 병렬 처리 (배치 크기 제한)
       const batchSize = 50;
-      for (let i = 0; i < itemsToCreate.length; i += batchSize) {
-        const batch = itemsToCreate.slice(i, i + batchSize);
-        const batchResults = await Promise.all(
-          batch.map(item => storage.createInventoryItem(item).catch(err => {
-            console.error('Failed to create item:', item.code, err.message);
-            return null;
-          }))
-        );
-        results.push(...batchResults.filter(item => item !== null));
-      }
+      let createdCount = 0;
+      let updatedCount = 0;
       
-      // 업데이트 아이템들 병렬 처리
-      for (let i = 0; i < itemsToUpdate.length; i += batchSize) {
-        const batch = itemsToUpdate.slice(i, i + batchSize);
-        const batchResults = await Promise.all(
-          batch.map(({ code, updates }) => 
-            storage.updateInventoryItem(code, updates).catch(err => {
-              console.error('Failed to update item:', code, err.message);
-              return null;
-            })
-          )
-        );
-        results.push(...batchResults.filter(item => item !== null));
+      for (let i = 0; i < itemsToProcess.length; i += batchSize) {
+        const batch = itemsToProcess.slice(i, i + batchSize);
+        
+        for (const item of batch) {
+          try {
+            const existingItem = existingItemsMap.get(item.code);
+            
+            if (existingItem) {
+              // 업데이트
+              const updated = await storage.updateInventoryItem(item.code, {
+                name: item.name,
+                category: item.category,
+                manufacturer: item.manufacturer,
+                minStock: item.minStock,
+                unit: item.unit,
+                boxSize: item.boxSize,
+                // 재고와 위치는 기존 값 유지 (현재고 필드가 있을 때만 업데이트)
+                ...(item.stock !== 0 && { stock: item.stock }),
+                ...(item.location && { location: item.location }),
+              });
+              if (updated) {
+                results.push(updated);
+                updatedCount++;
+              }
+            } else {
+              // 신규 생성
+              const created = await storage.createInventoryItem(item);
+              results.push(created);
+              createdCount++;
+              // 생성된 아이템을 캐시에 추가 (중복 방지)
+              existingItemsMap.set(item.code, created);
+            }
+          } catch (error) {
+            console.error('Failed to process item:', item.code, error.message);
+            
+            // 생성 실패시 업데이트로 재시도
+            if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+              try {
+                const updated = await storage.updateInventoryItem(item.code, {
+                  name: item.name,
+                  category: item.category,
+                  manufacturer: item.manufacturer,
+                  minStock: item.minStock,
+                  unit: item.unit,
+                  boxSize: item.boxSize,
+                });
+                if (updated) {
+                  results.push(updated);
+                  updatedCount++;
+                  console.log('Recovered by update:', item.code);
+                }
+              } catch (updateError) {
+                console.error('Failed to recover item:', item.code, updateError.message);
+              }
+            }
+          }
+        }
       }
 
       console.log('Master upload complete:', { 
         processed: results.length,
-        created: itemsToCreate.length,
-        updated: itemsToUpdate.length,
+        created: createdCount,
+        updated: updatedCount,
         skipped: skippedCount,
         totalInput: items.length
       });
