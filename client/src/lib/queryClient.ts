@@ -2,13 +2,21 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    let errorMessage = `${res.status}: ${res.statusText}`;
     try {
-      const json = await res.json();
-      throw new Error(json.message || json.error || `${res.status}: ${res.statusText}`);
+      // Response를 한 번만 읽기 위해 clone 사용
+      const resClone = res.clone();
+      const json = await resClone.json();
+      errorMessage = json.message || json.error || errorMessage;
     } catch (parseError) {
-      const text = (await res.text()) || res.statusText;
-      throw new Error(`${res.status}: ${text}`);
+      try {
+        const text = await res.text();
+        if (text) errorMessage = `${res.status}: ${text}`;
+      } catch (textError) {
+        // 이미 읽힌 경우 기본 메시지 사용
+      }
     }
+    throw new Error(errorMessage);
   }
 }
 

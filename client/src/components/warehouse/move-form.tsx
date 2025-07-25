@@ -127,7 +127,20 @@ export function MoveForm() {
       return;
     }
 
-    const newLocation = `${data.zone}-${data.subZone.split('-')[1]}-${data.floor.replace('층', '')}`;
+    // 위치 형식 안전하게 생성
+    let newLocation: string;
+    try {
+      const subZoneParts = data.subZone.split('-');
+      const subZoneValue = subZoneParts.length > 1 ? subZoneParts[1] : data.subZone;
+      newLocation = `${data.zone}-${subZoneValue}-${data.floor.replace('층', '')}`;
+    } catch (error) {
+      toast({
+        title: "위치 형식 오류",
+        description: "선택한 위치 정보에 문제가 있습니다. 다시 선택해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (selectedItem.location === newLocation) {
       toast({
@@ -162,10 +175,11 @@ export function MoveForm() {
       setSelectedCodeState('');
       setCodeOpen(false);
       setSearchValue('');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[클라이언트] 이동 처리 실패:', error);
       toast({
         title: "이동 실패",
-        description: "이동 처리 중 오류가 발생했습니다.",
+        description: error?.message || "이동 처리 중 오류가 발생했습니다.",
         variant: "destructive",
       });
     }

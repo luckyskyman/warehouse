@@ -559,7 +559,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json(transaction);
     } catch (error) {
-      res.status(400).json({ message: "Invalid data" });
+      console.error('[트랜잭션 생성] 오류:', error);
+      const errorMessage = error instanceof Error ? error.message : "Invalid data";
+      res.status(400).json({ message: errorMessage });
     }
   });
 
