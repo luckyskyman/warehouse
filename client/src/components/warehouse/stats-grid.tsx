@@ -74,19 +74,16 @@ export function StatsGrid() {
           <div className="text-sm text-gray-600 mt-1">재고 보유 품목 수</div>
         </div>
         
-        <Button
-          variant="ghost"
-          className="warehouse-card p-0 h-auto hover:bg-red-50 transition-colors cursor-pointer"
+        <div 
+          className="warehouse-card cursor-pointer hover:bg-red-50 transition-colors"
           onClick={() => setShortageModalOpen(true)}
         >
-          <div className="w-full text-left">
-            <div className="text-3xl font-bold text-red-600 flex items-center gap-2">
-              {shortageItems.length}
-              <AlertTriangle className="h-6 w-6" />
-            </div>
-            <div className="text-sm text-gray-600 mt-1">부족 품목 (클릭하여 상세보기)</div>
+          <div className="text-3xl font-bold text-red-600 flex items-center gap-2">
+            {shortageItems.length}
+            <AlertTriangle className="h-6 w-6" />
           </div>
-        </Button>
+          <div className="text-sm text-gray-600 mt-1">부족 품목 (클릭하여 상세보기)</div>
+        </div>
         
         <div className="warehouse-card">
           <div className="text-3xl font-bold text-gray-800">{filteredStats.warehouseZones}</div>
