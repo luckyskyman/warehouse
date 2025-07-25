@@ -15,7 +15,7 @@ export const users = pgTable("users", {
 
 export const inventoryItems = pgTable("inventory_items", {
   id: serial("id").primaryKey(),
-  code: text("code").notNull().unique(),
+  code: text("code").notNull(),
   name: text("name").notNull(),
   category: text("category").notNull(),
   manufacturer: text("manufacturer"),

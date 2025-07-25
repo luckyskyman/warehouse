@@ -298,8 +298,8 @@ export function MoveForm() {
                     <SelectValue placeholder="구역 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    {zones.map(zone => (
-                      <SelectItem key={zone} value={zone}>{zone}</SelectItem>
+                    {zones.map((zone, index) => (
+                      <SelectItem key={`zone-${index}-${zone}`} value={zone}>{zone}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -320,8 +320,8 @@ export function MoveForm() {
                     <SelectValue placeholder="세부구역 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    {subZones.map(subZone => (
-                      <SelectItem key={subZone} value={subZone}>{subZone}</SelectItem>
+                    {subZones.map((subZone, index) => (
+                      <SelectItem key={`subzone-${index}-${subZone}`} value={subZone}>{subZone}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -338,8 +338,8 @@ export function MoveForm() {
                     <SelectValue placeholder="층수 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    {floors.map(floor => (
-                      <SelectItem key={floor} value={floor}>{floor}</SelectItem>
+                    {floors.map((floor, index) => (
+                      <SelectItem key={`floor-${index}-${floor}`} value={floor}>{floor}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
