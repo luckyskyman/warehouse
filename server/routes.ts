@@ -625,9 +625,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const itemsToUpdate = [];
       
       // 2. 메모리에서 빠르게 분류
+      let skippedCount = 0;
       for (const item of items) {
         const code = String(item['제품코드'] || item.code || '').trim();
-        if (!code) continue;
+        if (!code) {
+          skippedCount++;
+          console.log('Skipped item with empty code:', item);
+          continue;
+        }
         
         const existingItem = existingItemsMap.get(code);
         
@@ -639,9 +644,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               name: String(item['품명'] || item.name || existingItem.name),
               category: String(item['카테고리'] || item.category || existingItem.category),
               manufacturer: String(item['제조사'] || item.manufacturer || existingItem.manufacturer),
-              minStock: Number(item['최소재고'] || item.minStock || existingItem.minStock),
+              minStock: parseInt(item['최소재고'] || item.minStock || existingItem.minStock) || 0,
               unit: String(item['단위'] || item.unit || existingItem.unit),
-              boxSize: Number(item['박스당수량'] || item.boxSize || existingItem.boxSize),
+              boxSize: parseInt(item['박스당수량'] || item.boxSize || existingItem.boxSize) || 1,
             }
           });
         } else {
@@ -651,11 +656,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: String(item['품명'] || item.name || ''),
             category: String(item['카테고리'] || item.category || '기타'),
             manufacturer: String(item['제조사'] || item.manufacturer || ''),
-            stock: 0,
-            minStock: Number(item['최소재고'] || item.minStock || 0),
+            stock: parseInt(item['현재고'] || item.stock) || 0,
+            minStock: parseInt(item['최소재고'] || item.minStock) || 0,
             unit: String(item['단위'] || item.unit || 'ea'),
-            location: null,
-            boxSize: Number(item['박스당수량'] || item.boxSize || 1),
+            location: String(item['위치'] || item.location || '').trim() || null,
+            boxSize: parseInt(item['박스당수량'] || item.boxSize) || 1,
           });
         }
       }
@@ -693,7 +698,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Master upload complete:', { 
         processed: results.length,
         created: itemsToCreate.length,
-        updated: itemsToUpdate.length 
+        updated: itemsToUpdate.length,
+        skipped: skippedCount,
+        totalInput: items.length
       });
       
       res.json({ 
