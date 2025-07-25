@@ -707,42 +707,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (let i = 0; i < itemsToProcess.length; i += batchSize) {
         const batch = itemsToProcess.slice(i, i + batchSize);
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(itemsToProcess.length/batchSize)} (${batch.length} items)`);
         
-        for (const item of batch) {
-          try {
-            const existingItem = existingItemsMap.get(item.code);
-            
-            if (existingItem) {
-              // 업데이트
-              const updated = await storage.updateInventoryItem(item.code, {
-                name: item.name,
-                category: item.category,
-                manufacturer: item.manufacturer,
-                minStock: item.minStock,
-                unit: item.unit,
-                boxSize: item.boxSize,
-                // 재고와 위치는 기존 값 유지 (현재고 필드가 있을 때만 업데이트)
-                ...(item.stock !== 0 && { stock: item.stock }),
-                ...(item.location && { location: item.location }),
-              });
-              if (updated) {
-                results.push(updated);
-                updatedCount++;
-              }
-            } else {
-              // 신규 생성
-              const created = await storage.createInventoryItem(item);
-              results.push(created);
-              createdCount++;
-              // 생성된 아이템을 캐시에 추가 (중복 방지)
-              existingItemsMap.set(item.code, created);
-            }
-          } catch (error) {
-            console.error('Failed to process item:', item.code, error.message);
-            
-            // 생성 실패시 업데이트로 재시도
-            if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
-              try {
+        // 배치 내에서 병렬 처리
+        const batchResults = await Promise.all(
+          batch.map(async (item) => {
+            try {
+              const existingItem = existingItemsMap.get(item.code);
+              
+              if (existingItem) {
+                // 업데이트
                 const updated = await storage.updateInventoryItem(item.code, {
                   name: item.name,
                   category: item.category,
@@ -750,18 +724,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   minStock: item.minStock,
                   unit: item.unit,
                   boxSize: item.boxSize,
+                  // 재고와 위치는 기존 값 유지 (현재고 필드가 있을 때만 업데이트)
+                  ...(item.stock !== 0 && { stock: item.stock }),
+                  ...(item.location && { location: item.location }),
                 });
                 if (updated) {
-                  results.push(updated);
-                  updatedCount++;
-                  console.log('Recovered by update:', item.code);
+                  return { success: true, item: updated, type: 'updated' };
                 }
-              } catch (updateError) {
-                console.error('Failed to recover item:', item.code, updateError.message);
+              } else {
+                // 신규 생성
+                const created = await storage.createInventoryItem(item);
+                // 생성된 아이템을 캐시에 추가 (중복 방지)
+                existingItemsMap.set(item.code, created);
+                return { success: true, item: created, type: 'created' };
               }
+              return { success: false, code: item.code, error: 'No result' };
+            } catch (error) {
+              console.error('Failed to process item:', item.code, (error as Error).message);
+              
+              // 생성 실패시 업데이트로 재시도
+              if ((error as Error).message.includes('duplicate key') || (error as Error).message.includes('unique constraint')) {
+                try {
+                  const updated = await storage.updateInventoryItem(item.code, {
+                    name: item.name,
+                    category: item.category,
+                    manufacturer: item.manufacturer,
+                    minStock: item.minStock,
+                    unit: item.unit,
+                    boxSize: item.boxSize,
+                  });
+                  if (updated) {
+                    console.log('Recovered by update:', item.code);
+                    return { success: true, item: updated, type: 'recovered' };
+                  }
+                } catch (updateError) {
+                  console.error('Failed to recover item:', item.code, (updateError as Error).message);
+                }
+              }
+              return { success: false, code: item.code, error: (error as Error).message };
+            }
+          })
+        );
+        
+        // 배치 결과 처리
+        for (const result of batchResults) {
+          if (result.success) {
+            results.push(result.item);
+            if (result.type === 'created' || result.type === 'recovered') {
+              createdCount++;
+            } else if (result.type === 'updated') {
+              updatedCount++;
             }
           }
         }
+        
+        // 진행 상황 로그
+        console.log(`Batch completed: ${results.length}/${itemsToProcess.length} processed (${createdCount} created, ${updatedCount} updated)`);
       }
 
       console.log('Master upload complete:', { 
