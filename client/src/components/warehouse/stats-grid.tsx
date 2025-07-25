@@ -78,7 +78,7 @@ export function StatsGrid() {
           className="warehouse-card cursor-pointer hover:bg-red-50 transition-colors"
           onClick={() => setShortageModalOpen(true)}
         >
-          <div className="text-3xl font-bold text-red-600 flex items-center gap-2">
+          <div className="text-3xl font-bold text-red-600 flex items-center justify-center gap-2">
             {shortageItems.length}
             <AlertTriangle className="h-6 w-6" />
           </div>
