@@ -321,6 +321,11 @@ export function InboundForm() {
                     <SelectValue placeholder="선택하세요" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="조립부품">조립부품</SelectItem>
+                    <SelectItem value="토트가이드">토트가이드</SelectItem>
+                    <SelectItem value="프레임">프레임</SelectItem>
+                    <SelectItem value="트랙서포트">트랙서포트</SelectItem>
+                    <SelectItem value="지그">지그</SelectItem>
                     <SelectItem value="전자제품">전자제품</SelectItem>
                     <SelectItem value="의류">의류</SelectItem>
                     <SelectItem value="식품">식품</SelectItem>
