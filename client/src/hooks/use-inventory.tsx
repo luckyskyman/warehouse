@@ -63,6 +63,12 @@ export function useAdjustInventoryItem() {
 export function useTransactions(itemCode?: string) {
   return useQuery({
     queryKey: itemCode ? ['/api/transactions', itemCode] : ['/api/transactions'],
+    queryFn: () => {
+      const url = itemCode 
+        ? `/api/transactions?itemCode=${encodeURIComponent(itemCode)}`
+        : '/api/transactions';
+      return fetch(url).then(res => res.json());
+    }
   });
 }
 
