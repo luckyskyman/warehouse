@@ -205,7 +205,7 @@ export function useInventoryStats() {
   const stats: InventoryStats = {
     totalItems: inventory.length,
     totalStock: inventory.reduce((sum: number, item: InventoryItem) => sum + item.stock, 0),
-    shortageItems: inventory.filter((item: InventoryItem) => item.stock < item.minStock).length,
+    shortageItems: inventory.filter((item: InventoryItem) => item.stock < item.minStock && item.stock >= 0).length,
     warehouseZones: warehouseLayout.length,
   };
 

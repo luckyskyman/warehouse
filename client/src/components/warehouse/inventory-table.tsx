@@ -217,11 +217,18 @@ export function InventoryTable() {
 
   const filteredInventory = useMemo(() => {
     return inventory
-      .filter(item => item.stock > 0) // 재고가 있는 아이템만 표시
       .filter(item =>
         item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      )
+      .sort((a, b) => {
+        // 마이너스 재고를 맨 위에, 그 다음 부족 재고, 마지막에 정상 재고
+        if (a.stock < 0 && b.stock >= 0) return -1;
+        if (a.stock >= 0 && b.stock < 0) return 1;
+        if (a.stock < a.minStock && b.stock >= b.minStock) return -1;
+        if (a.stock >= a.minStock && b.stock < b.minStock) return 1;
+        return a.code.localeCompare(b.code);
+      });
   }, [inventory, searchTerm]);
 
   return (
@@ -263,7 +270,17 @@ export function InventoryTable() {
                 <TableCell className="font-medium">{item.code}</TableCell>
                 <TableCell>{item.name}</TableCell>
                 <TableCell>{item.category}</TableCell>
-                <TableCell>{item.stock}</TableCell>
+                <TableCell>
+                  <span className={`font-medium ${
+                    item.stock < 0 
+                      ? 'text-red-600 font-bold' 
+                      : item.stock < item.minStock 
+                        ? 'text-yellow-600' 
+                        : 'text-green-600'
+                  }`}>
+                    {item.stock}
+                  </span>
+                </TableCell>
                 <TableCell>{item.minStock}</TableCell>
                 <TableCell>{item.unit}</TableCell>
                 <TableCell>
