@@ -959,37 +959,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log('Existing inventory cleared');
 
-      // 중복 제품코드 처리를 위한 Map 생성
+      // 안전한 숫자 변환 함수
+      const safeParseInt = (value: any, defaultValue: number = 0): number => {
+        if (value === '' || value == null || value === undefined) return defaultValue;
+        const parsed = parseInt(String(value).trim());
+        return Number.isNaN(parsed) ? defaultValue : parsed;
+      };
+
+      // 제품코드 + 위치 조합으로 유일성 보장 (다중 위치 지원)
       const uniqueItems = new Map();
-      const duplicateWarnings = [];
+      const processWarnings = [];
       
-      // 1단계: 중복 제거 및 데이터 병합
+      // 1단계: 모든 아이템 처리 (중복 제거 없이)
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const code = String(item['제품코드'] || item.code || '').trim();
         
-        if (!code) {
-          duplicateWarnings.push(`Row ${i + 1}: Missing product code`);
+        // 제품코드가 완전히 비어있는 경우만 스킵
+        if (!code || code === '') {
+          processWarnings.push(`Row ${i + 1}: Missing product code - skipped`);
           continue;
         }
         
-        if (uniqueItems.has(code)) {
-          const existing = uniqueItems.get(code);
-          // 중복된 경우 재고량 합산
-          const currentStock = Number(item['현재고'] || item.stock || 0);
-          existing.stock += currentStock;
-          duplicateWarnings.push(`Row ${i + 1}: Duplicate code ${code} - stock merged (${currentStock} added)`);
+        // 안전한 숫자 변환 (에러 시에도 기본값으로 처리)
+        const stock = safeParseInt(item['현재고'] || item.stock, 0);
+        const minStock = safeParseInt(item['최소재고'] || item.minStock, 0);
+        const boxSize = safeParseInt(item['박스당수량'] || item.boxSize, 1);
+        
+        const location = String(item['위치'] || item.location || '').trim() || null;
+        
+        // 제품코드 + 위치 조합으로 고유 키 생성
+        const uniqueKey = location ? `${code}_${location}` : `${code}_NO_LOCATION`;
+        
+        if (uniqueItems.has(uniqueKey)) {
+          // 완전히 동일한 제품+위치 조합인 경우만 재고 합산
+          const existing = uniqueItems.get(uniqueKey);
+          existing.stock += stock;
+          processWarnings.push(`Row ${i + 1}: Duplicate ${code} at ${location || 'NO_LOCATION'} - stock merged (${stock} added)`);
         } else {
-          const stock = Number(item['현재고'] || item.stock || 0);
-          const minStock = Number(item['최소재고'] || item.minStock || 0);
-          const boxSize = Number(item['박스당수량'] || item.boxSize || 1);
-          
-          if (isNaN(stock) || isNaN(minStock) || isNaN(boxSize)) {
-            duplicateWarnings.push(`Row ${i + 1}: Invalid numeric values - stock: ${item['현재고']}, minStock: ${item['최소재고']}, boxSize: ${item['박스당수량']}`);
-            continue;
-          }
-
-          uniqueItems.set(code, {
+          // 새로운 제품+위치 조합으로 등록
+          uniqueItems.set(uniqueKey, {
             code: code,
             name: String(item['품명'] || item.name || code).trim(),
             category: String(item['카테고리'] || item.category || '기타').trim(),
@@ -997,60 +1006,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
             stock: stock,
             minStock: minStock,
             unit: String(item['단위'] || item.unit || 'ea').trim(),
-            location: String(item['위치'] || item.location || '').trim() || null,
+            location: location,
             boxSize: boxSize,
-            rowIndex: i + 1
+            rowIndex: i + 1,
+            uniqueKey: uniqueKey
           });
         }
       }
 
-      console.log(`Processing ${uniqueItems.size} unique items (${duplicateWarnings.length} duplicates merged)`);
+      console.log(`Processing ${uniqueItems.size} unique items (${processWarnings.length} warnings)`);
       
-      // 2단계: 고유 아이템들 생성
+      // 2단계: 모든 고유 아이템들 생성 (배치 처리로 성능 향상)
       const createdItems = [];
       const errors = [];
       let processedCount = 0;
+      const batchSize = 50;
       
-      for (const [code, itemData] of uniqueItems) {
-        try {
-          processedCount++;
-          console.log(`Creating item ${processedCount}/${uniqueItems.size}: ${code} (stock: ${itemData.stock})`);
-          
-          const created = await storage.createInventoryItem({
-            code: itemData.code,
-            name: itemData.name,
-            category: itemData.category,
-            manufacturer: itemData.manufacturer,
-            stock: itemData.stock,
-            minStock: itemData.minStock,
-            unit: itemData.unit,
-            location: itemData.location,
-            boxSize: itemData.boxSize,
-          });
-          
-          createdItems.push(created);
-          
-        } catch (itemError: any) {
-          console.error(`Failed to create item ${code}:`, itemError.message);
-          errors.push(`${code}: ${itemError.message}`);
+      const itemsArray = Array.from(uniqueItems.values());
+      
+      for (let i = 0; i < itemsArray.length; i += batchSize) {
+        const batch = itemsArray.slice(i, i + batchSize);
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(itemsArray.length/batchSize)} (${batch.length} items)`);
+        
+        // 배치 내에서 병렬 처리
+        const batchResults = await Promise.all(
+          batch.map(async (itemData) => {
+            try {
+              processedCount++;
+              console.log(`Creating item ${processedCount}/${itemsArray.length}: ${itemData.code} at ${itemData.location || 'NO_LOCATION'} (stock: ${itemData.stock})`);
+              
+              const created = await storage.createInventoryItem({
+                code: itemData.code,
+                name: itemData.name,
+                category: itemData.category,
+                manufacturer: itemData.manufacturer,
+                stock: itemData.stock,
+                minStock: itemData.minStock,
+                unit: itemData.unit,
+                location: itemData.location,
+                boxSize: itemData.boxSize,
+              });
+              
+              return { success: true, item: created };
+              
+            } catch (itemError: any) {
+              console.error(`Failed to create item ${itemData.code}:`, itemError.message);
+              return { success: false, error: `${itemData.code}: ${itemError.message}` };
+            }
+          })
+        );
+        
+        // 배치 결과 처리
+        for (const result of batchResults) {
+          if (result.success) {
+            createdItems.push(result.item);
+          } else {
+            errors.push(result.error);
+          }
         }
+        
+        console.log(`Batch completed: ${createdItems.length}/${itemsArray.length} created so far`);
       }
 
       console.log('Inventory sync complete:', { 
-        processed: items.length,
-        created: createdItems.length,
-        errors: errors.length 
+        inputItems: items.length,
+        processedItems: uniqueItems.size,
+        createdItems: createdItems.length,
+        errors: errors.length,
+        warnings: processWarnings.length
       });
 
       if (errors.length > 0) {
         console.log('Sync errors:', errors.slice(0, 10)); // Log first 10 errors
       }
+      
+      if (processWarnings.length > 0) {
+        console.log('Process warnings:', processWarnings.slice(0, 10)); // Log first 10 warnings
+      }
 
       res.json({ 
         synced: createdItems.length, 
         total: items.length,
+        processed: uniqueItems.size,
         errors: errors.length,
-        errorDetails: errors.slice(0, 5) // Return first 5 errors
+        warnings: processWarnings.length,
+        errorDetails: errors.slice(0, 5), // Return first 5 errors
+        warningDetails: processWarnings.slice(0, 5) // Return first 5 warnings
       });
       
     } catch (error) {
