@@ -306,7 +306,7 @@ export function InventoryTable() {
               <Badge variant={getLocationVariant(item.location)}>
                 {item.location}
               </Badge>
-            ) : user?.role === 'admin' ? (
+            ) : (user?.role === 'admin' || user?.role === 'super_admin') ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -333,7 +333,7 @@ export function InventoryTable() {
                         <History className="mr-2 h-4 w-4" />
                         이력 보기
                       </DropdownMenuItem>
-                      {user?.role === 'admin' && (
+                      {(user?.role === 'admin' || user?.role === 'super_admin') && (
                         <>
                           <DropdownMenuItem onClick={() => handleLocationChange(item)}>
                             <MapPin className="mr-2 h-4 w-4" />
