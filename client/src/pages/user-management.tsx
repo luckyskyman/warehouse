@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Plus, Edit2, Trash2, Shield, User, LogOut, ChevronDown } from "lucide-react";
@@ -512,15 +513,16 @@ export default function UserManagement() {
               새 사용자 추가
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
+          <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-[700px]">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>새 사용자 생성</DialogTitle>
               <DialogDescription>
                 새로운 사용자 계정을 생성합니다.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
+            <ScrollArea className="max-h-[65vh] pr-4">
+              <div className="space-y-4 pb-4">
+                <div>
                 <Label htmlFor="username">사용자명</Label>
                 <Input
                   id="username"
@@ -605,7 +607,7 @@ export default function UserManagement() {
                 {/* Excel 관리 권한 */}
                 <div className="space-y-3">
                   <h5 className="text-sm font-medium text-gray-700">Excel 관리 권한</h5>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="canUploadBom"
@@ -652,7 +654,7 @@ export default function UserManagement() {
                 {/* 시스템 관리 권한 */}
                 <div className="space-y-3">
                   <h5 className="text-sm font-medium text-gray-700">시스템 관리 권한</h5>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="canBackupData"
@@ -691,7 +693,7 @@ export default function UserManagement() {
                 {/* 다운로드 권한 */}
                 <div className="space-y-3">
                   <h5 className="text-sm font-medium text-gray-700">다운로드 권한</h5>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="canDownloadInventory"
@@ -727,14 +729,15 @@ export default function UserManagement() {
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  취소
-                </Button>
-                <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
-                  {createUserMutation.isPending ? "생성 중..." : "생성"}
-                </Button>
               </div>
+            </ScrollArea>
+            <div className="flex justify-end space-x-2 pt-4 border-t mt-4 flex-shrink-0">
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
+                {createUserMutation.isPending ? "생성 중..." : "생성"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
