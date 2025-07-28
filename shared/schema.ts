@@ -37,6 +37,7 @@ export const users = pgTable("users", {
   canManageBom: boolean("can_manage_bom").default(false),
   canManageWarehouse: boolean("can_manage_warehouse").default(false),
   canProcessExchange: boolean("can_process_exchange").default(false),
+  canManageLocation: boolean("can_manage_location").default(false),
   
   // 업무일지 권한
   canCreateDiary: boolean("can_create_diary").default(true),
@@ -164,6 +165,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   canManageBom: true,
   canManageWarehouse: true,
   canProcessExchange: true,
+  canManageLocation: true,
   canCreateDiary: true,
   canEditDiary: true,
   canDeleteDiary: true,

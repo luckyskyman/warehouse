@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { usePermissions } from '@/hooks/use-permissions';
 import { LoginForm } from '@/components/auth/login-form';
 import { StatsGrid } from '@/components/warehouse/stats-grid';
 import { BomCheck } from '@/components/warehouse/bom-check';
@@ -77,6 +78,7 @@ const UserDropdown = () => {
 
 export default function WarehouseManagement() {
   const { user, logout, sessionId } = useAuth();
+  const permissions = usePermissions();
   const [activeTab, setActiveTab] = useState<TabName>('bomCheck');
   const { toast } = useToast();
 
@@ -113,19 +115,59 @@ export default function WarehouseManagement() {
   }
 
   const tabs = [
-    { id: 'bomCheck', label: '⚙️ 설치가이드별 자재 확인', roles: ['admin', 'viewer'] },
-    { id: 'inventory', label: '📦 재고관리', roles: ['admin', 'viewer'] },
-    { id: 'inbound', label: '📥 입고관리', roles: ['admin'] },
-    { id: 'outbound', label: '📤 출고관리', roles: ['admin'] },
-    { id: 'move', label: '🔄 이동관리', roles: ['admin'] },
-    { id: 'warehouse', label: '🏪 창고현황', roles: ['admin', 'viewer'] },
-    { id: 'layout', label: '🔧 창고 구조 관리', roles: ['admin'] },
-    { id: 'excel', label: '📊 엑셀관리', roles: ['admin', 'viewer'] },
-    { id: 'workDiary', label: '📋 업무일지', roles: ['admin', 'viewer'] },
-    { id: 'users', label: '👥 사용자 관리', roles: ['admin'] },
+    { 
+      id: 'bomCheck', 
+      label: '⚙️ 설치가이드별 자재 확인', 
+      permission: () => permissions.canManageBom 
+    },
+    { 
+      id: 'inventory', 
+      label: '📦 재고관리', 
+      permission: () => permissions.canView 
+    },
+    { 
+      id: 'inbound', 
+      label: '📥 입고관리', 
+      permission: () => permissions.canProcessTransactions 
+    },
+    { 
+      id: 'outbound', 
+      label: '📤 출고관리', 
+      permission: () => permissions.canProcessTransactions 
+    },
+    { 
+      id: 'move', 
+      label: '🔄 이동관리', 
+      permission: () => permissions.canManageInventory 
+    },
+    { 
+      id: 'warehouse', 
+      label: '🏪 창고현황', 
+      permission: () => permissions.canView 
+    },
+    { 
+      id: 'layout', 
+      label: '🔧 창고 구조 관리', 
+      permission: () => permissions.canManageWarehouse 
+    },
+    { 
+      id: 'excel', 
+      label: '📊 엑셀관리', 
+      permission: () => permissions.canAccessExcelManagement 
+    },
+    { 
+      id: 'workDiary', 
+      label: '📋 업무일지', 
+      permission: () => permissions.canViewReports 
+    },
+    { 
+      id: 'users', 
+      label: '👥 사용자 관리', 
+      permission: () => permissions.canManageUsers 
+    },
   ] as const;
 
-  const filteredTabs = tabs.filter(tab => tab.roles.includes(user.role));
+  const filteredTabs = tabs.filter(tab => tab.permission());
 
   const renderTabContent = () => {
     switch (activeTab) {

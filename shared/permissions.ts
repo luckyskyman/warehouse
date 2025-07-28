@@ -229,7 +229,7 @@ export function getUserPermissions(user: User): Record<string, boolean> {
     canManageBom: user.canManageBom ?? rolePermissions.canManageBom,
     canManageWarehouse: user.canManageWarehouse ?? rolePermissions.canManageWarehouse,
     canProcessExchange: user.canProcessExchange ?? rolePermissions.canProcessExchange,
-    canManageLocation: user.canManageLocation ?? rolePermissions.canManageLocation,
+    canManageLocation: (user as any).canManageLocation ?? rolePermissions.canManageLocation,
     canCreateDiary: user.canCreateDiary ?? rolePermissions.canCreateDiary,
     canEditDiary: user.canEditDiary ?? rolePermissions.canEditDiary,
     canDeleteDiary: user.canDeleteDiary ?? rolePermissions.canDeleteDiary,

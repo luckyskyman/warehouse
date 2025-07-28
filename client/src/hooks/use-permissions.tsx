@@ -40,6 +40,7 @@ export function usePermissions() {
       canDownloadTransactions: false,
       canDownloadBom: false,
       canDownloadAll: false,
+      canManageLocation: false,
       
       // 사용자 정보
       user: null,
@@ -102,6 +103,7 @@ export function usePermissions() {
     canDownloadTransactions: permissions.canDownloadTransactions,
     canDownloadBom: permissions.canDownloadBom,
     canDownloadAll: permissions.canDownloadAll,
+    canManageLocation: permissions.canManageLocation,
 
     // 작성자 기반 권한 체크 함수
     canEditDiaryItem: (diaryAuthorId: number) => {
