@@ -186,10 +186,10 @@ export const ROLE_PERMISSIONS = {
     canProcessExchange: false,
     canManageLocation: false,  // 위치 변경 금지
     
-    // 다운로드 (기본 조회용만)
-    canDownloadInventory: true,
+    // 다운로드 (완전 차단 - 조회 전용)
+    canDownloadInventory: false,
     canDownloadTransactions: false,
-    canDownloadBom: true,
+    canDownloadBom: false,
     canDownloadAll: false,
     
     // 업무일지 (조회/작성만)

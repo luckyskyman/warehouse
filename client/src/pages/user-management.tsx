@@ -56,6 +56,7 @@ interface CreateUserData {
   canManageBom?: boolean;
   canManageWarehouse?: boolean;
   canProcessExchange?: boolean;
+  canManageLocation?: boolean;
   
   // 업무일지 권한
   canCreateDiary?: boolean;
@@ -353,6 +354,7 @@ export default function UserManagement() {
       canManageBom: user.canManageBom || false,
       canManageWarehouse: user.canManageWarehouse || false,
       canProcessExchange: user.canProcessExchange || false,
+      canManageLocation: user.canManageLocation || false,
       canCreateDiary: user.canCreateDiary || true,
       canEditDiary: user.canEditDiary || true,
       canDeleteDiary: user.canDeleteDiary || false,
@@ -390,6 +392,7 @@ export default function UserManagement() {
       canManageBom: formData.canManageBom,
       canManageWarehouse: formData.canManageWarehouse,
       canProcessExchange: formData.canProcessExchange,
+      canManageLocation: formData.canManageLocation,
       canCreateDiary: formData.canCreateDiary,
       canEditDiary: formData.canEditDiary,
       canDeleteDiary: formData.canDeleteDiary,
@@ -728,6 +731,100 @@ export default function UserManagement() {
                     </div>
                   </div>
                 </div>
+
+                {/* 재고 관리 권한 */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-gray-700">재고 관리 권한</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canManageInventory"
+                        checked={formData.canManageInventory || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canManageInventory', !!checked)}
+                      />
+                      <Label htmlFor="canManageInventory" className="text-sm">재고 관리</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canProcessTransactions"
+                        checked={formData.canProcessTransactions || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canProcessTransactions', !!checked)}
+                      />
+                      <Label htmlFor="canProcessTransactions" className="text-sm">거래 처리</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canManageBom"
+                        checked={formData.canManageBom || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canManageBom', !!checked)}
+                      />
+                      <Label htmlFor="canManageBom" className="text-sm">BOM 관리</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canManageWarehouse"
+                        checked={formData.canManageWarehouse || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canManageWarehouse', !!checked)}
+                      />
+                      <Label htmlFor="canManageWarehouse" className="text-sm">창고 관리</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canProcessExchange"
+                        checked={formData.canProcessExchange || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canProcessExchange', !!checked)}
+                      />
+                      <Label htmlFor="canProcessExchange" className="text-sm">불량품 교환</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canManageLocation"
+                        checked={formData.canManageLocation || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canManageLocation', !!checked)}
+                      />
+                      <Label htmlFor="canManageLocation" className="text-sm">위치 관리</Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 업무일지 권한 */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-gray-700">업무일지 권한</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canCreateDiary"
+                        checked={formData.canCreateDiary || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canCreateDiary', !!checked)}
+                      />
+                      <Label htmlFor="canCreateDiary" className="text-sm">업무일지 작성</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canEditDiary"
+                        checked={formData.canEditDiary || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canEditDiary', !!checked)}
+                      />
+                      <Label htmlFor="canEditDiary" className="text-sm">업무일지 수정</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canDeleteDiary"
+                        checked={formData.canDeleteDiary || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canDeleteDiary', !!checked)}
+                      />
+                      <Label htmlFor="canDeleteDiary" className="text-sm">업무일지 삭제</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="canViewReports"
+                        checked={formData.canViewReports || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canViewReports', !!checked)}
+                      />
+                      <Label htmlFor="canViewReports" className="text-sm">리포트 조회</Label>
+                    </div>
+                  </div>
+                </div>
               </div>
               </div>
             </ScrollArea>
@@ -815,54 +912,322 @@ export default function UserManagement() {
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>사용자 정보 수정</DialogTitle>
             <DialogDescription>
-              사용자 정보를 수정합니다.
+              사용자 정보와 권한을 수정합니다.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-username">사용자명</Label>
-              <Input
-                id="edit-username"
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                placeholder="사용자명을 입력하세요"
-              />
+          <ScrollArea className="max-h-[70vh]">
+            <div className="space-y-4 pr-4">
+              <div>
+                <Label htmlFor="edit-username">사용자명</Label>
+                <Input
+                  id="edit-username"
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  placeholder="사용자명을 입력하세요"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-password">새 비밀번호 (선택사항)</Label>
+                <Input
+                  id="edit-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="새 비밀번호를 입력하세요 (변경시에만)"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-role">역할</Label>
+                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="역할을 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="viewer">조회 전용</SelectItem>
+                    <SelectItem value="user">일반 사용자</SelectItem>
+                    <SelectItem value="manager">부서 관리자</SelectItem>
+                    <SelectItem value="admin">일반 관리자</SelectItem>
+                    <SelectItem value="super_admin">최고 관리자</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-department">부서</Label>
+                <Input
+                  id="edit-department"
+                  type="text"
+                  value={formData.department || ""}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  placeholder="부서명을 입력하세요"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-position">직급</Label>
+                <Input
+                  id="edit-position"
+                  type="text"
+                  value={formData.position || ""}
+                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                  placeholder="직급을 입력하세요"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit-isManager"
+                  checked={formData.isManager || false}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isManager: !!checked })}
+                />
+                <Label htmlFor="edit-isManager">부서장 권한</Label>
+              </div>
+
+              {/* 권한 설정 섹션 - 편집 시에도 동일하게 표시 */}
+              <Separator />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium">세부 권한 설정</h4>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="sm"
+                    onClick={resetPermissions}
+                  >
+                    기본 권한으로 초기화
+                  </Button>
+                </div>
+
+                {/* Excel 관리 권한 */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-gray-700">Excel 관리 권한</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canUploadBom"
+                        checked={formData.canUploadBom || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canUploadBom', !!checked)}
+                      />
+                      <Label htmlFor="edit-canUploadBom" className="text-sm">BOM 업로드</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canUploadMaster"
+                        checked={formData.canUploadMaster || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canUploadMaster', !!checked)}
+                      />
+                      <Label htmlFor="edit-canUploadMaster" className="text-sm">제품 마스터 업로드</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canUploadInventoryAdd"
+                        checked={formData.canUploadInventoryAdd || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canUploadInventoryAdd', !!checked)}
+                      />
+                      <Label htmlFor="edit-canUploadInventoryAdd" className="text-sm">재고 추가/보충</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canUploadInventorySync"
+                        checked={formData.canUploadInventorySync || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canUploadInventorySync', !!checked)}
+                      />
+                      <Label htmlFor="edit-canUploadInventorySync" className="text-sm">전체 동기화 (위험)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 col-span-2">
+                      <Checkbox
+                        id="edit-canAccessExcelManagement"
+                        checked={formData.canAccessExcelManagement || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canAccessExcelManagement', !!checked)}
+                      />
+                      <Label htmlFor="edit-canAccessExcelManagement" className="text-sm">Excel 관리 페이지 접근</Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 시스템 관리 권한 */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-gray-700">시스템 관리 권한</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canBackupData"
+                        checked={formData.canBackupData || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canBackupData', !!checked)}
+                      />
+                      <Label htmlFor="edit-canBackupData" className="text-sm">데이터 백업</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canRestoreData"
+                        checked={formData.canRestoreData || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canRestoreData', !!checked)}
+                      />
+                      <Label htmlFor="edit-canRestoreData" className="text-sm">데이터 복원</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canResetData"
+                        checked={formData.canResetData || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canResetData', !!checked)}
+                      />
+                      <Label htmlFor="edit-canResetData" className="text-sm">시스템 초기화 (매우 위험)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canManageUsers"
+                        checked={formData.canManageUsers || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canManageUsers', !!checked)}
+                      />
+                      <Label htmlFor="edit-canManageUsers" className="text-sm">사용자 관리</Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 다운로드 권한 */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-gray-700">다운로드 권한</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canDownloadInventory"
+                        checked={formData.canDownloadInventory || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canDownloadInventory', !!checked)}
+                      />
+                      <Label htmlFor="edit-canDownloadInventory" className="text-sm">재고현황 다운로드</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canDownloadTransactions"
+                        checked={formData.canDownloadTransactions || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canDownloadTransactions', !!checked)}
+                      />
+                      <Label htmlFor="edit-canDownloadTransactions" className="text-sm">거래내역 다운로드</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canDownloadBom"
+                        checked={formData.canDownloadBom || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canDownloadBom', !!checked)}
+                      />
+                      <Label htmlFor="edit-canDownloadBom" className="text-sm">BOM 목록 다운로드</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canDownloadAll"
+                        checked={formData.canDownloadAll || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canDownloadAll', !!checked)}
+                      />
+                      <Label htmlFor="edit-canDownloadAll" className="text-sm">모든 데이터 다운로드</Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 재고 관리 권한 */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-gray-700">재고 관리 권한</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canManageInventory"
+                        checked={formData.canManageInventory || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canManageInventory', !!checked)}
+                      />
+                      <Label htmlFor="edit-canManageInventory" className="text-sm">재고 관리</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canProcessTransactions"
+                        checked={formData.canProcessTransactions || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canProcessTransactions', !!checked)}
+                      />
+                      <Label htmlFor="edit-canProcessTransactions" className="text-sm">거래 처리</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canManageBom"
+                        checked={formData.canManageBom || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canManageBom', !!checked)}
+                      />
+                      <Label htmlFor="edit-canManageBom" className="text-sm">BOM 관리</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canManageWarehouse"
+                        checked={formData.canManageWarehouse || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canManageWarehouse', !!checked)}
+                      />
+                      <Label htmlFor="edit-canManageWarehouse" className="text-sm">창고 관리</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canProcessExchange"
+                        checked={formData.canProcessExchange || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canProcessExchange', !!checked)}
+                      />
+                      <Label htmlFor="edit-canProcessExchange" className="text-sm">불량품 교환</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canManageLocation"
+                        checked={formData.canManageLocation || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canManageLocation', !!checked)}
+                      />
+                      <Label htmlFor="edit-canManageLocation" className="text-sm">위치 관리</Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 업무일지 권한 */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-gray-700">업무일지 권한</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canCreateDiary"
+                        checked={formData.canCreateDiary || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canCreateDiary', !!checked)}
+                      />
+                      <Label htmlFor="edit-canCreateDiary" className="text-sm">업무일지 작성</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canEditDiary"
+                        checked={formData.canEditDiary || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canEditDiary', !!checked)}
+                      />
+                      <Label htmlFor="edit-canEditDiary" className="text-sm">업무일지 수정</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canDeleteDiary"
+                        checked={formData.canDeleteDiary || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canDeleteDiary', !!checked)}
+                      />
+                      <Label htmlFor="edit-canDeleteDiary" className="text-sm">업무일지 삭제</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-canViewReports"
+                        checked={formData.canViewReports || false}
+                        onCheckedChange={(checked) => handlePermissionChange('canViewReports', !!checked)}
+                      />
+                      <Label htmlFor="edit-canViewReports" className="text-sm">리포트 조회</Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="edit-password">새 비밀번호 (선택사항)</Label>
-              <Input
-                id="edit-password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="새 비밀번호를 입력하세요 (변경시에만)"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-role">역할</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="역할을 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="viewer">일반사용자</SelectItem>
-                  <SelectItem value="admin">관리자</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                취소
-              </Button>
-              <Button onClick={handleUpdateUser} disabled={updateUserMutation.isPending}>
-                {updateUserMutation.isPending ? "수정 중..." : "수정"}
-              </Button>
-            </div>
+          </ScrollArea>
+          <div className="flex justify-end space-x-2 pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              취소
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={updateUserMutation.isPending}>
+              {updateUserMutation.isPending ? "수정 중..." : "수정"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
