@@ -57,7 +57,7 @@ export function usePermissions() {
   }
 
   // 사용자별 실제 권한 가져오기 (타입 캐스팅)
-  const permissions = getUserPermissions(user as User);
+  const permissions = getUserPermissions(user as any);
   
   const isAdmin = user.role === 'admin';
   const isViewer = user.role === 'viewer';
