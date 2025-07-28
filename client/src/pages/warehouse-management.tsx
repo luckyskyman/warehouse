@@ -117,6 +117,7 @@ export default function WarehouseManagement() {
 
 
 
+
   const tabs = [
     { 
       id: 'bomCheck', 
@@ -201,7 +202,7 @@ export default function WarehouseManagement() {
           />
         );
       case 'users':
-        return <UserManagement />;
+        return permissions.canManageUsers ? <UserManagement /> : null;
       default:
         return <BomCheck />;
     }
