@@ -288,7 +288,7 @@ export function InventoryTable() {
               <Badge variant={getLocationVariant(item.location)}>
                 {item.location}
               </Badge>
-            ) : (
+            ) : user?.role === 'admin' ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -297,6 +297,10 @@ export function InventoryTable() {
               >
                 위치 지정
               </Button>
+            ) : (
+              <Badge variant="secondary" className="text-xs">
+                위치 미지정
+              </Badge>
             )}
           </TableCell>
                 <TableCell>
