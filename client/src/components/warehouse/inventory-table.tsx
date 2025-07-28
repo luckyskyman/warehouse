@@ -61,6 +61,29 @@ export function InventoryTable() {
   const { data: warehouseLayout = [] } = useWarehouseLayout();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // 창고 레이아웃에서 선택 가능한 옵션들 추출
+  const availableZones = useMemo(() => {
+    return Array.from(new Set((warehouseLayout as any[]).map((layout: any) => layout.zoneName)));
+  }, [warehouseLayout]);
+
+  const availableSubZones = useMemo(() => {
+    if (!selectedZone) return [];
+    return Array.from(new Set(
+      (warehouseLayout as any[])
+        .filter((layout: any) => layout.zoneName === selectedZone)
+        .map((layout: any) => layout.subZoneName)
+    ));
+  }, [warehouseLayout, selectedZone]);
+
+  const availableFloors = useMemo(() => {
+    if (!selectedZone || !selectedSubZone) return [];
+    return Array.from(new Set(
+      (warehouseLayout as any[])
+        .filter((layout: any) => layout.zoneName === selectedZone && layout.subZoneName === selectedSubZone)
+        .map((layout: any) => layout.floor)
+    ));
+  }, [warehouseLayout, selectedZone, selectedSubZone]);
   
   const deleteInventoryItem = useDeleteInventoryItem();
   const adjustInventoryItem = useAdjustInventoryItem();
@@ -96,6 +119,8 @@ export function InventoryTable() {
   const handleDelete = (item: InventoryItem) => {
     setDeleteDialog({ open: true, item });
   };
+
+
 
   // 수량 조정 실행
   const performStockAdjust = async () => {
@@ -176,10 +201,14 @@ export function InventoryTable() {
 
     try {
       const location = `${selectedZone}-${selectedSubZone}-${selectedFloor}`;
+      const sessionId = localStorage.getItem('warehouse_session');
 
       const response = await fetch(`/api/inventory/${locationDialog.item.code}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-session-id': sessionId || ''
+        },
         body: JSON.stringify({ location })
       });
 
@@ -202,31 +231,20 @@ export function InventoryTable() {
     }
   };
 
-  // Get available zones, subzones, and floors
-  const availableZones = Array.from(new Set(warehouseLayout.map(layout => layout.zoneName)));
-  const availableSubZones = selectedZone 
-    ? Array.from(new Set(warehouseLayout
-        .filter(layout => layout.zoneName === selectedZone)
-        .map(layout => layout.subZoneName)))
-    : [];
-  const availableFloors = (selectedZone && selectedSubZone)
-    ? Array.from(new Set(warehouseLayout
-        .filter(layout => layout.zoneName === selectedZone && layout.subZoneName === selectedSubZone)
-        .flatMap(layout => layout.floors || [])))
-    : [];
+
 
   const filteredInventory = useMemo(() => {
-    return inventory
-      .filter(item =>
+    return (inventory as any[])
+      .filter((item: any) =>
         item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         // 마이너스 재고를 맨 위에, 그 다음 부족 재고, 마지막에 정상 재고
         if (a.stock < 0 && b.stock >= 0) return -1;
         if (a.stock >= 0 && b.stock < 0) return 1;
-        if (a.stock < a.minStock && b.stock >= b.minStock) return -1;
-        if (a.stock >= a.minStock && b.stock < b.minStock) return 1;
+        if (a.stock < a.minThreshold && b.stock >= b.minThreshold) return -1;
+        if (a.stock >= a.minThreshold && b.stock < b.minThreshold) return 1;
         return a.code.localeCompare(b.code);
       });
   }, [inventory, searchTerm]);
@@ -265,7 +283,7 @@ export function InventoryTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredInventory.map((item) => (
+            {filteredInventory.map((item: any) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.code}</TableCell>
                 <TableCell>{item.name}</TableCell>

@@ -8,6 +8,22 @@ import { Label } from '@/components/ui/label';
 import { useBomGuides, useBomGuidesByName, useInventory } from '@/hooks/use-inventory';
 import { BomCheckResult } from '@/types/warehouse';
 
+interface BomGuide {
+  id: number;
+  guideName: string;
+  itemCode: string;
+  requiredQuantity: number;
+}
+
+interface InventoryItem {
+  id: number;
+  code: string;
+  name: string;
+  stock: number;
+  unit: string;
+  location?: string;
+}
+
 export function BomCheck() {
   const [selectedGuide, setSelectedGuide] = useState('');
   const [open, setOpen] = useState(false);
@@ -18,18 +34,18 @@ export function BomCheck() {
   
 
   const guideNames = useMemo(() => {
-    return Array.from(new Set(bomGuides.map(bom => bom.guideName)));
+    return Array.from(new Set((bomGuides as BomGuide[]).map((bom: BomGuide) => bom.guideName)));
   }, [bomGuides]);
 
   // 제품 마스터 데이터에서 품명 찾기
   const getItemName = (itemCode: string): string => {
-    const masterItem = inventory.find(item => item.code === itemCode);
+    const masterItem = (inventory as InventoryItem[]).find((item: InventoryItem) => item.code === itemCode);
     return masterItem?.name || `부품 ${itemCode}`;
   };
 
   const bomCheckResults = useMemo((): BomCheckResult[] => {
     // 부품별로 필요 수량을 합산
-    const aggregatedBom = bomItems.reduce((acc, bomItem) => {
+    const aggregatedBom = (bomItems as BomGuide[]).reduce((acc, bomItem: BomGuide) => {
       if (acc[bomItem.itemCode]) {
         acc[bomItem.itemCode].requiredQuantity += bomItem.requiredQuantity;
       } else {
@@ -43,11 +59,11 @@ export function BomCheck() {
 
     // 재고와 비교하여 결과 생성
     return Object.values(aggregatedBom).map(bomItem => {
-      const inventoryItem = inventory.find(item => item.code === bomItem.itemCode);
+      const inventoryItem = (inventory as InventoryItem[]).find((item: InventoryItem) => item.code === bomItem.itemCode);
       
       // 동일한 부품 코드의 모든 재고량을 합산 (여러 위치에 있을 수 있음)
-      const totalStock = inventory
-        .filter(item => item.code === bomItem.itemCode)
+      const totalStock = (inventory as InventoryItem[])
+        .filter((item: InventoryItem) => item.code === bomItem.itemCode)
         .reduce((sum, item) => sum + item.stock, 0);
       
       return {
@@ -58,7 +74,7 @@ export function BomCheck() {
         status: (totalStock >= bomItem.requiredQuantity ? 'ok' : 'shortage') as 'ok' | 'shortage'
       };
     }).sort((a, b) => a.code.localeCompare(b.code)); // 부품 코드순으로 정렬
-  }, [bomItems, inventory]);
+  }, [bomItems, inventory, getItemName]);
 
   return (
     <div className="warehouse-content">

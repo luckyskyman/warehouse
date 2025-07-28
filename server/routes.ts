@@ -382,6 +382,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 재고 위치 업데이트 API
+  app.patch("/api/inventory/:code", requireAdmin, async (req, res) => {
+    try {
+      const { location } = req.body;
+      const updated = await storage.updateInventoryItem(req.params.code, { location });
+      if (!updated) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // 수량 조정 API
   app.patch("/api/inventory/:id/adjust", requireAdmin, async (req, res) => {
     try {
