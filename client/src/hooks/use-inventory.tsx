@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryItem, Transaction, BomGuide, WarehouseLayout, ExchangeQueue, InventoryStats } from '@/types/warehouse';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from './use-auth';
 
 export function useInventory() {
   return useQuery({
@@ -105,16 +106,40 @@ export function useCreateTransaction() {
 }
 
 export function useBomGuides() {
+  const { sessionId } = useAuth();
   return useQuery({
     queryKey: ['/api/bom'],
+    queryFn: async () => {
+      const response = await fetch('/api/bom', {
+        headers: {
+          'x-session-id': sessionId || ''
+        }
+      });
+      if (!response.ok) {
+        throw new Error('BOM 목록을 불러올 수 없습니다.');
+      }
+      return response.json();
+    },
+    enabled: !!sessionId
   });
 }
 
 export function useBomGuidesByName(guideName: string) {
+  const { sessionId } = useAuth();
   return useQuery({
     queryKey: ['/api/bom', guideName],
-    queryFn: () => fetch(`/api/bom/${encodeURIComponent(guideName)}`).then(res => res.json()),
-    enabled: !!guideName,
+    queryFn: async () => {
+      const response = await fetch(`/api/bom/${encodeURIComponent(guideName)}`, {
+        headers: {
+          'x-session-id': sessionId || ''
+        }
+      });
+      if (!response.ok) {
+        throw new Error('BOM 상세 정보를 불러올 수 없습니다.');
+      }
+      return response.json();
+    },
+    enabled: !!guideName && !!sessionId,
   });
 }
 

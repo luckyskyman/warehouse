@@ -44,6 +44,11 @@ export function BomCheck() {
   };
 
   const bomCheckResults = useMemo((): BomCheckResult[] => {
+    // bomItems가 배열인지 확인
+    if (!Array.isArray(bomItems) || bomItems.length === 0) {
+      return [];
+    }
+    
     // 부품별로 필요 수량을 합산
     const aggregatedBom = (bomItems as BomGuide[]).reduce((acc, bomItem: BomGuide) => {
       if (acc[bomItem.itemCode]) {
