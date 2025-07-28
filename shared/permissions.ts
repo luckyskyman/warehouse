@@ -291,3 +291,61 @@ export function applyRolePermissions(role: string): Partial<User> {
     canViewReports: permissions.canViewReports,
   };
 }
+
+// 권한 카테고리 정의
+export const PERMISSION_CATEGORIES = {
+  system: {
+    title: '시스템 관리',
+    icon: 'Settings',
+    permissions: [
+      { key: 'canResetData', label: '시스템 초기화', description: '모든 데이터를 초기화합니다 (매우 위험)' },
+      { key: 'canRestoreData', label: '데이터 복원', description: '백업 데이터를 복원합니다' },
+      { key: 'canManageUsers', label: '사용자 관리', description: '사용자 생성, 수정, 삭제 권한' },
+      { key: 'canManagePermissions', label: '권한 관리', description: '사용자 권한 설정 및 관리' },
+      { key: 'canBackupData', label: '데이터 백업', description: '시스템 데이터 백업 생성' }
+    ]
+  },
+  excel: {
+    title: 'Excel 관리',
+    icon: 'FileSpreadsheet',
+    permissions: [
+      { key: 'canUploadBom', label: 'BOM 업로드', description: 'BOM 데이터 엑셀 업로드' },
+      { key: 'canUploadMaster', label: '제품 마스터 업로드', description: '제품 마스터 데이터 업로드' },
+      { key: 'canUploadInventoryAdd', label: '재고 추가/보충', description: '재고 추가 및 보충 업로드' },
+      { key: 'canUploadInventorySync', label: '전체 동기화', description: '전체 재고 동기화 (위험)' },
+      { key: 'canAccessExcelManagement', label: 'Excel 관리 페이지 접근', description: 'Excel 관리 페이지 접근 권한' }
+    ]
+  },
+  inventory: {
+    title: '재고 관리',
+    icon: 'Package',
+    permissions: [
+      { key: 'canManageInventory', label: '재고 관리', description: '재고 항목 관리 권한' },
+      { key: 'canProcessTransactions', label: '입출고 처리', description: '입출고 트랜잭션 처리' },
+      { key: 'canManageBom', label: 'BOM 관리', description: 'BOM 데이터 관리' },
+      { key: 'canManageWarehouse', label: '창고 관리', description: '창고 레이아웃 및 설정 관리' },
+      { key: 'canProcessExchange', label: '불량품 교환', description: '불량품 교환 프로세스 관리' },
+      { key: 'canManageLocation', label: '위치 관리', description: '창고 위치 정보 관리' }
+    ]
+  },
+  download: {
+    title: '다운로드',
+    icon: 'Download',
+    permissions: [
+      { key: 'canDownloadInventory', label: '재고 현황', description: '재고 현황 데이터 다운로드' },
+      { key: 'canDownloadTransactions', label: '트랜잭션 이력', description: '트랜잭션 이력 다운로드' },
+      { key: 'canDownloadBom', label: 'BOM 데이터', description: 'BOM 데이터 다운로드' },
+      { key: 'canDownloadAll', label: '전체 데이터', description: '모든 시스템 데이터 다운로드' }
+    ]
+  },
+  diary: {
+    title: '업무일지',
+    icon: 'BookOpen',
+    permissions: [
+      { key: 'canCreateDiary', label: '업무일지 작성', description: '새로운 업무일지 작성' },
+      { key: 'canEditDiary', label: '업무일지 수정', description: '기존 업무일지 수정' },
+      { key: 'canDeleteDiary', label: '업무일지 삭제', description: '업무일지 삭제 권한' },
+      { key: 'canViewReports', label: '리포트 조회', description: '업무일지 리포트 및 통계 조회' }
+    ]
+  }
+};

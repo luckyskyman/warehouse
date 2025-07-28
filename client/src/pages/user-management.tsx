@@ -1,1267 +1,712 @@
-import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Plus, Edit2, Trash2, Shield, User, LogOut, ChevronDown } from "lucide-react";
-import { NotificationBell } from '@/components/ui/notification-bell';
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { Plus, Edit, Trash2, Shield, Settings, Info, RotateCcw } from 'lucide-react';
 import type { User as UserType } from "@/types/warehouse";
-import { ROLE_PERMISSIONS, applyRolePermissions } from "@shared/permissions";
-import { PermissionMatrix } from '@/components/ui/permission-matrix';
-import { PermissionSection, PERMISSION_CATEGORIES } from '@/components/ui/permission-section';
-import { PermissionSettings } from '@/components/user/permission-settings';
+import { ROLE_PERMISSIONS, PERMISSION_CATEGORIES } from "@shared/permissions";
 
-// User 타입은 이미 @/types/warehouse에서 가져옴
-
-interface CreateUserData {
-  username: string;
-  password: string;
-  role: string;
-  department?: string;
-  position?: string;
-  isManager?: boolean;
-  
-  // Excel 관리 권한
-  canUploadBom?: boolean;
-  canUploadMaster?: boolean;
-  canUploadInventoryAdd?: boolean;
-  canUploadInventorySync?: boolean;
-  canAccessExcelManagement?: boolean;
-  
-  // 데이터 관리 권한
-  canBackupData?: boolean;
-  canRestoreData?: boolean;
-  canResetData?: boolean;
-  canManageUsers?: boolean;
-  canManagePermissions?: boolean;
-  
-  // 다운로드 권한
-  canDownloadInventory?: boolean;
-  canDownloadTransactions?: boolean;
-  canDownloadBom?: boolean;
-  canDownloadAll?: boolean;
-  
-  // 재고 관리 권한
-  canManageInventory?: boolean;
-  canProcessTransactions?: boolean;
-  canManageBom?: boolean;
-  canManageWarehouse?: boolean;
-  canProcessExchange?: boolean;
-  canManageLocation?: boolean;
-  
-  // 업무일지 권한
-  canCreateDiary?: boolean;
-  canEditDiary?: boolean;
-  canDeleteDiary?: boolean;
-  canViewReports?: boolean;
-}
-
-// 사용자 드롭다운 컴포넌트
-const UserDropdown = () => {
-  const { user, logout } = useAuth();
-  
-  if (!user) return null;
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
-          className="bg-white/90 hover:bg-white border-gray-300 shadow-sm max-w-48"
-        >
-          <User className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span className="truncate">{user.username}</span>
-          {user.isManager && (
-            <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full flex-shrink-0">
-              부서장
-            </span>
-          )}
-          <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
-        <div className="px-3 py-2">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium">{user.username}</p>
-            {user.isManager && (
-              <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                부서장
-              </span>
-            )}
-          </div>
-          <div className="mt-1 space-y-1">
-            {user.department && (
-              <p className="text-xs text-gray-500">📍 {user.department}</p>
-            )}
-            {user.position && (
-              <p className="text-xs text-gray-500">💼 {user.position}</p>
-            )}
-            <p className="text-xs text-gray-500">
-              🔑 {user.role === 'admin' ? '관리자' : '일반사용자'}
-            </p>
-          </div>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600">
-          <LogOut className="w-4 h-4 mr-2" />
-          로그아웃
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+// 역할별 표시 이름과 색상
+const ROLE_CONFIG = {
+  super_admin: { label: '최고관리자', color: 'bg-red-100 text-red-800 border-red-200' },
+  admin: { label: '일반관리자', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  manager: { label: '부서관리자', color: 'bg-green-100 text-green-800 border-green-200' },
+  user: { label: '일반사용자', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  viewer: { label: '조회전용', color: 'bg-gray-100 text-gray-800 border-gray-200' }
 };
 
-export default function UserManagement() {
-  const { user: currentUser } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+// 권한 매트릭스 컴포넌트
+function PermissionMatrix() {
+  const roles = Object.keys(ROLE_PERMISSIONS) as Array<keyof typeof ROLE_PERMISSIONS>;
+  const categories = Object.entries(PERMISSION_CATEGORIES);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          역할별 권한 매트릭스
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-[400px]">
+          {categories.map(([categoryKey, category]) => (
+            <div key={categoryKey} className="mb-6">
+              <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                {category.icon && <category.icon className="h-4 w-4" />}
+                {category.title}
+              </h4>
+              <div className="grid grid-cols-6 gap-2 text-xs">
+                <div className="font-medium">권한</div>
+                {roles.map(role => (
+                  <div key={role} className="font-medium text-center">
+                    {ROLE_CONFIG[role].label}
+                  </div>
+                ))}
+                
+                {category.permissions.map(permission => (
+                  <React.Fragment key={permission.key}>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="text-left flex items-center gap-1">
+                            {permission.label}
+                            <Info className="h-3 w-3 text-gray-400" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">{permission.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    {roles.map(role => (
+                      <div key={`${role}-${permission.key}`} className="text-center">
+                        {ROLE_PERMISSIONS[role]?.[permission.key as keyof typeof ROLE_PERMISSIONS[typeof role]] ? (
+                          <Badge variant="secondary" className="text-xs px-1 py-0">✓</Badge>
+                        ) : (
+                          <span className="text-gray-300">✗</span>
+                        )}
+                      </div>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          ))}
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+}
+
+// 권한 설정 컴포넌트
+interface PermissionSettingsProps {
+  formData: any;
+  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  onPermissionChange: (permission: string, value: boolean) => void;
+  onResetPermissions: () => void;
+}
+
+function PermissionSettings({ formData, setFormData, onPermissionChange, onResetPermissions }: PermissionSettingsProps) {
+  const categories = Object.entries(PERMISSION_CATEGORIES);
   
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium">세부 권한 설정</h4>
+        <Button 
+          type="button"
+          variant="outline" 
+          size="sm"
+          onClick={onResetPermissions}
+        >
+          <RotateCcw className="h-4 w-4 mr-1" />
+          기본 권한으로 초기화
+        </Button>
+      </div>
+      
+      <ScrollArea className="h-[400px]">
+        <div className="space-y-6 pr-4">
+          {categories.map(([categoryKey, category]) => {
+            const permissions = category.permissions.map(perm => {
+              const roleDefaults = ROLE_PERMISSIONS[formData.role as keyof typeof ROLE_PERMISSIONS] || {};
+              const defaultValue = roleDefaults[perm.key as keyof typeof roleDefaults] || false;
+              const currentValue = formData[perm.key as keyof typeof formData] || false;
+              
+              return {
+                permission: perm.key,
+                label: perm.label,
+                description: perm.description,
+                value: Boolean(currentValue),
+                defaultValue: Boolean(defaultValue),
+                isModified: Boolean(currentValue) !== Boolean(defaultValue),
+              };
+            });
+            
+            const hasChanges = permissions.some(p => p.isModified);
+            
+            return (
+              <Card key={categoryKey} className={hasChanges ? 'border-blue-200 bg-blue-50/30' : ''}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {/* TODO: Add proper icon component */}
+                      {category.title}
+                      {hasChanges && (
+                        <Badge variant="outline" className="text-xs">
+                          수정됨
+                        </Badge>
+                      )}
+                    </div>
+                    {hasChanges && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const roleDefaults = ROLE_PERMISSIONS[formData.role as keyof typeof ROLE_PERMISSIONS] || {};
+                          const updates: any = {};
+                          category.permissions.forEach(perm => {
+                            updates[perm.key] = roleDefaults[perm.key as keyof typeof roleDefaults] || false;
+                          });
+                          setFormData((prev: any) => ({ ...prev, ...updates }));
+                        }}
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    {permissions.map(({ permission, label, description, value, isModified }) => (
+                      <div key={permission} className="flex items-center justify-between space-x-3">
+                        <div className="flex-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className={`flex items-center gap-2 ${isModified ? 'text-blue-700 font-medium' : ''}`}>
+                                  <span className="text-sm">{label}</span>
+                                  {isModified && (
+                                    <Badge variant="secondary" className="text-xs px-1 py-0">
+                                      변경
+                                    </Badge>
+                                  )}
+                                  <Info className="h-3 w-3 text-gray-400" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">{description}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Switch
+                          checked={value}
+                          onCheckedChange={(checked) => onPermissionChange(permission, checked)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
+// 사용자 관리 훅들
+function useUsers() {
+  return useQuery({
+    queryKey: ['/api/users'],
+    queryFn: async () => {
+      const response = await fetch('/api/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    }
+  });
+}
+
+function useCreateUser() {
+  return useMutation({
+    mutationFn: async (userData: any) => {
+      return apiRequest('POST', '/api/users', userData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    }
+  });
+}
+
+function useUpdateUser() {
+  return useMutation({
+    mutationFn: async (userData: any) => {
+      return apiRequest('PUT', `/api/users/${userData.id}`, userData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    }
+  });
+}
+
+function useDeleteUser() {
+  return useMutation({
+    mutationFn: async (userId: number) => {
+      return apiRequest('DELETE', `/api/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    }
+  });
+}
+
+export default function UserManagement() {
+  const { user } = useAuth();
+  const { data: users = [], isLoading } = useUsers();
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
+
+  const [searchTerm, setSearchTerm] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [formData, setFormData] = useState<CreateUserData>({
-    username: "",
-    password: "",
-    role: "viewer",
-    department: "",
-    position: "",
-    isManager: false,
-    
-    // 권한 기본값 (역할 선택 시 자동 설정)
-    canUploadBom: false,
-    canUploadMaster: false,
-    canUploadInventoryAdd: false,
-    canUploadInventorySync: false,
-    canAccessExcelManagement: false,
-    canBackupData: false,
-    canRestoreData: false,
-    canResetData: false,
-    canManageUsers: false,
-    canManagePermissions: false,
-    canDownloadInventory: true,
-    canDownloadTransactions: false,
-    canDownloadBom: true,
-    canDownloadAll: false,
-    canManageInventory: false,
-    canProcessTransactions: false,
-    canManageBom: false,
-    canManageWarehouse: false,
-    canProcessExchange: false,
-    canCreateDiary: true,
-    canEditDiary: true,
-    canDeleteDiary: false,
-    canViewReports: true,
-  });
+  const [editingUser, setEditingUser] = useState<UserType | null>(null);
+  const [showPermissionMatrix, setShowPermissionMatrix] = useState(false);
 
-  // Get all users
-  const { data: users = [], isLoading } = useQuery<UserType[]>({
-    queryKey: ["/api/users"],
-    enabled: currentUser?.role === "admin" || currentUser?.role === "super_admin"
-  });
-
-  // Create user mutation
-  const createUserMutation = useMutation({
-    mutationFn: async (userData: CreateUserData) => {
-      const response = await apiRequest("POST", "/api/users", userData);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({
-        title: "사용자 생성 완료",
-        description: "새 사용자가 성공적으로 생성되었습니다.",
-      });
-      setIsCreateDialogOpen(false);
-      setFormData({
-        username: "",
-        password: "",
-        role: "viewer",
-        department: "",
-        position: "",
-        isManager: false,
-        // 권한 초기값
-        canUploadBom: false,
-        canUploadMaster: false,
-        canUploadInventoryAdd: false,
-        canUploadInventorySync: false,
-        canAccessExcelManagement: false,
-        canBackupData: false,
-        canRestoreData: false,
-        canResetData: false,
-        canManageUsers: false,
-        canManagePermissions: false,
-        canDownloadInventory: true,
-        canDownloadTransactions: false,
-        canDownloadBom: true,
-        canDownloadAll: false,
-        canManageInventory: false,
-        canProcessTransactions: false,
-        canManageBom: false,
-        canManageWarehouse: false,
-        canProcessExchange: false,
-        canCreateDiary: true,
-        canEditDiary: true,
-        canDeleteDiary: false,
-        canViewReports: true,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "사용자 생성 실패",
-        description: error instanceof Error ? error.message : "사용자 생성 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Update user mutation
-  const updateUserMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: number; updates: Partial<UserType> }) => {
-      const response = await apiRequest("PATCH", `/api/users/${id}`, updates);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({
-        title: "사용자 수정 완료",
-        description: "사용자 정보가 성공적으로 수정되었습니다.",
-      });
-      setIsEditDialogOpen(false);
-      setSelectedUser(null);
-    },
-    onError: (error) => {
-      toast({
-        title: "사용자 수정 실패",
-        description: error instanceof Error ? error.message : "사용자 수정 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Delete user mutation
-  const deleteUserMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiRequest("DELETE", `/api/users/${id}`);
-      // DELETE는 204 응답으로 body가 없으므로 json() 호출하지 않음
-      return { success: true };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({
-        title: "사용자 삭제 완료",
-        description: "사용자가 성공적으로 삭제되었습니다.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "사용자 삭제 실패",
-        description: error instanceof Error ? error.message : "사용자 삭제 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  if (currentUser?.role !== "admin" && currentUser?.role !== "super_admin") {
-    return (
-      <div className="warehouse-content">
-        <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-gray-400" />
-          <h2 className="mt-4 text-lg font-semibold">관리자 권한이 필요합니다</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            사용자 관리 기능은 관리자만 사용할 수 있습니다.
-          </p>
-        </div>
-      </div>
-    );
+  // 폼 데이터 타입 정의
+  interface FormData {
+    username: string;
+    password: string;
+    name: string;
+    department: string;
+    position: string;
+    role: keyof typeof ROLE_PERMISSIONS;
+    isManager: boolean;
+    [key: string]: any; // 동적 권한 필드들
   }
 
-  const handleCreateUser = () => {
-    if (!formData.username || !formData.password) {
-      toast({
-        title: "입력 오류",
-        description: "사용자명과 비밀번호를 모두 입력해주세요.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // 사용자 생성 폼 데이터
+  const [formData, setFormData] = useState<FormData>({
+    username: '',
+    password: '',
+    name: '',
+    department: '',
+    position: '',
+    role: 'user',
+    isManager: false,
+    // 권한 필드들은 기본값으로 설정됨
+    ...Object.fromEntries(
+      Object.values(PERMISSION_CATEGORIES).flatMap((category: any) => 
+        category.permissions.map((perm: any) => [perm.key, false])
+      )
+    )
+  });
 
-    createUserMutation.mutate(formData);
-  };
-
-  // 역할 변경 시 자동으로 권한 설정
-  const handleRoleChange = (role: string) => {
-    const rolePermissions = applyRolePermissions(role);
-    setFormData(prev => ({
-      ...prev,
-      role,
-      ...rolePermissions
-    }));
-  };
-
-  // 개별 권한 변경
+  // 권한 변경 핸들러
   const handlePermissionChange = (permission: string, value: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [permission]: value
-    }));
+    setFormData(prev => ({ ...prev, [permission]: value }));
   };
 
-  // 모든 권한 초기화 (역할 기본 권한으로)
+  // 기본 권한으로 초기화
   const resetPermissions = () => {
-    const rolePermissions = applyRolePermissions(formData.role);
-    setFormData(prev => ({
-      ...prev,
-      ...rolePermissions
-    }));
+    const roleDefaults = ROLE_PERMISSIONS[formData.role] || {};
+    setFormData(prev => ({ ...prev, ...roleDefaults }));
   };
 
-  const handleEditUser = (user: UserType) => {
-    setSelectedUser(user);
+  // 역할 변경 시 기본 권한 적용
+  const handleRoleChange = (role: string) => {
+    const newFormData = { ...formData, role: role as keyof typeof ROLE_PERMISSIONS };
+    const roleDefaults = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] || {};
+    setFormData({ ...newFormData, ...roleDefaults });
+  };
+
+  // 사용자 생성
+  const handleCreateUser = async () => {
+    try {
+      await createUserMutation.mutateAsync(formData);
+      setIsCreateDialogOpen(false);
+      setFormData({
+        username: '',
+        password: '',
+        name: '',
+        department: '',
+        position: '',
+        role: 'user',
+        isManager: false,
+        ...Object.fromEntries(
+          Object.values(PERMISSION_CATEGORIES).flatMap((category: any) => 
+            category.permissions.map((perm: any) => [perm.key, false])
+          )
+        )
+      });
+    } catch (error) {
+      console.error('사용자 생성 실패:', error);
+    }
+  };
+
+  // 사용자 수정
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+    
+    try {
+      await updateUserMutation.mutateAsync({
+        id: editingUser.id,
+        ...formData
+      });
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+    } catch (error) {
+      console.error('사용자 수정 실패:', error);
+    }
+  };
+
+  // 사용자 삭제
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm('정말로 이 사용자를 삭제하시겠습니까?')) return;
+    
+    try {
+      await deleteUserMutation.mutateAsync(userId);
+    } catch (error) {
+      console.error('사용자 삭제 실패:', error);
+    }
+  };
+
+  // 편집 시작
+  const startEdit = (user: UserType) => {
+    setEditingUser(user);
     setFormData({
       username: user.username,
-      password: "",
-      role: user.role,
-      department: user.department || "",
-      position: user.position || "",
+      password: '',
+      name: (user as any).name || user.username,
+      department: user.department || '',
+      position: user.position || '',
+      role: user.role as keyof typeof ROLE_PERMISSIONS,
       isManager: user.isManager || false,
-      // 기존 사용자의 권한 정보를 폼에 로드
-      canUploadBom: user.canUploadBom || false,
-      canUploadMaster: user.canUploadMaster || false,
-      canUploadInventoryAdd: user.canUploadInventoryAdd || false,
-      canUploadInventorySync: user.canUploadInventorySync || false,
-      canAccessExcelManagement: user.canAccessExcelManagement || false,
-      canBackupData: user.canBackupData || false,
-      canRestoreData: user.canRestoreData || false,
-      canResetData: user.canResetData || false,
-      canManageUsers: user.canManageUsers || false,
-      canManagePermissions: user.canManagePermissions || false,
-      canDownloadInventory: user.canDownloadInventory || true,
-      canDownloadTransactions: user.canDownloadTransactions || false,
-      canDownloadBom: user.canDownloadBom || true,
-      canDownloadAll: user.canDownloadAll || false,
-      canManageInventory: user.canManageInventory || false,
-      canProcessTransactions: user.canProcessTransactions || false,
-      canManageBom: user.canManageBom || false,
-      canManageWarehouse: user.canManageWarehouse || false,
-      canProcessExchange: user.canProcessExchange || false,
-      canManageLocation: user.canManageLocation || false,
-      canCreateDiary: user.canCreateDiary || true,
-      canEditDiary: user.canEditDiary || true,
-      canDeleteDiary: user.canDeleteDiary || false,
-      canViewReports: user.canViewReports || true,
+      // 모든 권한 필드 설정
+      ...Object.fromEntries(
+        Object.values(PERMISSION_CATEGORIES).flatMap((category: any) => 
+          category.permissions.map((perm: any) => [perm.key, (user as any)[perm.key] || false])
+        )
+      )
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdateUser = () => {
-    if (!selectedUser) return;
-
-    const updates: Partial<UserType> = {
-      username: formData.username,
-      role: formData.role,
-      department: formData.department,
-      position: formData.position,
-      isManager: formData.isManager,
-      // 권한 정보 포함
-      canUploadBom: formData.canUploadBom,
-      canUploadMaster: formData.canUploadMaster,
-      canUploadInventoryAdd: formData.canUploadInventoryAdd,
-      canUploadInventorySync: formData.canUploadInventorySync,
-      canAccessExcelManagement: formData.canAccessExcelManagement,
-      canBackupData: formData.canBackupData,
-      canRestoreData: formData.canRestoreData,
-      canResetData: formData.canResetData,
-      canManageUsers: formData.canManageUsers,
-      canManagePermissions: formData.canManagePermissions,
-      canDownloadInventory: formData.canDownloadInventory,
-      canDownloadTransactions: formData.canDownloadTransactions,
-      canDownloadBom: formData.canDownloadBom,
-      canDownloadAll: formData.canDownloadAll,
-      canManageInventory: formData.canManageInventory,
-      canProcessTransactions: formData.canProcessTransactions,
-      canManageBom: formData.canManageBom,
-      canManageWarehouse: formData.canManageWarehouse,
-      canProcessExchange: formData.canProcessExchange,
-      canManageLocation: formData.canManageLocation,
-      canCreateDiary: formData.canCreateDiary,
-      canEditDiary: formData.canEditDiary,
-      canDeleteDiary: formData.canDeleteDiary,
-      canViewReports: formData.canViewReports,
-    };
-
-    if (formData.password) {
-      updates.password = formData.password;
-    }
-
-    updateUserMutation.mutate({ id: selectedUser.id, updates });
-  };
-
-  const handleDeleteUser = (userId: number) => {
-    if (userId === currentUser?.id) {
-      toast({
-        title: "삭제 불가",
-        description: "본인 계정은 삭제할 수 없습니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (confirm("정말로 이 사용자를 삭제하시겠습니까?")) {
-      deleteUserMutation.mutate(userId);
-    }
-  };
-
-  // 사용자 검색 필터링
-  const filteredUsers = users.filter((user: UserType) => 
+  // 검색 필터링
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.department && user.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (user.position && user.position.toLowerCase().includes(searchTerm.toLowerCase()))
+    ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG]?.label.includes(searchTerm)
   );
 
-  const getUserRoleDisplay = (user: UserType) => {
-    // 부서와 직급 정보가 있는 경우
-    if (user.department || user.position) {
-      const parts = [];
-      if (user.department) parts.push(user.department);
-      if (user.position) parts.push(user.position);
-      if (user.isManager) parts.push("부서장");
-      
-      const roleText = parts.length > 0 ? parts.join(" ") : getRoleText(user.role);
-      
-      return (
-        <Badge variant={getRoleVariant(user.role)}>
-          {roleText}
-        </Badge>
-      );
-    }
-    
-    // 기본 시스템 역할만 표시
-    return (
-      <Badge variant={getRoleVariant(user.role)}>
-        {getRoleText(user.role)}
-      </Badge>
-    );
-  };
-
-  const getRoleText = (role: string) => {
-    switch (role) {
-      case 'super_admin': return '최고 관리자';
-      case 'admin': return '일반 관리자';
-      case 'manager': return '부서 관리자';
-      case 'user': return '일반 사용자';
-      case 'viewer': return '조회 전용';
-      default: return role;
-    }
-  };
-
-  const getRoleVariant = (role: string): "destructive" | "secondary" | "outline" | "default" => {
-    switch (role) {
-      case 'super_admin':
-      case 'admin':
-        return 'destructive';
-      case 'manager':
-        return 'default';
-      case 'user':
-        return 'secondary';
-      case 'viewer':
-        return 'outline';
-      default:
-        return 'outline';
-    }
-  };
+  if (isLoading) {
+    return <div>사용자 목록을 불러오는 중...</div>;
+  }
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto p-5">
-        {/* Header */}
-        <div className="warehouse-header">
-          <div className="relative">
-            <h1 className="text-4xl font-bold text-center text-gray-900 mb-4 text-shadow">
-              🏭 창고 물품 재고 관리시스템
-            </h1>
-            <div className="absolute top-0 right-0 flex items-center gap-3">
-              <NotificationBell />
-              <UserDropdown />
-            </div>
-          </div>
-        </div>
-
-        <div className="warehouse-content">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Users className="h-6 w-6" />
-                사용자 관리
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                시스템 사용자 계정을 관리합니다
-              </p>
-            </div>
-        
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              새 사용자 추가
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-[700px]">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>새 사용자 생성</DialogTitle>
-              <DialogDescription>
-                새로운 사용자 계정을 생성합니다.
-              </DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="max-h-[65vh] pr-4">
-              <div className="space-y-4 pb-4">
-                <div>
-                <Label htmlFor="username">사용자명</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="사용자명을 입력하세요"
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">비밀번호</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="비밀번호를 입력하세요"
-                />
-              </div>
-              <div>
-                <Label htmlFor="role">역할</Label>
-                <Select value={formData.role} onValueChange={handleRoleChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="역할을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="super_admin">최고 관리자</SelectItem>
-                    <SelectItem value="admin">일반 관리자</SelectItem>
-                    <SelectItem value="manager">부서 관리자</SelectItem>
-                    <SelectItem value="user">일반 사용자</SelectItem>
-                    <SelectItem value="viewer">조회 전용</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-gray-500 mt-1">
-                  역할 선택 시 기본 권한이 자동으로 설정됩니다.
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="department">부서</Label>
-                <Input
-                  id="department"
-                  type="text"
-                  value={formData.department || ""}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="부서명을 입력하세요 (예: 창고부, 관리부)"
-                />
-              </div>
-              <div>
-                <Label htmlFor="position">직급</Label>
-                <Input
-                  id="position"
-                  type="text"
-                  value={formData.position || ""}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  placeholder="직급을 입력하세요 (예: 사원, 과장, 부장)"
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isManager"
-                  checked={formData.isManager || false}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isManager: !!checked })}
-                />
-                <Label htmlFor="isManager">부서장 권한</Label>
-              </div>
-
-              {/* 새로운 권한 설정 UI */}
-              <Separator />
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">세부 권한 설정</h4>
-                  <Button 
-                    type="button"
-                    variant="outline" 
-                    size="sm"
-                    onClick={resetPermissions}
-                  >
-                    기본 권한으로 초기화
-                  </Button>
-                </div>
-                
-                <PermissionSettings
-                  formData={formData}
-                  setFormData={setFormData}
-                  onPermissionChange={handlePermissionChange}
-                  onResetPermissions={resetPermissions}
-                />
-              </div>
-            </ScrollArea>
-            <div className="flex justify-end space-x-2 pt-4 border-t mt-4 flex-shrink-0">
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                취소
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">사용자 관리</h1>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowPermissionMatrix(!showPermissionMatrix)}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            권한 매트릭스 {showPermissionMatrix ? '숨기기' : '보기'}
+          </Button>
+          
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                사용자 추가
               </Button>
-              <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
-                {createUserMutation.isPending ? "생성 중..." : "생성"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* 검색 필터 */}
-      <div className="mb-4">
-        <div className="flex gap-4 items-center">
-          <div className="flex-1">
-            <Input
-              placeholder="사용자명 또는 역할로 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-          </div>
-          <div className="text-sm text-gray-600">
-            전체 {users.length}명 중 {filteredUsers.length}명 표시
-          </div>
-        </div>
-      </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canUploadBom"
-                        checked={formData.canUploadBom || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canUploadBom', !!checked)}
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh]">
+              <DialogHeader>
+                <DialogTitle>새 사용자 추가</DialogTitle>
+              </DialogHeader>
+              
+              <ScrollArea className="max-h-[70vh]">
+                <div className="space-y-4 pr-4">
+                  {/* 기본 정보 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="username">사용자명</Label>
+                      <Input
+                        id="username"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        placeholder="사용자명을 입력하세요"
                       />
-                      <Label htmlFor="canUploadBom" className="text-sm">BOM 업로드</Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canUploadMaster"
-                        checked={formData.canUploadMaster || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canUploadMaster', !!checked)}
+                    <div>
+                      <Label htmlFor="password">비밀번호</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        placeholder="비밀번호를 입력하세요"
                       />
-                      <Label htmlFor="canUploadMaster" className="text-sm">제품 마스터 업로드</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canUploadInventoryAdd"
-                        checked={formData.canUploadInventoryAdd || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canUploadInventoryAdd', !!checked)}
-                      />
-                      <Label htmlFor="canUploadInventoryAdd" className="text-sm">재고 추가/보충</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canUploadInventorySync"
-                        checked={formData.canUploadInventorySync || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canUploadInventorySync', !!checked)}
-                      />
-                      <Label htmlFor="canUploadInventorySync" className="text-sm">전체 동기화 (위험)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 col-span-2">
-                      <Checkbox
-                        id="canAccessExcelManagement"
-                        checked={formData.canAccessExcelManagement || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canAccessExcelManagement', !!checked)}
-                      />
-                      <Label htmlFor="canAccessExcelManagement" className="text-sm">Excel 관리 페이지 접근</Label>
                     </div>
                   </div>
-                </div>
 
-                {/* 시스템 관리 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">시스템 관리 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canBackupData"
-                        checked={formData.canBackupData || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canBackupData', !!checked)}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">이름</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="이름을 입력하세요"
                       />
-                      <Label htmlFor="canBackupData" className="text-sm">데이터 백업</Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canRestoreData"
-                        checked={formData.canRestoreData || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canRestoreData', !!checked)}
-                      />
-                      <Label htmlFor="canRestoreData" className="text-sm">데이터 복원</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canResetData"
-                        checked={formData.canResetData || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canResetData', !!checked)}
-                      />
-                      <Label htmlFor="canResetData" className="text-sm">시스템 초기화 (매우 위험)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canManageUsers"
-                        checked={formData.canManageUsers || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageUsers', !!checked)}
-                      />
-                      <Label htmlFor="canManageUsers" className="text-sm">사용자 관리</Label>
+                    <div>
+                      <Label htmlFor="role">역할</Label>
+                      <Select value={formData.role} onValueChange={handleRoleChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(ROLE_CONFIG).map(([role, config]) => (
+                            <SelectItem key={role} value={role}>
+                              {config.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                </div>
 
-                {/* 다운로드 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">다운로드 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canDownloadInventory"
-                        checked={formData.canDownloadInventory || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDownloadInventory', !!checked)}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="department">부서</Label>
+                      <Input
+                        id="department"
+                        value={formData.department}
+                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                        placeholder="부서를 입력하세요"
                       />
-                      <Label htmlFor="canDownloadInventory" className="text-sm">재고현황 다운로드</Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canDownloadTransactions"
-                        checked={formData.canDownloadTransactions || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDownloadTransactions', !!checked)}
+                    <div>
+                      <Label htmlFor="position">직급</Label>
+                      <Input
+                        id="position"
+                        value={formData.position}
+                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                        placeholder="직급을 입력하세요"
                       />
-                      <Label htmlFor="canDownloadTransactions" className="text-sm">거래내역 다운로드</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canDownloadBom"
-                        checked={formData.canDownloadBom || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDownloadBom', !!checked)}
-                      />
-                      <Label htmlFor="canDownloadBom" className="text-sm">BOM 목록 다운로드</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canDownloadAll"
-                        checked={formData.canDownloadAll || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDownloadAll', !!checked)}
-                      />
-                      <Label htmlFor="canDownloadAll" className="text-sm">모든 데이터 다운로드</Label>
                     </div>
                   </div>
-                </div>
 
-                {/* 재고 관리 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">재고 관리 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canManageInventory"
-                        checked={formData.canManageInventory || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageInventory', !!checked)}
-                      />
-                      <Label htmlFor="canManageInventory" className="text-sm">재고 관리</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canProcessTransactions"
-                        checked={formData.canProcessTransactions || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canProcessTransactions', !!checked)}
-                      />
-                      <Label htmlFor="canProcessTransactions" className="text-sm">거래 처리</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canManageBom"
-                        checked={formData.canManageBom || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageBom', !!checked)}
-                      />
-                      <Label htmlFor="canManageBom" className="text-sm">BOM 관리</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canManageWarehouse"
-                        checked={formData.canManageWarehouse || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageWarehouse', !!checked)}
-                      />
-                      <Label htmlFor="canManageWarehouse" className="text-sm">창고 관리</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canProcessExchange"
-                        checked={formData.canProcessExchange || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canProcessExchange', !!checked)}
-                      />
-                      <Label htmlFor="canProcessExchange" className="text-sm">불량품 교환</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canManageLocation"
-                        checked={formData.canManageLocation || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageLocation', !!checked)}
-                      />
-                      <Label htmlFor="canManageLocation" className="text-sm">위치 관리</Label>
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isManager"
+                      checked={formData.isManager}
+                      onCheckedChange={(checked) => setFormData({ ...formData, isManager: !!checked })}
+                    />
+                    <Label htmlFor="isManager">부서장 권한</Label>
                   </div>
-                </div>
 
-                {/* 업무일지 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">업무일지 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canCreateDiary"
-                        checked={formData.canCreateDiary || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canCreateDiary', !!checked)}
-                      />
-                      <Label htmlFor="canCreateDiary" className="text-sm">업무일지 작성</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canEditDiary"
-                        checked={formData.canEditDiary || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canEditDiary', !!checked)}
-                      />
-                      <Label htmlFor="canEditDiary" className="text-sm">업무일지 수정</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canDeleteDiary"
-                        checked={formData.canDeleteDiary || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDeleteDiary', !!checked)}
-                      />
-                      <Label htmlFor="canDeleteDiary" className="text-sm">업무일지 삭제</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="canViewReports"
-                        checked={formData.canViewReports || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canViewReports', !!checked)}
-                      />
-                      <Label htmlFor="canViewReports" className="text-sm">리포트 조회</Label>
-                    </div>
-                  </div>
+                  <Separator />
+
+                  {/* 권한 설정 */}
+                  <PermissionSettings
+                    formData={formData}
+                    setFormData={setFormData}
+                    onPermissionChange={handlePermissionChange}
+                    onResetPermissions={resetPermissions}
+                  />
                 </div>
+              </ScrollArea>
+              
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  취소
+                </Button>
+                <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
+                  {createUserMutation.isPending ? "생성 중..." : "생성"}
+                </Button>
               </div>
-              </div>
-            </ScrollArea>
-            <div className="flex justify-end space-x-2 pt-4 border-t mt-4 flex-shrink-0">
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                취소
-              </Button>
-              <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
-                {createUserMutation.isPending ? "생성 중..." : "생성"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* 검색 필터 */}
-      <div className="mb-4">
-        <div className="flex gap-4 items-center">
-          <div className="flex-1">
-            <Input
-              placeholder="사용자명 또는 역할로 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-          </div>
-          <div className="text-sm text-gray-600">
-            전체 {users.length}명 중 {filteredUsers.length}명 표시
-          </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       {/* 권한 매트릭스 */}
-      <div className="mb-6">
-        <PermissionMatrix />
+      {showPermissionMatrix && <PermissionMatrix />}
+
+      {/* 검색 필터 */}
+      <div className="mb-4">
+        <div className="flex gap-4 items-center">
+          <div className="flex-1">
+            <Input
+              placeholder="사용자명 또는 역할로 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          <div className="text-sm text-gray-600">
+            전체 {users.length}명 중 {filteredUsers.length}명 표시
+          </div>
+        </div>
       </div>
 
+      {/* 사용자 목록 */}
       <Card>
-        <CardHeader>
-          <CardTitle>사용자 목록</CardTitle>
-          <CardDescription>
-            현재 시스템에 등록된 사용자 목록입니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">로딩 중...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>사용자명</TableHead>
-                  <TableHead>역할</TableHead>
-                  <TableHead>가입일</TableHead>
-                  <TableHead className="text-right">작업</TableHead>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>이름</TableHead>
+                <TableHead>사용자명</TableHead>
+                <TableHead>역할</TableHead>
+                <TableHead>부서</TableHead>
+                <TableHead>직급</TableHead>
+                <TableHead>관리</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{(user as any).name || user.username}</TableCell>
+                  <TableCell>{user.username}</TableCell>
+                  <TableCell>
+                    <Badge className={ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG]?.color}>
+                      {ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG]?.label}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{user.department || '-'}</TableCell>
+                  <TableCell>{user.position || '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => startEdit(user)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user: UserType) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.username}</TableCell>
-                    <TableCell>{getUserRoleDisplay(user)}</TableCell>
-                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                          disabled={deleteUserMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
-      {/* Edit User Dialog */}
+      {/* 편집 다이얼로그 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>사용자 정보 수정</DialogTitle>
-            <DialogDescription>
-              사용자 정보와 권한을 수정합니다.
-            </DialogDescription>
+            <DialogTitle>사용자 수정</DialogTitle>
           </DialogHeader>
+          
           <ScrollArea className="max-h-[70vh]">
             <div className="space-y-4 pr-4">
-              <div>
-                <Label htmlFor="edit-username">사용자명</Label>
-                <Input
-                  id="edit-username"
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="사용자명을 입력하세요"
-                />
+              {/* 기본 정보 (편집용) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-username">사용자명</Label>
+                  <Input
+                    id="edit-username"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    placeholder="사용자명을 입력하세요"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-password">새 비밀번호 (선택사항)</Label>
+                  <Input
+                    id="edit-password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="새 비밀번호 (변경 시에만 입력)"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="edit-password">새 비밀번호 (선택사항)</Label>
-                <Input
-                  id="edit-password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="새 비밀번호를 입력하세요 (변경시에만)"
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-name">이름</Label>
+                  <Input
+                    id="edit-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="이름을 입력하세요"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-role">역할</Label>
+                  <Select value={formData.role} onValueChange={handleRoleChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ROLE_CONFIG).map(([role, config]) => (
+                        <SelectItem key={role} value={role}>
+                          {config.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="edit-role">역할</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="역할을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="viewer">조회 전용</SelectItem>
-                    <SelectItem value="user">일반 사용자</SelectItem>
-                    <SelectItem value="manager">부서 관리자</SelectItem>
-                    <SelectItem value="admin">일반 관리자</SelectItem>
-                    <SelectItem value="super_admin">최고 관리자</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-department">부서</Label>
+                  <Input
+                    id="edit-department"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    placeholder="부서를 입력하세요"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-position">직급</Label>
+                  <Input
+                    id="edit-position"
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                    placeholder="직급을 입력하세요"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="edit-department">부서</Label>
-                <Input
-                  id="edit-department"
-                  type="text"
-                  value={formData.department || ""}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="부서명을 입력하세요"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-position">직급</Label>
-                <Input
-                  id="edit-position"
-                  type="text"
-                  value={formData.position || ""}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  placeholder="직급을 입력하세요"
-                />
-              </div>
+
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="edit-isManager"
-                  checked={formData.isManager || false}
+                  checked={formData.isManager}
                   onCheckedChange={(checked) => setFormData({ ...formData, isManager: !!checked })}
                 />
                 <Label htmlFor="edit-isManager">부서장 권한</Label>
               </div>
 
-              {/* 권한 설정 섹션 - 편집 시에도 동일하게 표시 */}
               <Separator />
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">세부 권한 설정</h4>
-                  <Button 
-                    type="button"
-                    variant="outline" 
-                    size="sm"
-                    onClick={resetPermissions}
-                  >
-                    기본 권한으로 초기화
-                  </Button>
-                </div>
 
-                {/* Excel 관리 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">Excel 관리 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canUploadBom"
-                        checked={formData.canUploadBom || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canUploadBom', !!checked)}
-                      />
-                      <Label htmlFor="edit-canUploadBom" className="text-sm">BOM 업로드</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canUploadMaster"
-                        checked={formData.canUploadMaster || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canUploadMaster', !!checked)}
-                      />
-                      <Label htmlFor="edit-canUploadMaster" className="text-sm">제품 마스터 업로드</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canUploadInventoryAdd"
-                        checked={formData.canUploadInventoryAdd || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canUploadInventoryAdd', !!checked)}
-                      />
-                      <Label htmlFor="edit-canUploadInventoryAdd" className="text-sm">재고 추가/보충</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canUploadInventorySync"
-                        checked={formData.canUploadInventorySync || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canUploadInventorySync', !!checked)}
-                      />
-                      <Label htmlFor="edit-canUploadInventorySync" className="text-sm">전체 동기화 (위험)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 col-span-2">
-                      <Checkbox
-                        id="edit-canAccessExcelManagement"
-                        checked={formData.canAccessExcelManagement || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canAccessExcelManagement', !!checked)}
-                      />
-                      <Label htmlFor="edit-canAccessExcelManagement" className="text-sm">Excel 관리 페이지 접근</Label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 시스템 관리 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">시스템 관리 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canBackupData"
-                        checked={formData.canBackupData || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canBackupData', !!checked)}
-                      />
-                      <Label htmlFor="edit-canBackupData" className="text-sm">데이터 백업</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canRestoreData"
-                        checked={formData.canRestoreData || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canRestoreData', !!checked)}
-                      />
-                      <Label htmlFor="edit-canRestoreData" className="text-sm">데이터 복원</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canResetData"
-                        checked={formData.canResetData || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canResetData', !!checked)}
-                      />
-                      <Label htmlFor="edit-canResetData" className="text-sm">시스템 초기화 (매우 위험)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canManageUsers"
-                        checked={formData.canManageUsers || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageUsers', !!checked)}
-                      />
-                      <Label htmlFor="edit-canManageUsers" className="text-sm">사용자 관리</Label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 다운로드 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">다운로드 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canDownloadInventory"
-                        checked={formData.canDownloadInventory || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDownloadInventory', !!checked)}
-                      />
-                      <Label htmlFor="edit-canDownloadInventory" className="text-sm">재고현황 다운로드</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canDownloadTransactions"
-                        checked={formData.canDownloadTransactions || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDownloadTransactions', !!checked)}
-                      />
-                      <Label htmlFor="edit-canDownloadTransactions" className="text-sm">거래내역 다운로드</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canDownloadBom"
-                        checked={formData.canDownloadBom || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDownloadBom', !!checked)}
-                      />
-                      <Label htmlFor="edit-canDownloadBom" className="text-sm">BOM 목록 다운로드</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canDownloadAll"
-                        checked={formData.canDownloadAll || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDownloadAll', !!checked)}
-                      />
-                      <Label htmlFor="edit-canDownloadAll" className="text-sm">모든 데이터 다운로드</Label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 재고 관리 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">재고 관리 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canManageInventory"
-                        checked={formData.canManageInventory || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageInventory', !!checked)}
-                      />
-                      <Label htmlFor="edit-canManageInventory" className="text-sm">재고 관리</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canProcessTransactions"
-                        checked={formData.canProcessTransactions || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canProcessTransactions', !!checked)}
-                      />
-                      <Label htmlFor="edit-canProcessTransactions" className="text-sm">거래 처리</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canManageBom"
-                        checked={formData.canManageBom || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageBom', !!checked)}
-                      />
-                      <Label htmlFor="edit-canManageBom" className="text-sm">BOM 관리</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canManageWarehouse"
-                        checked={formData.canManageWarehouse || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageWarehouse', !!checked)}
-                      />
-                      <Label htmlFor="edit-canManageWarehouse" className="text-sm">창고 관리</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canProcessExchange"
-                        checked={formData.canProcessExchange || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canProcessExchange', !!checked)}
-                      />
-                      <Label htmlFor="edit-canProcessExchange" className="text-sm">불량품 교환</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canManageLocation"
-                        checked={formData.canManageLocation || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canManageLocation', !!checked)}
-                      />
-                      <Label htmlFor="edit-canManageLocation" className="text-sm">위치 관리</Label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 업무일지 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">업무일지 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canCreateDiary"
-                        checked={formData.canCreateDiary || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canCreateDiary', !!checked)}
-                      />
-                      <Label htmlFor="edit-canCreateDiary" className="text-sm">업무일지 작성</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canEditDiary"
-                        checked={formData.canEditDiary || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canEditDiary', !!checked)}
-                      />
-                      <Label htmlFor="edit-canEditDiary" className="text-sm">업무일지 수정</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canDeleteDiary"
-                        checked={formData.canDeleteDiary || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canDeleteDiary', !!checked)}
-                      />
-                      <Label htmlFor="edit-canDeleteDiary" className="text-sm">업무일지 삭제</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-canViewReports"
-                        checked={formData.canViewReports || false}
-                        onCheckedChange={(checked) => handlePermissionChange('canViewReports', !!checked)}
-                      />
-                      <Label htmlFor="edit-canViewReports" className="text-sm">리포트 조회</Label>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* 권한 설정 */}
+              <PermissionSettings
+                formData={formData}
+                setFormData={setFormData}
+                onPermissionChange={handlePermissionChange}
+                onResetPermissions={resetPermissions}
+              />
             </div>
           </ScrollArea>
-          <div className="flex justify-end space-x-2 pt-4 border-t mt-4">
+          
+          <div className="flex justify-end space-x-2 pt-4 border-t">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               취소
             </Button>
@@ -1271,8 +716,6 @@ export default function UserManagement() {
           </div>
         </DialogContent>
       </Dialog>
-        </div>
-      </div>
     </div>
   );
 }
