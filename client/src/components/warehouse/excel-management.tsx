@@ -443,45 +443,55 @@ export function ExcelManagement() {
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-4">3. 데이터 내보내기</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="file-upload-zone" onClick={() => exportInventoryToExcel(inventory)}>
-                <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                <h4 className="font-semibold mb-1">📦 재고현황 다운로드</h4>
-                <p className="text-sm text-gray-600">
-                  현재 재고 현황을 엑셀 파일로 내보냅니다. (전체동기화용)
-                </p>
-              </div>
+              <PermissionGuard permission="canDownloadInventory">
+                <div className="file-upload-zone" onClick={() => exportInventoryToExcel(inventory)}>
+                  <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  <h4 className="font-semibold mb-1">📦 재고현황 다운로드</h4>
+                  <p className="text-sm text-gray-600">
+                    현재 재고 현황을 엑셀 파일로 내보냅니다. (전체동기화용)
+                  </p>
+                </div>
+              </PermissionGuard>
 
-              <div className="file-upload-zone" onClick={() => exportTransactionsToExcel(transactions)}>
-                <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                <h4 className="font-semibold mb-1">📊 거래내역 다운로드</h4>
-                <p className="text-sm text-gray-600">
-                  모든 거래 내역을 엑셀 파일로 내보냅니다. (분석전용)
-                </p>
-              </div>
+              <PermissionGuard permission="canDownloadTransactions">
+                <div className="file-upload-zone" onClick={() => exportTransactionsToExcel(transactions)}>
+                  <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  <h4 className="font-semibold mb-1">📊 거래내역 다운로드</h4>
+                  <p className="text-sm text-gray-600">
+                    모든 거래 내역을 엑셀 파일로 내보냅니다. (분석전용)
+                  </p>
+                </div>
+              </PermissionGuard>
 
-              <div className="file-upload-zone" onClick={() => exportBomToExcel(bomGuides)}>
-                <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                <h4 className="font-semibold mb-1">📋 BOM 목록 다운로드</h4>
-                <p className="text-sm text-gray-600">
-                  자재명세서 목록을 엑셀 파일로 내보냅니다. (분석전용)
-                </p>
-              </div>
+              <PermissionGuard permission="canDownloadBom">
+                <div className="file-upload-zone" onClick={() => exportBomToExcel(bomGuides)}>
+                  <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  <h4 className="font-semibold mb-1">📋 BOM 목록 다운로드</h4>
+                  <p className="text-sm text-gray-600">
+                    자재명세서 목록을 엑셀 파일로 내보냅니다. (분석전용)
+                  </p>
+                </div>
+              </PermissionGuard>
 
-              <div className="file-upload-zone" onClick={exportBlankTemplate}>
-                <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                <h4 className="font-semibold mb-1">📄 파일로 재고추가/보충 업로드 템플릿 다운로드</h4>
-                <p className="text-sm text-gray-600">
-                  재고 추가/보충 작업용 엑셀 템플릿을 받습니다. (샘플 데이터 포함)
-                </p>
-              </div>
+              <PermissionGuard permission="canDownloadAll">
+                <div className="file-upload-zone" onClick={exportBlankTemplate}>
+                  <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  <h4 className="font-semibold mb-1">📄 파일로 재고추가/보충 업로드 템플릿 다운로드</h4>
+                  <p className="text-sm text-gray-600">
+                    재고 추가/보충 작업용 엑셀 템플릿을 받습니다. (샘플 데이터 포함)
+                  </p>
+                </div>
+              </PermissionGuard>
 
-              <div className="file-upload-zone border-yellow-400" onClick={handleBackup}>
-                <Database className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
-                <h4 className="font-semibold mb-1">💾 전체 데이터 백업</h4>
-                <p className="text-sm text-gray-600">
-                  현재 시스템의 모든 데이터를 JSON 파일로 백업합니다.
-                </p>
-              </div>
+              <PermissionGuard permission="canDownloadAll">
+                <div className="file-upload-zone border-yellow-400" onClick={handleBackup}>
+                  <Database className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                  <h4 className="font-semibold mb-1">💾 전체 데이터 백업</h4>
+                  <p className="text-sm text-gray-600">
+                    현재 시스템의 모든 데이터를 JSON 파일로 백업합니다.
+                  </p>
+                </div>
+              </PermissionGuard>
             </div>
           </CardContent>
         </Card>

@@ -40,6 +40,7 @@ export const ROLE_PERMISSIONS = {
     canManageBom: true,
     canManageWarehouse: true,
     canProcessExchange: true,
+    canManageLocation: true,
     
     // 다운로드 (모든 데이터)
     canDownloadInventory: true,
@@ -75,6 +76,7 @@ export const ROLE_PERMISSIONS = {
     canManageBom: true,
     canManageWarehouse: true,
     canProcessExchange: true,
+    canManageLocation: true,
     
     // 다운로드 (모든 데이터)
     canDownloadInventory: true,
@@ -110,6 +112,7 @@ export const ROLE_PERMISSIONS = {
     canManageBom: true,
     canManageWarehouse: true,
     canProcessExchange: true,
+    canManageLocation: true,
     
     // 다운로드 (부서 관련 데이터)
     canDownloadInventory: true,
@@ -145,6 +148,7 @@ export const ROLE_PERMISSIONS = {
     canManageBom: false,
     canManageWarehouse: false,
     canProcessExchange: false,
+    canManageLocation: false,  // 위치 변경 금지
     
     // 다운로드 (기본 조회용)
     canDownloadInventory: true,
@@ -180,6 +184,7 @@ export const ROLE_PERMISSIONS = {
     canManageBom: false,
     canManageWarehouse: false,
     canProcessExchange: false,
+    canManageLocation: false,  // 위치 변경 금지
     
     // 다운로드 (기본 조회용만)
     canDownloadInventory: true,
@@ -224,6 +229,7 @@ export function getUserPermissions(user: User): Record<string, boolean> {
     canManageBom: user.canManageBom ?? rolePermissions.canManageBom,
     canManageWarehouse: user.canManageWarehouse ?? rolePermissions.canManageWarehouse,
     canProcessExchange: user.canProcessExchange ?? rolePermissions.canProcessExchange,
+    canManageLocation: user.canManageLocation ?? rolePermissions.canManageLocation,
     canCreateDiary: user.canCreateDiary ?? rolePermissions.canCreateDiary,
     canEditDiary: user.canEditDiary ?? rolePermissions.canEditDiary,
     canDeleteDiary: user.canDeleteDiary ?? rolePermissions.canDeleteDiary,

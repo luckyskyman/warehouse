@@ -16,6 +16,7 @@ import { useInventory, useCreateTransaction, useWarehouseLayout } from '@/hooks/
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { MoveFormData } from '@/types/warehouse';
+import { PermissionGuard } from '@/components/ui/permission-guard';
 
 const moveSchema = z.object({
   code: z.string().min(1, '제품코드를 입력하세요'),
@@ -186,13 +187,14 @@ export function MoveForm() {
   };
 
   return (
-    <div className="warehouse-content">
-      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        🔄 이동 관리
-      </h2>
+    <PermissionGuard permission="canManageLocation">
+      <div className="warehouse-content">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          🔄 이동 관리
+        </h2>
 
-      <Card>
-        <CardContent className="p-6">
+        <Card>
+          <CardContent className="p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -377,6 +379,7 @@ export function MoveForm() {
           </form>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </PermissionGuard>
   );
 }
