@@ -19,6 +19,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import type { User as UserType } from "@/types/warehouse";
 import { ROLE_PERMISSIONS, applyRolePermissions } from "@shared/permissions";
+import { PermissionMatrix } from '@/components/ui/permission-matrix';
+import { PermissionSection, PERMISSION_CATEGORIES } from '@/components/ui/permission-section';
+import { PermissionSettings } from '@/components/user/permission-settings';
 
 // User 타입은 이미 @/types/warehouse에서 가져옴
 
@@ -592,7 +595,7 @@ export default function UserManagement() {
                 <Label htmlFor="isManager">부서장 권한</Label>
               </div>
 
-              {/* 권한 설정 섹션 */}
+              {/* 새로운 권한 설정 UI */}
               <Separator />
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -606,11 +609,43 @@ export default function UserManagement() {
                     기본 권한으로 초기화
                   </Button>
                 </div>
+                
+                <PermissionSettings
+                  formData={formData}
+                  setFormData={setFormData}
+                  onPermissionChange={handlePermissionChange}
+                  onResetPermissions={resetPermissions}
+                />
+              </div>
+            </ScrollArea>
+            <div className="flex justify-end space-x-2 pt-4 border-t mt-4 flex-shrink-0">
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
+                {createUserMutation.isPending ? "생성 중..." : "생성"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-                {/* Excel 관리 권한 */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">Excel 관리 권한</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* 검색 필터 */}
+      <div className="mb-4">
+        <div className="flex gap-4 items-center">
+          <div className="flex-1">
+            <Input
+              placeholder="사용자명 또는 역할로 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          <div className="text-sm text-gray-600">
+            전체 {users.length}명 중 {filteredUsers.length}명 표시
+          </div>
+        </div>
+      </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="canUploadBom"
@@ -855,6 +890,11 @@ export default function UserManagement() {
             전체 {users.length}명 중 {filteredUsers.length}명 표시
           </div>
         </div>
+      </div>
+
+      {/* 권한 매트릭스 */}
+      <div className="mb-6">
+        <PermissionMatrix />
       </div>
 
       <Card>
