@@ -1,0 +1,287 @@
+import { type User } from './schema';
+
+// 역할 계층 정의
+export const ROLE_HIERARCHY = {
+  'super_admin': 4,  // 최고 관리자 (시스템 전체)
+  'admin': 3,        // 일반 관리자 (운영 관리)
+  'manager': 2,      // 부서 관리자 (부서별 관리)
+  'user': 1,         // 일반 사용자 (제한적 접근)
+  'viewer': 0        // 조회 전용 (읽기만)
+};
+
+// 위험 기능 목록 (이중 검증 필요)
+export const CRITICAL_PERMISSIONS = [
+  'canResetData',           // 시스템 초기화
+  'canUploadInventorySync', // 전체 동기화
+  'canRestoreData',         // 데이터 복원
+  'canManagePermissions'    // 권한 관리
+];
+
+// 역할별 기본 권한 템플릿
+export const ROLE_PERMISSIONS = {
+  super_admin: {
+    // 시스템 관리 (위험 기능 포함)
+    canResetData: true,
+    canRestoreData: true,
+    canManageUsers: true,
+    canManagePermissions: true,
+    
+    // Excel 관리 (모든 기능)
+    canUploadBom: true,
+    canUploadMaster: true,
+    canUploadInventoryAdd: true,
+    canUploadInventorySync: true,
+    canAccessExcelManagement: true,
+    canBackupData: true,
+    
+    // 재고 관리 (모든 기능)
+    canManageInventory: true,
+    canProcessTransactions: true,
+    canManageBom: true,
+    canManageWarehouse: true,
+    canProcessExchange: true,
+    
+    // 다운로드 (모든 데이터)
+    canDownloadInventory: true,
+    canDownloadTransactions: true,
+    canDownloadBom: true,
+    canDownloadAll: true,
+    
+    // 업무일지 (모든 기능)
+    canCreateDiary: true,
+    canEditDiary: true,
+    canDeleteDiary: true,
+    canViewReports: true,
+  },
+  
+  admin: {
+    // 운영 관리 (제한적 위험 기능)
+    canResetData: false,          // ❌ 시스템 초기화 금지
+    canRestoreData: true,
+    canManageUsers: true,
+    canManagePermissions: false,  // ❌ 권한 관리는 super_admin만
+    
+    // Excel 관리 (대부분 기능)
+    canUploadBom: true,
+    canUploadMaster: true,
+    canUploadInventoryAdd: true,
+    canUploadInventorySync: true,
+    canAccessExcelManagement: true,
+    canBackupData: true,
+    
+    // 재고 관리 (모든 기능)
+    canManageInventory: true,
+    canProcessTransactions: true,
+    canManageBom: true,
+    canManageWarehouse: true,
+    canProcessExchange: true,
+    
+    // 다운로드 (모든 데이터)
+    canDownloadInventory: true,
+    canDownloadTransactions: true,
+    canDownloadBom: true,
+    canDownloadAll: true,
+    
+    // 업무일지 (삭제 제외)
+    canCreateDiary: true,
+    canEditDiary: true,
+    canDeleteDiary: true,
+    canViewReports: true,
+  },
+  
+  manager: {
+    // 부서 관리 (안전한 기능만)
+    canResetData: false,
+    canRestoreData: false,
+    canManageUsers: false,
+    canManagePermissions: false,
+    
+    // Excel 관리 (안전한 기능만)
+    canUploadBom: true,
+    canUploadMaster: true,
+    canUploadInventoryAdd: true,
+    canUploadInventorySync: false, // ❌ 전체 동기화 금지 
+    canAccessExcelManagement: true,
+    canBackupData: true,
+    
+    // 재고 관리 (기본 기능)
+    canManageInventory: true,
+    canProcessTransactions: true,
+    canManageBom: true,
+    canManageWarehouse: true,
+    canProcessExchange: true,
+    
+    // 다운로드 (부서 관련 데이터)
+    canDownloadInventory: true,
+    canDownloadTransactions: true,
+    canDownloadBom: true,
+    canDownloadAll: false,
+    
+    // 업무일지 (삭제 제외)
+    canCreateDiary: true,
+    canEditDiary: true,
+    canDeleteDiary: false,
+    canViewReports: true,
+  },
+  
+  user: {
+    // 일반 업무 (최소 필요 기능)
+    canResetData: false,
+    canRestoreData: false,
+    canManageUsers: false,
+    canManagePermissions: false,
+    
+    // Excel 관리 (매우 제한적)
+    canUploadBom: false,
+    canUploadMaster: false,
+    canUploadInventoryAdd: true,   // 안전한 추가만
+    canUploadInventorySync: false,
+    canAccessExcelManagement: true, // 접근은 가능하지만 기능 제한
+    canBackupData: false,
+    
+    // 재고 관리 (조회 중심)
+    canManageInventory: false,
+    canProcessTransactions: true,  // 기본 트랜잭션 처리
+    canManageBom: false,
+    canManageWarehouse: false,
+    canProcessExchange: false,
+    
+    // 다운로드 (기본 조회용)
+    canDownloadInventory: true,
+    canDownloadTransactions: false, // 민감 정보 차단
+    canDownloadBom: true,
+    canDownloadAll: false,
+    
+    // 업무일지 (기본 기능)
+    canCreateDiary: true,
+    canEditDiary: true,
+    canDeleteDiary: false,
+    canViewReports: true,
+  },
+  
+  viewer: {
+    // 조회 전용 (읽기만)
+    canResetData: false,
+    canRestoreData: false,
+    canManageUsers: false,
+    canManagePermissions: false,
+    
+    // Excel 관리 (모든 업로드 금지)
+    canUploadBom: false,
+    canUploadMaster: false,
+    canUploadInventoryAdd: false,
+    canUploadInventorySync: false,
+    canAccessExcelManagement: false, // Excel 관리 완전 차단
+    canBackupData: false,
+    
+    // 재고 관리 (조회만)
+    canManageInventory: false,
+    canProcessTransactions: false,
+    canManageBom: false,
+    canManageWarehouse: false,
+    canProcessExchange: false,
+    
+    // 다운로드 (기본 조회용만)
+    canDownloadInventory: true,
+    canDownloadTransactions: false,
+    canDownloadBom: true,
+    canDownloadAll: false,
+    
+    // 업무일지 (조회/작성만)
+    canCreateDiary: true,
+    canEditDiary: true,   // 본인 작성분만
+    canDeleteDiary: false,
+    canViewReports: true,
+  }
+};
+
+// 사용자 권한 확인 함수
+export function getUserPermissions(user: User): Record<string, boolean> {
+  // 1차: 역할별 기본 권한 가져오기
+  const rolePermissions = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || ROLE_PERMISSIONS.viewer;
+  
+  // 2차: 개별 사용자 권한으로 오버라이드
+  const userPermissions = {
+    ...rolePermissions,
+    
+    // 데이터베이스에 저장된 개별 권한으로 덮어쓰기
+    canUploadBom: user.canUploadBom ?? rolePermissions.canUploadBom,
+    canUploadMaster: user.canUploadMaster ?? rolePermissions.canUploadMaster,
+    canUploadInventoryAdd: user.canUploadInventoryAdd ?? rolePermissions.canUploadInventoryAdd,
+    canUploadInventorySync: user.canUploadInventorySync ?? rolePermissions.canUploadInventorySync,
+    canAccessExcelManagement: user.canAccessExcelManagement ?? rolePermissions.canAccessExcelManagement,
+    canBackupData: user.canBackupData ?? rolePermissions.canBackupData,
+    canRestoreData: user.canRestoreData ?? rolePermissions.canRestoreData,
+    canResetData: user.canResetData ?? rolePermissions.canResetData,
+    canManageUsers: user.canManageUsers ?? rolePermissions.canManageUsers,
+    canManagePermissions: user.canManagePermissions ?? rolePermissions.canManagePermissions,
+    canDownloadInventory: user.canDownloadInventory ?? rolePermissions.canDownloadInventory,
+    canDownloadTransactions: user.canDownloadTransactions ?? rolePermissions.canDownloadTransactions,
+    canDownloadBom: user.canDownloadBom ?? rolePermissions.canDownloadBom,
+    canDownloadAll: user.canDownloadAll ?? rolePermissions.canDownloadAll,
+    canManageInventory: user.canManageInventory ?? rolePermissions.canManageInventory,
+    canProcessTransactions: user.canProcessTransactions ?? rolePermissions.canProcessTransactions,
+    canManageBom: user.canManageBom ?? rolePermissions.canManageBom,
+    canManageWarehouse: user.canManageWarehouse ?? rolePermissions.canManageWarehouse,
+    canProcessExchange: user.canProcessExchange ?? rolePermissions.canProcessExchange,
+    canCreateDiary: user.canCreateDiary ?? rolePermissions.canCreateDiary,
+    canEditDiary: user.canEditDiary ?? rolePermissions.canEditDiary,
+    canDeleteDiary: user.canDeleteDiary ?? rolePermissions.canDeleteDiary,
+    canViewReports: user.canViewReports ?? rolePermissions.canViewReports,
+  };
+  
+  return userPermissions;
+}
+
+// 권한 확인 함수
+export function checkPermission(user: User, permission: string): boolean {
+  const permissions = getUserPermissions(user);
+  return permissions[permission] || false;
+}
+
+// 위험 기능 확인 함수 (이중 검증)
+export function checkCriticalPermission(user: User, permission: string): boolean {
+  // 1차: 일반 권한 확인
+  if (!checkPermission(user, permission)) {
+    return false;
+  }
+  
+  // 2차: 위험 기능 추가 검증
+  if (CRITICAL_PERMISSIONS.includes(permission)) {
+    // Super Admin만 위험 기능 실행 가능
+    return user.role === 'super_admin';
+  }
+  
+  return true;
+}
+
+// 계정 생성 시 역할별 기본 권한 적용 함수
+export function applyRolePermissions(role: string): Partial<User> {
+  const permissions = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] || ROLE_PERMISSIONS.viewer;
+  
+  return {
+    canUploadBom: permissions.canUploadBom,
+    canUploadMaster: permissions.canUploadMaster,
+    canUploadInventoryAdd: permissions.canUploadInventoryAdd,
+    canUploadInventorySync: permissions.canUploadInventorySync,
+    canAccessExcelManagement: permissions.canAccessExcelManagement,
+    canBackupData: permissions.canBackupData,
+    canRestoreData: permissions.canRestoreData,
+    canResetData: permissions.canResetData,
+    canManageUsers: permissions.canManageUsers,
+    canManagePermissions: permissions.canManagePermissions,
+    canDownloadInventory: permissions.canDownloadInventory,
+    canDownloadTransactions: permissions.canDownloadTransactions,
+    canDownloadBom: permissions.canDownloadBom,
+    canDownloadAll: permissions.canDownloadAll,
+    canManageInventory: permissions.canManageInventory,
+    canProcessTransactions: permissions.canProcessTransactions,
+    canManageBom: permissions.canManageBom,
+    canManageWarehouse: permissions.canManageWarehouse,
+    canProcessExchange: permissions.canProcessExchange,
+    canCreateDiary: permissions.canCreateDiary,
+    canEditDiary: permissions.canEditDiary,
+    canDeleteDiary: permissions.canDeleteDiary,
+    canViewReports: permissions.canViewReports,
+  };
+}

@@ -1,7 +1,44 @@
 export interface User {
   id: number;
   username: string;
-  role: "admin" | "viewer";
+  role: string;
+  department?: string;
+  position?: string;
+  isManager?: boolean;
+  createdAt: string;
+  
+  // Excel 관리 권한
+  canUploadBom?: boolean;
+  canUploadMaster?: boolean;
+  canUploadInventoryAdd?: boolean;
+  canUploadInventorySync?: boolean;
+  canAccessExcelManagement?: boolean;
+  
+  // 데이터 관리 권한
+  canBackupData?: boolean;
+  canRestoreData?: boolean;
+  canResetData?: boolean;
+  canManageUsers?: boolean;
+  canManagePermissions?: boolean;
+  
+  // 다운로드 권한
+  canDownloadInventory?: boolean;
+  canDownloadTransactions?: boolean;
+  canDownloadBom?: boolean;
+  canDownloadAll?: boolean;
+  
+  // 재고 관리 권한
+  canManageInventory?: boolean;
+  canProcessTransactions?: boolean;
+  canManageBom?: boolean;
+  canManageWarehouse?: boolean;
+  canProcessExchange?: boolean;
+  
+  // 업무일지 권한
+  canCreateDiary?: boolean;
+  canEditDiary?: boolean;
+  canDeleteDiary?: boolean;
+  canViewReports?: boolean;
 }
 
 export interface InventoryItem {

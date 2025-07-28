@@ -48,8 +48,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateUser(req, res, next);
   });
 
-  // Remove admin check completely for deployment compatibility
+  // Admin 권한 검증 (활성화)
   const requireAdmin = (req: any, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "로그인이 필요합니다." });
+    }
+    
+    const userRole = req.user.role;
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
+      return res.status(403).json({ message: "관리자 권한이 필요합니다." });
+    }
+    
     next();
   };
 
@@ -82,7 +91,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           department: user.department,
           position: user.position,
-          isManager: user.isManager
+          isManager: user.isManager,
+          // 권한 정보 포함
+          canUploadBom: user.canUploadBom,
+          canUploadMaster: user.canUploadMaster,
+          canUploadInventoryAdd: user.canUploadInventoryAdd,
+          canUploadInventorySync: user.canUploadInventorySync,
+          canAccessExcelManagement: user.canAccessExcelManagement,
+          canBackupData: user.canBackupData,
+          canRestoreData: user.canRestoreData,
+          canResetData: user.canResetData,
+          canManageUsers: user.canManageUsers,
+          canManagePermissions: user.canManagePermissions,
+          canDownloadInventory: user.canDownloadInventory,
+          canDownloadTransactions: user.canDownloadTransactions,
+          canDownloadBom: user.canDownloadBom,
+          canDownloadAll: user.canDownloadAll,
+          canManageInventory: user.canManageInventory,
+          canProcessTransactions: user.canProcessTransactions,
+          canManageBom: user.canManageBom,
+          canManageWarehouse: user.canManageWarehouse,
+          canProcessExchange: user.canProcessExchange,
+          canCreateDiary: user.canCreateDiary,
+          canEditDiary: user.canEditDiary,
+          canDeleteDiary: user.canDeleteDiary,
+          canViewReports: user.canViewReports,
         },
         sessionId: sessionId
       });
@@ -103,7 +136,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         department: user.department,
         position: user.position,
         isManager: user.isManager,
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
+        // 권한 정보 포함
+        canUploadBom: user.canUploadBom,
+        canUploadMaster: user.canUploadMaster,
+        canUploadInventoryAdd: user.canUploadInventoryAdd,
+        canUploadInventorySync: user.canUploadInventorySync,
+        canAccessExcelManagement: user.canAccessExcelManagement,
+        canBackupData: user.canBackupData,
+        canRestoreData: user.canRestoreData,
+        canResetData: user.canResetData,
+        canManageUsers: user.canManageUsers,
+        canManagePermissions: user.canManagePermissions,
+        canDownloadInventory: user.canDownloadInventory,
+        canDownloadTransactions: user.canDownloadTransactions,
+        canDownloadBom: user.canDownloadBom,
+        canDownloadAll: user.canDownloadAll,
+        canManageInventory: user.canManageInventory,
+        canProcessTransactions: user.canProcessTransactions,
+        canManageBom: user.canManageBom,
+        canManageWarehouse: user.canManageWarehouse,
+        canProcessExchange: user.canProcessExchange,
+        canCreateDiary: user.canCreateDiary,
+        canEditDiary: user.canEditDiary,
+        canDeleteDiary: user.canDeleteDiary,
+        canViewReports: user.canViewReports,
       }));
       res.json(safeUsers);
     } catch (error) {
@@ -118,7 +175,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertUserSchema.parse(req.body);
       console.log('Validated data:', validatedData);
       
-      const user = await storage.createUser(validatedData);
+      // 역할별 기본 권한 적용
+      const { applyRolePermissions } = await import('@shared/permissions');
+      const rolePermissions = applyRolePermissions(validatedData.role || 'viewer');
+      
+      // 기본 권한과 사용자 지정 권한 병합
+      const userDataWithPermissions = {
+        ...validatedData,
+        ...rolePermissions,
+        // 사용자가 명시적으로 설정한 권한이 있다면 우선 적용
+        ...(validatedData.canUploadBom !== undefined && { canUploadBom: validatedData.canUploadBom }),
+        ...(validatedData.canUploadMaster !== undefined && { canUploadMaster: validatedData.canUploadMaster }),
+        ...(validatedData.canUploadInventoryAdd !== undefined && { canUploadInventoryAdd: validatedData.canUploadInventoryAdd }),
+        ...(validatedData.canUploadInventorySync !== undefined && { canUploadInventorySync: validatedData.canUploadInventorySync }),
+        ...(validatedData.canAccessExcelManagement !== undefined && { canAccessExcelManagement: validatedData.canAccessExcelManagement }),
+        ...(validatedData.canBackupData !== undefined && { canBackupData: validatedData.canBackupData }),
+        ...(validatedData.canRestoreData !== undefined && { canRestoreData: validatedData.canRestoreData }),
+        ...(validatedData.canResetData !== undefined && { canResetData: validatedData.canResetData }),
+        ...(validatedData.canManageUsers !== undefined && { canManageUsers: validatedData.canManageUsers }),
+        ...(validatedData.canManagePermissions !== undefined && { canManagePermissions: validatedData.canManagePermissions }),
+        ...(validatedData.canDownloadInventory !== undefined && { canDownloadInventory: validatedData.canDownloadInventory }),
+        ...(validatedData.canDownloadTransactions !== undefined && { canDownloadTransactions: validatedData.canDownloadTransactions }),
+        ...(validatedData.canDownloadBom !== undefined && { canDownloadBom: validatedData.canDownloadBom }),
+        ...(validatedData.canDownloadAll !== undefined && { canDownloadAll: validatedData.canDownloadAll }),
+        ...(validatedData.canManageInventory !== undefined && { canManageInventory: validatedData.canManageInventory }),
+        ...(validatedData.canProcessTransactions !== undefined && { canProcessTransactions: validatedData.canProcessTransactions }),
+        ...(validatedData.canManageBom !== undefined && { canManageBom: validatedData.canManageBom }),
+        ...(validatedData.canManageWarehouse !== undefined && { canManageWarehouse: validatedData.canManageWarehouse }),
+        ...(validatedData.canProcessExchange !== undefined && { canProcessExchange: validatedData.canProcessExchange }),
+        ...(validatedData.canCreateDiary !== undefined && { canCreateDiary: validatedData.canCreateDiary }),
+        ...(validatedData.canEditDiary !== undefined && { canEditDiary: validatedData.canEditDiary }),
+        ...(validatedData.canDeleteDiary !== undefined && { canDeleteDiary: validatedData.canDeleteDiary }),
+        ...(validatedData.canViewReports !== undefined && { canViewReports: validatedData.canViewReports }),
+      };
+      
+      console.log('User data with permissions:', userDataWithPermissions);
+      
+      const user = await storage.createUser(userDataWithPermissions);
       console.log('User created:', user);
       
       // Don't send password in response
@@ -126,7 +219,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: user.id,
         username: user.username,
         role: user.role,
-        createdAt: user.createdAt
+        department: user.department,
+        position: user.position,
+        isManager: user.isManager,
+        createdAt: user.createdAt,
+        // 권한 정보도 포함 (관리용)
+        canUploadBom: user.canUploadBom,
+        canUploadMaster: user.canUploadMaster,
+        canUploadInventoryAdd: user.canUploadInventoryAdd,
+        canUploadInventorySync: user.canUploadInventorySync,
+        canAccessExcelManagement: user.canAccessExcelManagement,
+        canManageUsers: user.canManageUsers,
+        canManagePermissions: user.canManagePermissions,
       };
       res.status(201).json(safeUser);
     } catch (error) {

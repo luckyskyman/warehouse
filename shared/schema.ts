@@ -6,10 +6,44 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().default("viewer"), // 'admin', 'viewer', 'manager'
+  role: text("role").notNull().default("viewer"), // 'super_admin', 'admin', 'manager', 'user', 'viewer'
   department: text("department"), // 부서명
   position: text("position"), // 직급
   isManager: boolean("is_manager").default(false), // 부서장 여부
+  
+  // Excel 관리 권한
+  canUploadBom: boolean("can_upload_bom").default(false),
+  canUploadMaster: boolean("can_upload_master").default(false),
+  canUploadInventoryAdd: boolean("can_upload_inventory_add").default(false),
+  canUploadInventorySync: boolean("can_upload_inventory_sync").default(false),
+  canAccessExcelManagement: boolean("can_access_excel_management").default(false),
+  
+  // 데이터 관리 권한
+  canBackupData: boolean("can_backup_data").default(false),
+  canRestoreData: boolean("can_restore_data").default(false),
+  canResetData: boolean("can_reset_data").default(false),
+  canManageUsers: boolean("can_manage_users").default(false),
+  canManagePermissions: boolean("can_manage_permissions").default(false),
+  
+  // 다운로드 권한
+  canDownloadInventory: boolean("can_download_inventory").default(true),
+  canDownloadTransactions: boolean("can_download_transactions").default(false),
+  canDownloadBom: boolean("can_download_bom").default(true),
+  canDownloadAll: boolean("can_download_all").default(false),
+  
+  // 재고 관리 권한
+  canManageInventory: boolean("can_manage_inventory").default(false),
+  canProcessTransactions: boolean("can_process_transactions").default(false),
+  canManageBom: boolean("can_manage_bom").default(false),
+  canManageWarehouse: boolean("can_manage_warehouse").default(false),
+  canProcessExchange: boolean("can_process_exchange").default(false),
+  
+  // 업무일지 권한
+  canCreateDiary: boolean("can_create_diary").default(true),
+  canEditDiary: boolean("can_edit_diary").default(true),
+  canDeleteDiary: boolean("can_delete_diary").default(false),
+  canViewReports: boolean("can_view_reports").default(true),
+  
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -111,6 +145,29 @@ export const insertUserSchema = createInsertSchema(users).pick({
   department: true,
   position: true,
   isManager: true,
+  canUploadBom: true,
+  canUploadMaster: true,
+  canUploadInventoryAdd: true,
+  canUploadInventorySync: true,
+  canAccessExcelManagement: true,
+  canBackupData: true,
+  canRestoreData: true,
+  canResetData: true,
+  canManageUsers: true,
+  canManagePermissions: true,
+  canDownloadInventory: true,
+  canDownloadTransactions: true,
+  canDownloadBom: true,
+  canDownloadAll: true,
+  canManageInventory: true,
+  canProcessTransactions: true,
+  canManageBom: true,
+  canManageWarehouse: true,
+  canProcessExchange: true,
+  canCreateDiary: true,
+  canEditDiary: true,
+  canDeleteDiary: true,
+  canViewReports: true,
 });
 
 export const insertInventoryItemSchema = createInsertSchema(inventoryItems).pick({
