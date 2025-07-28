@@ -114,15 +114,7 @@ export default function WarehouseManagement() {
     return <LoginForm />;
   }
 
-  // 디버깅용 권한 로그
-  console.log('Current user:', user);
-  console.log('Permissions:', {
-    canManageBom: permissions.canManageBom,
-    canView: permissions.canView,
-    canManageUsers: permissions.canManageUsers,
-    canViewReports: permissions.canViewReports,
-    role: user.role
-  });
+
 
   const tabs = [
     { 

@@ -249,6 +249,11 @@ Changelog:
   - 카테고리별 권한 그룹핑 및 직관적인 스위치 토글 UI 구현
   - 기본값 대비 수정된 권한 시각적 표시 기능 추가
   - 개별 권한 카테고리별 초기화 기능 구현
+- July 28, 2025. **viewer 계정 권한 수정 완료**
+  - viewer 계정의 BOM 관리 권한 활성화 (can_manage_bom = true)
+  - viewer 계정의 업무일지 조회 권한 활성화 (can_view_reports = true)
+  - 데이터베이스 권한 설정과 프론트엔드 권한 로직 동기화 완료
+  - viewer 계정에서 설치가이드별 자재확인 및 업무일지 메뉴 접근 가능
 ```
 
 ## User Preferences
