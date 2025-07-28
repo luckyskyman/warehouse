@@ -684,8 +684,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // BOM routes
-  app.get("/api/bom", async (req, res) => {
+  app.get("/api/bom", requireAuth, async (req, res) => {
     try {
+      // BOM 권한 검증
+      if (!req.user.canManageBom) {
+        return res.status(403).json({ message: "BOM 조회 권한이 없습니다." });
+      }
+      
       const bomGuides = await storage.getBomGuides();
       res.json(bomGuides);
     } catch (error) {
@@ -693,8 +698,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/bom/:guideName", async (req, res) => {
+  app.get("/api/bom/:guideName", requireAuth, async (req, res) => {
     try {
+      // BOM 권한 검증
+      if (!req.user.canManageBom) {
+        return res.status(403).json({ message: "BOM 조회 권한이 없습니다." });
+      }
+      
       const bomItems = await storage.getBomGuidesByName(req.params.guideName);
       res.json(bomItems);
     } catch (error) {
