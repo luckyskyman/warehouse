@@ -114,10 +114,7 @@ export default function WarehouseManagement() {
     return <LoginForm />;
   }
 
-  // 권한 디버깅
-  console.log('DEBUG - User:', user.username, 'Role:', user.role);
-  console.log('DEBUG - canManageUsers:', permissions.canManageUsers);
-  console.log('DEBUG - All permissions:', permissions);
+
 
 
   const tabs = [
@@ -173,11 +170,7 @@ export default function WarehouseManagement() {
     },
   ] as const;
 
-  const filteredTabs = tabs.filter(tab => {
-    const hasPermission = tab.permission();
-    console.log(`DEBUG - Tab "${tab.label}" permission:`, hasPermission);
-    return hasPermission;
-  });
+  const filteredTabs = tabs.filter(tab => tab.permission());
 
   const renderTabContent = () => {
     switch (activeTab) {
