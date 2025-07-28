@@ -218,8 +218,18 @@ function useUsers() {
   return useQuery({
     queryKey: ['/api/users'],
     queryFn: async () => {
-      const response = await fetch('/api/users');
-      if (!response.ok) throw new Error('Failed to fetch users');
+      const sessionId = localStorage.getItem('warehouse_session');
+      const response = await fetch('/api/users', {
+        headers: {
+          'x-session-id': sessionId || ''
+        }
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('로그인이 필요합니다');
+        }
+        throw new Error('Failed to fetch users');
+      }
       return response.json();
     }
   });
@@ -260,10 +270,27 @@ function useDeleteUser() {
 
 export default function UserManagement() {
   const { user } = useAuth();
-  const { data: users = [], isLoading } = useUsers();
+  const { data: users = [], isLoading, error } = useUsers();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
+
+  // 로그인되지 않은 경우
+  if (!user) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="text-center py-12">
+            <h2 className="text-xl font-semibold mb-4">로그인이 필요합니다</h2>
+            <p className="text-gray-600 mb-6">사용자 관리 기능을 사용하려면 먼저 로그인해 주세요.</p>
+            <Button onClick={() => window.location.href = '/login'} className="bg-blue-600 hover:bg-blue-700">
+              로그인하기
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -391,11 +418,21 @@ export default function UserManagement() {
   };
 
   // 검색 필터링
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG]?.label.includes(searchTerm)
-  );
+  const filteredUsers = users.filter((user: any) => {
+    if (!searchTerm || searchTerm.trim() === '') return true;
+    
+    try {
+      const search = searchTerm.toLowerCase();
+      return (user.username || '').toLowerCase().includes(search) ||
+             (user.role || '').toLowerCase().includes(search) ||
+             (user.department || '').toLowerCase().includes(search) ||
+             (user.position || '').toLowerCase().includes(search) ||
+             ((user as any).name || '').toLowerCase().includes(search);
+    } catch (error) {
+      console.error('Search filter error:', error);
+      return true; // 에러 발생 시 모든 사용자 표시
+    }
+  });
 
   if (isLoading) {
     return <div>사용자 목록을 불러오는 중...</div>;
@@ -542,8 +579,8 @@ export default function UserManagement() {
           <div className="flex-1">
             <Input
               placeholder="사용자명 또는 역할로 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchTerm || ''}
+              onChange={(e) => setSearchTerm(e.target.value || '')}
               className="max-w-sm"
             />
           </div>
