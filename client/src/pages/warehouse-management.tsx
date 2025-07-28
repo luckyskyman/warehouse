@@ -138,7 +138,7 @@ export default function WarehouseManagement() {
     { 
       id: 'move', 
       label: '🔄 이동관리', 
-      permission: () => permissions.canManageInventory 
+      permission: () => permissions.canManageLocation 
     },
     { 
       id: 'warehouse', 

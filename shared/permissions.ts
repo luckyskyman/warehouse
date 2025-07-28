@@ -164,7 +164,7 @@ export const ROLE_PERMISSIONS = {
   },
   
   viewer: {
-    // 조회 전용 (읽기만)
+    // 조회 전용 (모든 기능 차단)
     canResetData: false,
     canRestoreData: false,
     canManageUsers: false,
@@ -192,48 +192,48 @@ export const ROLE_PERMISSIONS = {
     canDownloadBom: false,
     canDownloadAll: false,
     
-    // 업무일지 (조회/작성만)
-    canCreateDiary: true,
-    canEditDiary: true,   // 본인 작성분만
+    // 업무일지 (완전 차단 - 순수 조회만)
+    canCreateDiary: false,
+    canEditDiary: false,
     canDeleteDiary: false,
-    canViewReports: true,
+    canViewReports: false,
   }
 };
 
-// 사용자 권한 확인 함수
+// 사용자 권한 확인 함수 (개별 설정 우선)
 export function getUserPermissions(user: User): Record<string, boolean> {
   // 1차: 역할별 기본 권한 가져오기
   const rolePermissions = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || ROLE_PERMISSIONS.viewer;
   
-  // 2차: 개별 사용자 권한으로 오버라이드
+  // 2차: 개별 사용자 권한으로 오버라이드 (개별 설정이 우선)
   const userPermissions = {
     ...rolePermissions,
     
-    // 데이터베이스에 저장된 개별 권한으로 덮어쓰기
-    canUploadBom: user.canUploadBom ?? rolePermissions.canUploadBom,
-    canUploadMaster: user.canUploadMaster ?? rolePermissions.canUploadMaster,
-    canUploadInventoryAdd: user.canUploadInventoryAdd ?? rolePermissions.canUploadInventoryAdd,
-    canUploadInventorySync: user.canUploadInventorySync ?? rolePermissions.canUploadInventorySync,
-    canAccessExcelManagement: user.canAccessExcelManagement ?? rolePermissions.canAccessExcelManagement,
-    canBackupData: user.canBackupData ?? rolePermissions.canBackupData,
-    canRestoreData: user.canRestoreData ?? rolePermissions.canRestoreData,
-    canResetData: user.canResetData ?? rolePermissions.canResetData,
-    canManageUsers: user.canManageUsers ?? rolePermissions.canManageUsers,
-    canManagePermissions: user.canManagePermissions ?? rolePermissions.canManagePermissions,
-    canDownloadInventory: user.canDownloadInventory ?? rolePermissions.canDownloadInventory,
-    canDownloadTransactions: user.canDownloadTransactions ?? rolePermissions.canDownloadTransactions,
-    canDownloadBom: user.canDownloadBom ?? rolePermissions.canDownloadBom,
-    canDownloadAll: user.canDownloadAll ?? rolePermissions.canDownloadAll,
-    canManageInventory: user.canManageInventory ?? rolePermissions.canManageInventory,
-    canProcessTransactions: user.canProcessTransactions ?? rolePermissions.canProcessTransactions,
-    canManageBom: user.canManageBom ?? rolePermissions.canManageBom,
-    canManageWarehouse: user.canManageWarehouse ?? rolePermissions.canManageWarehouse,
-    canProcessExchange: user.canProcessExchange ?? rolePermissions.canProcessExchange,
-    canManageLocation: (user as any).canManageLocation ?? rolePermissions.canManageLocation,
-    canCreateDiary: user.canCreateDiary ?? rolePermissions.canCreateDiary,
-    canEditDiary: user.canEditDiary ?? rolePermissions.canEditDiary,
-    canDeleteDiary: user.canDeleteDiary ?? rolePermissions.canDeleteDiary,
-    canViewReports: user.canViewReports ?? rolePermissions.canViewReports,
+    // 개별 사용자 설정이 null이 아닌 경우 우선 적용
+    canUploadBom: user.canUploadBom !== null ? user.canUploadBom : rolePermissions.canUploadBom,
+    canUploadMaster: user.canUploadMaster !== null ? user.canUploadMaster : rolePermissions.canUploadMaster,
+    canUploadInventoryAdd: user.canUploadInventoryAdd !== null ? user.canUploadInventoryAdd : rolePermissions.canUploadInventoryAdd,
+    canUploadInventorySync: user.canUploadInventorySync !== null ? user.canUploadInventorySync : rolePermissions.canUploadInventorySync,
+    canAccessExcelManagement: user.canAccessExcelManagement !== null ? user.canAccessExcelManagement : rolePermissions.canAccessExcelManagement,
+    canBackupData: user.canBackupData !== null ? user.canBackupData : rolePermissions.canBackupData,
+    canRestoreData: user.canRestoreData !== null ? user.canRestoreData : rolePermissions.canRestoreData,
+    canResetData: user.canResetData !== null ? user.canResetData : rolePermissions.canResetData,
+    canManageUsers: user.canManageUsers !== null ? user.canManageUsers : rolePermissions.canManageUsers,
+    canManagePermissions: user.canManagePermissions !== null ? user.canManagePermissions : rolePermissions.canManagePermissions,
+    canDownloadInventory: user.canDownloadInventory !== null ? user.canDownloadInventory : rolePermissions.canDownloadInventory,
+    canDownloadTransactions: user.canDownloadTransactions !== null ? user.canDownloadTransactions : rolePermissions.canDownloadTransactions,
+    canDownloadBom: user.canDownloadBom !== null ? user.canDownloadBom : rolePermissions.canDownloadBom,
+    canDownloadAll: user.canDownloadAll !== null ? user.canDownloadAll : rolePermissions.canDownloadAll,
+    canManageInventory: user.canManageInventory !== null ? user.canManageInventory : rolePermissions.canManageInventory,
+    canProcessTransactions: user.canProcessTransactions !== null ? user.canProcessTransactions : rolePermissions.canProcessTransactions,
+    canManageBom: user.canManageBom !== null ? user.canManageBom : rolePermissions.canManageBom,
+    canManageWarehouse: user.canManageWarehouse !== null ? user.canManageWarehouse : rolePermissions.canManageWarehouse,
+    canProcessExchange: user.canProcessExchange !== null ? user.canProcessExchange : rolePermissions.canProcessExchange,
+    canManageLocation: (user as any).canManageLocation !== null ? (user as any).canManageLocation : rolePermissions.canManageLocation,
+    canCreateDiary: user.canCreateDiary !== null ? user.canCreateDiary : rolePermissions.canCreateDiary,
+    canEditDiary: user.canEditDiary !== null ? user.canEditDiary : rolePermissions.canEditDiary,
+    canDeleteDiary: user.canDeleteDiary !== null ? user.canDeleteDiary : rolePermissions.canDeleteDiary,
+    canViewReports: user.canViewReports !== null ? user.canViewReports : rolePermissions.canViewReports,
   };
   
   return userPermissions;
