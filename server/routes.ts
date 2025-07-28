@@ -242,25 +242,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id", requireAdmin, async (req, res) => {
+  app.put("/api/users/:id", requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       const updates = req.body;
+      
+      console.log(`권한 업데이트 요청: 사용자 ID ${userId}`, updates);
       
       const user = await storage.updateUser(userId, updates);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Don't send password in response
+      console.log(`권한 업데이트 완료: 사용자 ${user.username}`, {
+        canManageBom: user.canManageBom,
+        canViewReports: user.canViewReports
+      });
+      
+      // 전체 사용자 정보 반환 (권한 포함)
       const safeUser = {
         id: user.id,
         username: user.username,
         role: user.role,
-        createdAt: user.createdAt
+        department: user.department,
+        position: user.position,
+        isManager: user.isManager,
+        createdAt: user.createdAt,
+        // 모든 권한 정보 포함
+        canUploadBom: user.canUploadBom,
+        canUploadMaster: user.canUploadMaster,
+        canUploadInventoryAdd: user.canUploadInventoryAdd,
+        canUploadInventorySync: user.canUploadInventorySync,
+        canAccessExcelManagement: user.canAccessExcelManagement,
+        canBackupData: user.canBackupData,
+        canRestoreData: user.canRestoreData,
+        canResetData: user.canResetData,
+        canManageUsers: user.canManageUsers,
+        canManagePermissions: user.canManagePermissions,
+        canDownloadInventory: user.canDownloadInventory,
+        canDownloadTransactions: user.canDownloadTransactions,
+        canDownloadBom: user.canDownloadBom,
+        canDownloadAll: user.canDownloadAll,
+        canManageInventory: user.canManageInventory,
+        canProcessTransactions: user.canProcessTransactions,
+        canManageBom: user.canManageBom,
+        canManageWarehouse: user.canManageWarehouse,
+        canProcessExchange: user.canProcessExchange,
+        canCreateDiary: user.canCreateDiary,
+        canEditDiary: user.canEditDiary,
+        canDeleteDiary: user.canDeleteDiary,
+        canViewReports: user.canViewReports,
       };
       res.json(safeUser);
     } catch (error) {
+      console.error('권한 업데이트 오류:', error);
       res.status(500).json({ message: "Server error" });
     }
   });
@@ -684,10 +719,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // BOM routes
-  app.get("/api/bom", requireAuth, async (req, res) => {
+  app.get("/api/bom", async (req, res) => {
     try {
-      // BOM 권한 검증
-      if (!req.user.canManageBom) {
+      // 세션 검증
+      if (!req.user) {
+        return res.status(401).json({ message: "로그인이 필요합니다." });
+      }
+      
+      // BOM 조회 권한 검증 (can_manage_bom 또는 can_view_reports 중 하나라도 있으면 목록 조회 가능)
+      if (!req.user.canManageBom && !req.user.canViewReports) {
         return res.status(403).json({ message: "BOM 조회 권한이 없습니다." });
       }
       
@@ -698,10 +738,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/bom/:guideName", requireAuth, async (req, res) => {
+  app.get("/api/bom/:guideName", async (req, res) => {
     try {
-      // BOM 권한 검증
-      if (!req.user.canManageBom) {
+      // 세션 검증
+      if (!req.user) {
+        return res.status(401).json({ message: "로그인이 필요합니다." });
+      }
+      
+      // BOM 조회 권한 검증 (can_manage_bom 또는 can_view_reports 중 하나라도 있으면 상세 조회 가능)
+      if (!req.user.canManageBom && !req.user.canViewReports) {
         return res.status(403).json({ message: "BOM 조회 권한이 없습니다." });
       }
       

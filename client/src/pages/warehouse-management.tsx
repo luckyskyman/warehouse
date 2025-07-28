@@ -122,7 +122,7 @@ export default function WarehouseManagement() {
     { 
       id: 'bomCheck', 
       label: '⚙️ 설치가이드별 자재 확인', 
-      permission: () => permissions.canManageBom 
+      permission: () => permissions.canManageBom || permissions.canViewReports 
     },
     { 
       id: 'inventory', 
