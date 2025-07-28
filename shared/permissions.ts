@@ -181,7 +181,7 @@ export const ROLE_PERMISSIONS = {
     // 재고 관리 (조회만)
     canManageInventory: false,
     canProcessTransactions: false,
-    canManageBom: false,
+    canManageBom: true,        // ✅ BOM 조회/확인은 허용
     canManageWarehouse: false,
     canProcessExchange: false,
     canManageLocation: false,  // 위치 변경 금지
@@ -192,11 +192,11 @@ export const ROLE_PERMISSIONS = {
     canDownloadBom: false,
     canDownloadAll: false,
     
-    // 업무일지 (완전 차단 - 순수 조회만)
+    // 업무일지 (조회만 허용)
     canCreateDiary: false,
     canEditDiary: false,
     canDeleteDiary: false,
-    canViewReports: false,
+    canViewReports: true,  // ✅ 보고서 조회는 허용
   }
 };
 
