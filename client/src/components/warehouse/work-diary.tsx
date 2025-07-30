@@ -45,7 +45,12 @@ export function WorkDiaryManagement({
           'x-session-id': sessionId || ''
         }
       });
-      return response.json();
+      if (!response.ok) {
+        // 권한이 없으면 현재 사용자만 반환
+        return user ? [user] : [];
+      }
+      const result = await response.json();
+      return Array.isArray(result) ? result : [];
     },
     enabled: !!user && !!sessionId
   });
@@ -549,7 +554,7 @@ export function WorkDiaryManagement({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">담당자 없음</SelectItem>
-                      {users.map((user: any) => (
+                      {Array.isArray(users) && users.map((user: any) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.username} ({user.role === 'admin' ? '관리자' : '일반사용자'})
                         </SelectItem>
