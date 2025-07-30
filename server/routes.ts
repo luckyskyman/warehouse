@@ -247,6 +247,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.params.id);
       const updates = req.body;
       
+      // 비밀번호 필드 제거 (권한 수정 시 비밀번호 덮어쓰기 방지)
+      if (updates.password === '' || updates.password === undefined) {
+        delete updates.password;
+      }
+      
       console.log(`권한 업데이트 요청: 사용자 ID ${userId}`, updates);
       
       const user = await storage.updateUser(userId, updates);

@@ -249,6 +249,7 @@ function useCreateUser() {
 function useUpdateUser() {
   return useMutation({
     mutationFn: async (userData: any) => {
+      console.log('API 요청 데이터:', userData);
       return apiRequest('PUT', `/api/users/${userData.id}`, userData);
     },
     onSuccess: () => {
@@ -374,10 +375,27 @@ export default function UserManagement() {
     if (!editingUser) return;
     
     try {
-      await updateUserMutation.mutateAsync({
+      // 권한 필드만 추출하여 전송
+      const permissionFields = Object.fromEntries(
+        Object.values(PERMISSION_CATEGORIES).flatMap((category: any) => 
+          category.permissions.map((perm: any) => [perm.key, formData[perm.key as keyof typeof formData]])
+        )
+      );
+      
+      const updateData = {
         id: editingUser.id,
-        ...formData
-      });
+        username: formData.username,
+        name: formData.name,
+        department: formData.department,
+        position: formData.position,
+        role: formData.role,
+        isManager: formData.isManager,
+        ...permissionFields
+      };
+      
+      console.log('권한 업데이트 전송 데이터:', updateData);
+      
+      await updateUserMutation.mutateAsync(updateData);
       setIsEditDialogOpen(false);
       setEditingUser(null);
     } catch (error) {
