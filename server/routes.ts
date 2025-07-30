@@ -116,6 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           canEditDiary: user.canEditDiary,
           canDeleteDiary: user.canDeleteDiary,
           canViewReports: user.canViewReports,
+          canManageLocation: user.canManageLocation,
         },
         sessionId: sessionId
       });
@@ -161,6 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         canEditDiary: user.canEditDiary,
         canDeleteDiary: user.canDeleteDiary,
         canViewReports: user.canViewReports,
+        canManageLocation: user.canManageLocation,
       }));
       res.json(safeUsers);
     } catch (error) {
