@@ -179,7 +179,7 @@ export const ROLE_PERMISSIONS = {
     canBackupData: false,
     
     // 재고 관리 (조회만)
-    canManageInventory: false,
+    canManageInventory: true,   // ✅ 재고 조회 허용
     canProcessTransactions: false,
     canManageBom: true,        // ✅ BOM 조회/확인은 허용
     canManageWarehouse: false,

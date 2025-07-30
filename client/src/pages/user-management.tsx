@@ -430,10 +430,10 @@ export default function UserManagement() {
       position: user.position || '',
       role: user.role as keyof typeof ROLE_PERMISSIONS,
       isManager: user.isManager || false,
-      // 모든 권한 필드 설정
+      // 모든 권한 필드 설정 - Boolean 변환으로 일관성 확보
       ...Object.fromEntries(
         Object.values(PERMISSION_CATEGORIES).flatMap((category: any) => 
-          category.permissions.map((perm: any) => [perm.key, (user as any)[perm.key] || false])
+          category.permissions.map((perm: any) => [perm.key, Boolean((user as any)[perm.key])])
         )
       )
     });
