@@ -104,6 +104,24 @@ interface PermissionSettingsProps {
 }
 
 function PermissionSettings({ formData, setFormData, onPermissionChange, onResetPermissions, editingUser }: PermissionSettingsProps) {
+  // 절대관리자 보호 체크 함수
+  const isProtectedAdmin = (user: UserType) => {
+    return user.username === 'admin' || user.role === 'super_admin';
+  };
+
+  // 핵심 권한 체크 함수 (절대관리자 보호 대상)
+  const isCorePermission = (permission: string) => {
+    const corePermissions = [
+      'canResetData',
+      'canRestoreData',
+      'canManageUsers',
+      'canManageSystem',
+      'canDeleteDiary',
+      'canDeleteInventory'
+    ];
+    return corePermissions.includes(permission);
+  };
+
   const categories = Object.entries(PERMISSION_CATEGORIES);
   
   return (
