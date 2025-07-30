@@ -310,6 +310,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/users/:id", requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      
+      // 최고관리자(admin) 계정 삭제 방지
+      const userToDelete = await storage.getUserById(userId);
+      if (!userToDelete) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (userToDelete.username === 'admin' || userToDelete.role === 'super_admin') {
+        return res.status(403).json({ 
+          message: "최고관리자 계정은 시스템 보안을 위해 삭제할 수 없습니다." 
+        });
+      }
+      
       const deleted = await storage.deleteUser(userId);
       if (!deleted) {
         return res.status(404).json({ message: "User not found" });
