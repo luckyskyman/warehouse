@@ -256,6 +256,12 @@ Changelog:
   - 프론트엔드 메뉴 필터링 로직 개선: 설치가이드별 자재확인 메뉴 표시 조건 확장
   - 사용자 권한 업데이트 API 응답에 전체 권한 정보 포함하여 실시간 동기화 개선
   - 권한 업데이트 시 상세 로깅 추가로 권한 변경 추적 및 디버깅 강화
+- July 30, 2025. **이상적 권한 시스템 완전 구현**
+  - 권한 적용 로직을 "기본값 + 명시적 오버라이드" 방식으로 개선
+  - 역할별 기본 권한이 우선 적용되고, 개별 계정별 세부 조정 가능한 유연한 시스템 구현
+  - 기존 사용자 권한을 역할 기본값으로 일괄 재설정하여 일관성 확보
+  - hasPermissionOverride 함수로 역할 기본값과 다른 개별 설정만 오버라이드 적용
+  - 테스트 계정(viewer, 조성래) 삭제하고 admin 계정만 유지하여 깨끗한 운영 환경 구성
 ```
 
 ## User Preferences
@@ -268,5 +274,4 @@ Preferred communication style: Simple, everyday language.
 
 ```
 Admin account: username="admin", password="xormr"
-Viewer account: username="viewer", password="1124"
 ```
