@@ -22,7 +22,7 @@ import { ROLE_PERMISSIONS, PERMISSION_CATEGORIES } from "@shared/permissions";
 
 // 역할별 표시 이름과 색상
 const ROLE_CONFIG = {
-  super_admin: { label: '최고관리자', color: 'bg-red-100 text-red-800 border-red-200' },
+  super_admin: { label: '절대관리자', color: 'bg-red-100 text-red-800 border-red-200' },
   admin: { label: '일반관리자', color: 'bg-blue-100 text-blue-800 border-blue-200' },
   manager: { label: '부서관리자', color: 'bg-green-100 text-green-800 border-green-200' },
   user: { label: '일반사용자', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
@@ -100,9 +100,10 @@ interface PermissionSettingsProps {
   setFormData: React.Dispatch<React.SetStateAction<any>>;
   onPermissionChange: (permission: string, value: boolean) => void;
   onResetPermissions: () => void;
+  editingUser?: UserType | null;
 }
 
-function PermissionSettings({ formData, setFormData, onPermissionChange, onResetPermissions }: PermissionSettingsProps) {
+function PermissionSettings({ formData, setFormData, onPermissionChange, onResetPermissions, editingUser }: PermissionSettingsProps) {
   const categories = Object.entries(PERMISSION_CATEGORIES);
   
   return (
@@ -180,18 +181,25 @@ function PermissionSettings({ formData, setFormData, onPermissionChange, onReset
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className={`flex items-center gap-2 ${isModified ? 'text-blue-700 font-medium' : ''}`}>
+                                <div className={`flex items-center gap-2 ${isModified ? 'text-blue-700 font-medium' : ''} ${editingUser && isProtectedAdmin(editingUser) && isCorePermission(permission) ? 'opacity-50' : ''}`}>
                                   <span className="text-sm">{label}</span>
                                   {isModified && (
                                     <Badge variant="secondary" className="text-xs px-1 py-0">
                                       변경
                                     </Badge>
                                   )}
+                                  {editingUser && isProtectedAdmin(editingUser) && isCorePermission(permission) && (
+                                    <Shield className="h-3 w-3 text-red-500" />
+                                  )}
                                   <Info className="h-3 w-3 text-gray-400" />
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p className="max-w-xs">{description}</p>
+                                {editingUser && isProtectedAdmin(editingUser) && isCorePermission(permission) ? (
+                                  <p className="max-w-xs">🛡️ 이 권한은 절대관리자 보호 대상으로 수정할 수 없습니다.</p>
+                                ) : (
+                                  <p className="max-w-xs">{description}</p>
+                                )}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -199,6 +207,7 @@ function PermissionSettings({ formData, setFormData, onPermissionChange, onReset
                         <Switch
                           checked={value}
                           onCheckedChange={(checked) => onPermissionChange(permission, checked)}
+                          disabled={editingUser && isProtectedAdmin(editingUser) && isCorePermission(permission)}
                         />
                       </div>
                     ))}
@@ -414,6 +423,24 @@ export default function UserManagement() {
     }
   };
 
+  // 절대관리자 보호 체크 함수
+  const isProtectedAdmin = (user: UserType) => {
+    return user.username === 'admin' || user.role === 'super_admin';
+  };
+
+  // 핵심 권한 체크 함수 (절대관리자 보호 대상)
+  const isCorePermission = (permission: string) => {
+    const corePermissions = [
+      'canResetData',
+      'canRestoreData',
+      'canManageUsers',
+      'canManageSystem',
+      'canDeleteDiary',
+      'canDeleteInventory'
+    ];
+    return corePermissions.includes(permission);
+  };
+
   // 사용자 삭제
   const handleDeleteUser = async (userId: number) => {
     if (!confirm('정말로 이 사용자를 삭제하시겠습니까?')) return;
@@ -582,6 +609,7 @@ export default function UserManagement() {
                     setFormData={setFormData}
                     onPermissionChange={handlePermissionChange}
                     onResetPermissions={resetPermissions}
+                    editingUser={null}
                   />
                 </div>
               </ScrollArea>
@@ -639,9 +667,23 @@ export default function UserManagement() {
                   <TableCell className="font-medium">{(user as any).name || user.username}</TableCell>
                   <TableCell>{user.username}</TableCell>
                   <TableCell>
-                    <Badge className={ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG]?.color}>
-                      {ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG]?.label}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className={ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG]?.color}>
+                        {ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG]?.label}
+                      </Badge>
+                      {isProtectedAdmin(user) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Shield className="h-4 w-4 text-red-600" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>🛡️ 시스템 보호 계정 - 삭제 불가</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>{user.department || '-'}</TableCell>
                   <TableCell>{user.position || '-'}</TableCell>
@@ -654,14 +696,34 @@ export default function UserManagement() {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!isProtectedAdmin(user) ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                className="text-gray-400 cursor-not-allowed"
+                              >
+                                <Shield className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>🛡️ 절대관리자는 시스템 보안상 삭제할 수 없습니다</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -675,7 +737,24 @@ export default function UserManagement() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>사용자 수정</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              사용자 수정
+              {editingUser && isProtectedAdmin(editingUser) && (
+                <Badge className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1">
+                  <Shield className="h-3 w-3" />
+                  절대관리자
+                </Badge>
+              )}
+            </DialogTitle>
+            {editingUser && isProtectedAdmin(editingUser) && (
+              <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-200">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  <span className="font-medium">시스템 보호 계정</span>
+                </div>
+                <p className="mt-1">기본 정보는 수정 가능하지만, 핵심 권한은 보호됩니다.</p>
+              </div>
+            )}
           </DialogHeader>
           
           <ScrollArea className="max-h-[70vh]">
@@ -768,6 +847,7 @@ export default function UserManagement() {
                 setFormData={setFormData}
                 onPermissionChange={handlePermissionChange}
                 onResetPermissions={resetPermissions}
+                editingUser={editingUser}
               />
             </div>
           </ScrollArea>

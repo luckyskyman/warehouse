@@ -19,6 +19,7 @@ import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
 export interface IStorage {
   // User management
   getUser(id: number): Promise<User | undefined>;
+  getUserById(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
@@ -122,9 +123,9 @@ export class MemStorage implements IStorage {
       id: this.currentUserId++,
       username: "admin",
       password: "xormr",
-      role: "admin",
+      role: "super_admin",
       department: "관리부",
-      position: "관리자",
+      position: "절대관리자",
       isManager: true,
       createdAt: new Date(),
     };
@@ -156,6 +157,10 @@ export class MemStorage implements IStorage {
 
 
   async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
 
@@ -782,9 +787,9 @@ export class DatabaseStorage implements IStorage {
         await this.createUser({
           username: "admin",
           password: "xormr", 
-          role: "admin",
+          role: "super_admin",
           department: "관리부",
-          position: "관리자",
+          position: "절대관리자",
           isManager: true
         });
       }
@@ -807,6 +812,11 @@ export class DatabaseStorage implements IStorage {
 
   // User management
   async getUser(id: number): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }

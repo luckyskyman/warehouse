@@ -319,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (userToDelete.username === 'admin' || userToDelete.role === 'super_admin') {
         return res.status(403).json({ 
-          message: "최고관리자 계정은 시스템 보안을 위해 삭제할 수 없습니다." 
+          message: "🛡️ 절대관리자 계정은 시스템 보안을 위해 삭제할 수 없습니다." 
         });
       }
       
