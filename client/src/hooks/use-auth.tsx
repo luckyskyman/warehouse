@@ -8,6 +8,7 @@ interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
   sessionId: string | null;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,6 +59,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('warehouse_session');
   };
 
+  const refreshUser = async () => {
+    if (!sessionId) return;
+    
+    try {
+      const response = await fetch('/api/auth/me', {
+        headers: { 'x-session-id': sessionId }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        localStorage.setItem('warehouse_user', JSON.stringify(userData));
+        
+        // 권한 변경 후 캐시 무효화
+        queryClient.clear();
+      }
+    } catch (error) {
+      console.error('사용자 정보 새로고침 실패:', error);
+    }
+  };
+
   useEffect(() => {
     const savedUser = localStorage.getItem('warehouse_user');
     const savedSession = localStorage.getItem('warehouse_session');
@@ -73,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, sessionId }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, sessionId, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

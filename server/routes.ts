@@ -1580,6 +1580,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 현재 사용자 정보 조회 API
+  app.get("/api/auth/me", async (req, res) => {
+    const sessionId = req.headers['x-session-id'] as string;
+    
+    if (!sessionId) {
+      return res.status(401).json({ message: "세션 ID가 필요합니다." });
+    }
+    
+    try {
+      const user = await storage.getUserBySession(sessionId);
+      if (!user) {
+        return res.status(401).json({ message: "유효하지 않은 세션입니다." });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("사용자 정보 조회 오류:", error);
+      res.status(500).json({ message: "서버 오류가 발생했습니다." });
+    }
+  });
+
   // Reset all data (admin only)
   app.post("/api/system/reset", requireAdmin, async (req, res) => {
     try {

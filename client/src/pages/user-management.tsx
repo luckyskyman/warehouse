@@ -297,7 +297,7 @@ function useDeleteUser() {
 }
 
 export default function UserManagement() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { data: users = [], isLoading, error } = useUsers();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
@@ -434,6 +434,13 @@ export default function UserManagement() {
       console.log('권한 업데이트 전송 데이터:', updateData);
       
       await updateUserMutation.mutateAsync(updateData);
+      
+      // 현재 로그인 사용자의 권한이 변경된 경우 권한 동기화
+      if (user && editingUser.id === user.id) {
+        console.log('현재 사용자 권한 변경됨 - 권한 동기화 실행');
+        await refreshUser();
+      }
+      
       setIsEditDialogOpen(false);
       setEditingUser(null);
     } catch (error) {

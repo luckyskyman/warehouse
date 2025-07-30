@@ -205,51 +205,34 @@ export function getUserPermissions(user: User): Record<string, boolean> {
   // 1차: 역할별 기본 권한 가져오기
   const rolePermissions = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || ROLE_PERMISSIONS.viewer;
   
-  // 2차: 개별 사용자 권한으로 오버라이드
-  // 주의: 개별 설정이 명시적으로 true/false인 경우에만 오버라이드
-  // user.permission_override 필드가 있다면 해당 권한만 개별 설정 적용
-  const userPermissions = {
-    ...rolePermissions,
-    
-    // 개별 사용자 설정이 역할 기본값과 다른 경우에만 오버라이드
-    // 이를 통해 "기본값 + 명시적 조정"이 가능해집니다
-    ...(hasPermissionOverride(user, 'canUploadBom') && { canUploadBom: user.canUploadBom }),
-    ...(hasPermissionOverride(user, 'canUploadMaster') && { canUploadMaster: user.canUploadMaster }),
-    ...(hasPermissionOverride(user, 'canUploadInventoryAdd') && { canUploadInventoryAdd: user.canUploadInventoryAdd }),
-    ...(hasPermissionOverride(user, 'canUploadInventorySync') && { canUploadInventorySync: user.canUploadInventorySync }),
-    ...(hasPermissionOverride(user, 'canAccessExcelManagement') && { canAccessExcelManagement: user.canAccessExcelManagement }),
-    ...(hasPermissionOverride(user, 'canBackupData') && { canBackupData: user.canBackupData }),
-    ...(hasPermissionOverride(user, 'canRestoreData') && { canRestoreData: user.canRestoreData }),
-    ...(hasPermissionOverride(user, 'canResetData') && { canResetData: user.canResetData }),
-    ...(hasPermissionOverride(user, 'canManageUsers') && { canManageUsers: user.canManageUsers }),
-    ...(hasPermissionOverride(user, 'canManagePermissions') && { canManagePermissions: user.canManagePermissions }),
-    ...(hasPermissionOverride(user, 'canDownloadInventory') && { canDownloadInventory: user.canDownloadInventory }),
-    ...(hasPermissionOverride(user, 'canDownloadTransactions') && { canDownloadTransactions: user.canDownloadTransactions }),
-    ...(hasPermissionOverride(user, 'canDownloadBom') && { canDownloadBom: user.canDownloadBom }),
-    ...(hasPermissionOverride(user, 'canDownloadAll') && { canDownloadAll: user.canDownloadAll }),
-    ...(hasPermissionOverride(user, 'canManageInventory') && { canManageInventory: user.canManageInventory }),
-    ...(hasPermissionOverride(user, 'canProcessTransactions') && { canProcessTransactions: user.canProcessTransactions }),
-    ...(hasPermissionOverride(user, 'canManageBom') && { canManageBom: user.canManageBom }),
-    ...(hasPermissionOverride(user, 'canManageWarehouse') && { canManageWarehouse: user.canManageWarehouse }),
-    ...(hasPermissionOverride(user, 'canProcessExchange') && { canProcessExchange: user.canProcessExchange }),
-    ...(hasPermissionOverride(user, 'canManageLocation') && { canManageLocation: (user as any).canManageLocation }),
-    ...(hasPermissionOverride(user, 'canCreateDiary') && { canCreateDiary: user.canCreateDiary }),
-    ...(hasPermissionOverride(user, 'canEditDiary') && { canEditDiary: user.canEditDiary }),
-    ...(hasPermissionOverride(user, 'canDeleteDiary') && { canDeleteDiary: user.canDeleteDiary }),
-    ...(hasPermissionOverride(user, 'canViewReports') && { canViewReports: user.canViewReports }),
-  };
+  // 2차: 개별 사용자 권한으로 오버라이드 (null이 아닌 값만)
+  const userPermissions: Record<string, boolean> = { ...rolePermissions };
+  
+  // 모든 권한에 대해 개별 설정이 있으면 오버라이드
+  const allPermissions = [
+    'canUploadBom', 'canUploadMaster', 'canUploadInventoryAdd', 'canUploadInventorySync',
+    'canAccessExcelManagement', 'canBackupData', 'canRestoreData', 'canResetData',
+    'canManageUsers', 'canManagePermissions', 'canDownloadInventory', 'canDownloadTransactions',
+    'canDownloadBom', 'canDownloadAll', 'canManageInventory', 'canProcessTransactions',
+    'canManageBom', 'canManageWarehouse', 'canProcessExchange', 'canManageLocation',
+    'canCreateDiary', 'canEditDiary', 'canDeleteDiary', 'canViewReports'
+  ];
+  
+  allPermissions.forEach(permission => {
+    const userValue = (user as any)[permission];
+    if (userValue !== null && userValue !== undefined) {
+      userPermissions[permission] = Boolean(userValue);
+    }
+  });
   
   return userPermissions;
 }
 
 // 권한 오버라이드 확인 함수
 function hasPermissionOverride(user: User, permission: string): boolean {
-  const rolePermissions = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || ROLE_PERMISSIONS.viewer;
-  const roleDefault = rolePermissions[permission as keyof typeof rolePermissions];
   const userValue = (user as any)[permission];
-  
-  // 사용자 설정이 null이 아니고 역할 기본값과 다른 경우에만 오버라이드
-  return userValue !== null && userValue !== roleDefault;
+  // 사용자 설정이 명시적으로 설정된 경우 (null이나 undefined가 아닌 경우)
+  return userValue !== null && userValue !== undefined;
 }
 
 // 권한 확인 함수

@@ -162,7 +162,7 @@ export default function WarehouseManagement() {
     { 
       id: 'workDiary', 
       label: '📋 업무일지', 
-      permission: () => permissions.canViewReports 
+      permission: () => permissions.canCreateDiary || permissions.canEditDiary || permissions.canViewReports 
     },
     { 
       id: 'users', 
