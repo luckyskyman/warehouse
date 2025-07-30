@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Upload, Download, FileSpreadsheet, Database, AlertTriangle } from 'lucide-react';
 import { useInventory, useTransactions, useBomGuides, useWarehouseLayout, useExchangeQueue } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { PermissionGuard } from '@/components/ui/permission-guard';
 import { 
   exportInventoryToExcel, 
@@ -363,12 +363,7 @@ export function ExcelManagement() {
     try {
       console.log('Attempting system reset...');
 
-      const response = await fetch("/api/system/reset", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-      });
+      const response = await apiRequest('POST', '/api/system/reset', {});
 
       console.log('Reset response:', { status: response.status, statusText: response.statusText });
 
