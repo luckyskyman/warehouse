@@ -330,7 +330,12 @@ export default function UserManagement() {
 
   // 권한 변경 핸들러
   const handlePermissionChange = (permission: string, value: boolean) => {
-    setFormData(prev => ({ ...prev, [permission]: value }));
+    console.log(`권한 변경 핸들러: ${permission} = ${value}`);
+    setFormData(prev => {
+      const updated = { ...prev, [permission]: value };
+      console.log('업데이트된 formData:', updated);
+      return updated;
+    });
   };
 
   // 기본 권한으로 초기화
@@ -378,7 +383,7 @@ export default function UserManagement() {
       // 권한 필드만 추출하여 전송
       const permissionFields = Object.fromEntries(
         Object.values(PERMISSION_CATEGORIES).flatMap((category: any) => 
-          category.permissions.map((perm: any) => [perm.key, formData[perm.key as keyof typeof formData]])
+          category.permissions.map((perm: any) => [perm.key, Boolean(formData[perm.key as keyof typeof formData])])
         )
       );
       
@@ -389,7 +394,7 @@ export default function UserManagement() {
         department: formData.department,
         position: formData.position,
         role: formData.role,
-        isManager: formData.isManager,
+        isManager: Boolean(formData.isManager),
         ...permissionFields
       };
       

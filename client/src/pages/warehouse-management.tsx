@@ -127,7 +127,7 @@ export default function WarehouseManagement() {
     { 
       id: 'inventory', 
       label: '📦 재고관리', 
-      permission: () => permissions.canView 
+      permission: () => permissions.canManageInventory 
     },
     { 
       id: 'inbound', 
@@ -147,7 +147,7 @@ export default function WarehouseManagement() {
     { 
       id: 'warehouse', 
       label: '🏪 창고현황', 
-      permission: () => permissions.canView 
+      permission: () => permissions.canManageInventory || permissions.canViewReports 
     },
     { 
       id: 'layout', 
