@@ -200,43 +200,56 @@ export const ROLE_PERMISSIONS = {
   }
 };
 
-// 사용자 권한 확인 함수 (개별 설정 우선)
+// 사용자 권한 확인 함수 (기본값 + 명시적 오버라이드)
 export function getUserPermissions(user: User): Record<string, boolean> {
   // 1차: 역할별 기본 권한 가져오기
   const rolePermissions = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || ROLE_PERMISSIONS.viewer;
   
-  // 2차: 개별 사용자 권한으로 오버라이드 (개별 설정이 우선)
+  // 2차: 개별 사용자 권한으로 오버라이드
+  // 주의: 개별 설정이 명시적으로 true/false인 경우에만 오버라이드
+  // user.permission_override 필드가 있다면 해당 권한만 개별 설정 적용
   const userPermissions = {
     ...rolePermissions,
     
-    // 개별 사용자 설정이 null이 아닌 경우 우선 적용
-    canUploadBom: user.canUploadBom !== null ? user.canUploadBom : rolePermissions.canUploadBom,
-    canUploadMaster: user.canUploadMaster !== null ? user.canUploadMaster : rolePermissions.canUploadMaster,
-    canUploadInventoryAdd: user.canUploadInventoryAdd !== null ? user.canUploadInventoryAdd : rolePermissions.canUploadInventoryAdd,
-    canUploadInventorySync: user.canUploadInventorySync !== null ? user.canUploadInventorySync : rolePermissions.canUploadInventorySync,
-    canAccessExcelManagement: user.canAccessExcelManagement !== null ? user.canAccessExcelManagement : rolePermissions.canAccessExcelManagement,
-    canBackupData: user.canBackupData !== null ? user.canBackupData : rolePermissions.canBackupData,
-    canRestoreData: user.canRestoreData !== null ? user.canRestoreData : rolePermissions.canRestoreData,
-    canResetData: user.canResetData !== null ? user.canResetData : rolePermissions.canResetData,
-    canManageUsers: user.canManageUsers !== null ? user.canManageUsers : rolePermissions.canManageUsers,
-    canManagePermissions: user.canManagePermissions !== null ? user.canManagePermissions : rolePermissions.canManagePermissions,
-    canDownloadInventory: user.canDownloadInventory !== null ? user.canDownloadInventory : rolePermissions.canDownloadInventory,
-    canDownloadTransactions: user.canDownloadTransactions !== null ? user.canDownloadTransactions : rolePermissions.canDownloadTransactions,
-    canDownloadBom: user.canDownloadBom !== null ? user.canDownloadBom : rolePermissions.canDownloadBom,
-    canDownloadAll: user.canDownloadAll !== null ? user.canDownloadAll : rolePermissions.canDownloadAll,
-    canManageInventory: user.canManageInventory !== null ? user.canManageInventory : rolePermissions.canManageInventory,
-    canProcessTransactions: user.canProcessTransactions !== null ? user.canProcessTransactions : rolePermissions.canProcessTransactions,
-    canManageBom: user.canManageBom !== null ? user.canManageBom : rolePermissions.canManageBom,
-    canManageWarehouse: user.canManageWarehouse !== null ? user.canManageWarehouse : rolePermissions.canManageWarehouse,
-    canProcessExchange: user.canProcessExchange !== null ? user.canProcessExchange : rolePermissions.canProcessExchange,
-    canManageLocation: (user as any).canManageLocation !== null ? (user as any).canManageLocation : rolePermissions.canManageLocation,
-    canCreateDiary: user.canCreateDiary !== null ? user.canCreateDiary : rolePermissions.canCreateDiary,
-    canEditDiary: user.canEditDiary !== null ? user.canEditDiary : rolePermissions.canEditDiary,
-    canDeleteDiary: user.canDeleteDiary !== null ? user.canDeleteDiary : rolePermissions.canDeleteDiary,
-    canViewReports: user.canViewReports !== null ? user.canViewReports : rolePermissions.canViewReports,
+    // 개별 사용자 설정이 역할 기본값과 다른 경우에만 오버라이드
+    // 이를 통해 "기본값 + 명시적 조정"이 가능해집니다
+    ...(hasPermissionOverride(user, 'canUploadBom') && { canUploadBom: user.canUploadBom }),
+    ...(hasPermissionOverride(user, 'canUploadMaster') && { canUploadMaster: user.canUploadMaster }),
+    ...(hasPermissionOverride(user, 'canUploadInventoryAdd') && { canUploadInventoryAdd: user.canUploadInventoryAdd }),
+    ...(hasPermissionOverride(user, 'canUploadInventorySync') && { canUploadInventorySync: user.canUploadInventorySync }),
+    ...(hasPermissionOverride(user, 'canAccessExcelManagement') && { canAccessExcelManagement: user.canAccessExcelManagement }),
+    ...(hasPermissionOverride(user, 'canBackupData') && { canBackupData: user.canBackupData }),
+    ...(hasPermissionOverride(user, 'canRestoreData') && { canRestoreData: user.canRestoreData }),
+    ...(hasPermissionOverride(user, 'canResetData') && { canResetData: user.canResetData }),
+    ...(hasPermissionOverride(user, 'canManageUsers') && { canManageUsers: user.canManageUsers }),
+    ...(hasPermissionOverride(user, 'canManagePermissions') && { canManagePermissions: user.canManagePermissions }),
+    ...(hasPermissionOverride(user, 'canDownloadInventory') && { canDownloadInventory: user.canDownloadInventory }),
+    ...(hasPermissionOverride(user, 'canDownloadTransactions') && { canDownloadTransactions: user.canDownloadTransactions }),
+    ...(hasPermissionOverride(user, 'canDownloadBom') && { canDownloadBom: user.canDownloadBom }),
+    ...(hasPermissionOverride(user, 'canDownloadAll') && { canDownloadAll: user.canDownloadAll }),
+    ...(hasPermissionOverride(user, 'canManageInventory') && { canManageInventory: user.canManageInventory }),
+    ...(hasPermissionOverride(user, 'canProcessTransactions') && { canProcessTransactions: user.canProcessTransactions }),
+    ...(hasPermissionOverride(user, 'canManageBom') && { canManageBom: user.canManageBom }),
+    ...(hasPermissionOverride(user, 'canManageWarehouse') && { canManageWarehouse: user.canManageWarehouse }),
+    ...(hasPermissionOverride(user, 'canProcessExchange') && { canProcessExchange: user.canProcessExchange }),
+    ...(hasPermissionOverride(user, 'canManageLocation') && { canManageLocation: (user as any).canManageLocation }),
+    ...(hasPermissionOverride(user, 'canCreateDiary') && { canCreateDiary: user.canCreateDiary }),
+    ...(hasPermissionOverride(user, 'canEditDiary') && { canEditDiary: user.canEditDiary }),
+    ...(hasPermissionOverride(user, 'canDeleteDiary') && { canDeleteDiary: user.canDeleteDiary }),
+    ...(hasPermissionOverride(user, 'canViewReports') && { canViewReports: user.canViewReports }),
   };
   
   return userPermissions;
+}
+
+// 권한 오버라이드 확인 함수
+function hasPermissionOverride(user: User, permission: string): boolean {
+  const rolePermissions = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || ROLE_PERMISSIONS.viewer;
+  const roleDefault = rolePermissions[permission as keyof typeof rolePermissions];
+  const userValue = (user as any)[permission];
+  
+  // 사용자 설정이 null이 아니고 역할 기본값과 다른 경우에만 오버라이드
+  return userValue !== null && userValue !== roleDefault;
 }
 
 // 권한 확인 함수
@@ -289,6 +302,38 @@ export function applyRolePermissions(role: string): Partial<User> {
     canEditDiary: permissions.canEditDiary,
     canDeleteDiary: permissions.canDeleteDiary,
     canViewReports: permissions.canViewReports,
+  };
+}
+
+// 기존 사용자 권한을 역할 기본값으로 재설정하는 함수
+export function resetUserPermissionsToRole(user: User): Partial<User> {
+  const rolePermissions = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || ROLE_PERMISSIONS.viewer;
+  
+  return {
+    // 기본 정보는 유지
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    department: user.department,
+    position: user.position,
+    isManager: user.isManager,
+    
+    // 모든 권한을 역할 기본값으로 재설정
+    ...rolePermissions
+  };
+}
+
+// 사용자 역할 변경 시 권한 갱신 함수
+export function updateUserRoleAndPermissions(user: User, newRole: string): Partial<User> {
+  const newRolePermissions = ROLE_PERMISSIONS[newRole as keyof typeof ROLE_PERMISSIONS] || ROLE_PERMISSIONS.viewer;
+  
+  return {
+    // 기본 정보 업데이트
+    ...user,
+    role: newRole,
+    
+    // 새 역할의 기본 권한 적용
+    ...newRolePermissions
   };
 }
 
