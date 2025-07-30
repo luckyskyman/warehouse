@@ -8,7 +8,7 @@ import { InventoryTable } from '@/components/warehouse/inventory-table';
 import { InboundForm } from '@/components/warehouse/inbound-form';
 import { OutboundForm } from '@/components/warehouse/outbound-form';
 import { MoveForm } from '@/components/warehouse/move-form';
-import { WarehouseStatus } from '@/components/warehouse/warehouse-status';
+import { WarehouseStatusEnhanced } from '@/components/warehouse/warehouse-status-enhanced';
 import { LayoutManagement } from '@/components/warehouse/layout-management';
 import { ExcelManagement } from '@/components/warehouse/excel-management';
 import { WorkDiaryManagement } from '@/components/warehouse/work-diary';
@@ -186,7 +186,7 @@ export default function WarehouseManagement() {
       case 'move':
         return <MoveForm />;
       case 'warehouse':
-        return <WarehouseStatus />;
+        return <WarehouseStatusEnhanced />;
       case 'layout':
         return <LayoutManagement />;
       case 'excel':

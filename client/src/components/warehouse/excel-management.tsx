@@ -251,9 +251,19 @@ export function ExcelManagement() {
       await queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
 
-      const successMessage = result.errors > 0 
+      let successMessage = result.errors > 0 
         ? `${result.synced}개 생성 완료 (${result.total}개 중 ${result.errors}개 오류)`
         : `${result.synced}개 제품이 성공적으로 동기화되었습니다.`;
+
+      // 창고 구조 자동 생성 정보 추가
+      if (result.createdStructures > 0) {
+        successMessage += `\n🏗️ 창고 구조 ${result.createdStructures}개 자동 생성됨`;
+      }
+
+      // 위치 파싱 경고 정보 추가
+      if (result.locationWarnings > 0) {
+        successMessage += `\n⚠️ 위치 형식 인식 실패 ${result.locationWarnings}개`;
+      }
 
       toast({
         title: "전체 동기화 완료",

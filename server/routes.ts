@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertInventoryItemSchema, insertTransactionSchema, insertBomGuideSchema, insertWarehouseLayoutSchema, insertExchangeQueueSchema, insertWorkDiarySchema, insertWorkDiaryCommentSchema, insertUserSchema } from "@shared/schema";
+import { parseLocation, validateLocation, generateWarehouseLayoutData } from "@shared/location-utils";
 
 // Global session store that persists across module loads
 declare global {
@@ -1209,7 +1210,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Processing ${uniqueItems.size} unique items (${processWarnings.length} warnings)`);
       
-      // 2단계: 모든 고유 아이템들 생성 (배치 처리로 성능 향상)
+      // 2단계: 위치 정보 파싱 및 창고 구조 자동 생성
+      const warehouseStructures = new Map(); // 중복 방지용
+      const locationWarnings = [];
+      
+      for (const itemData of uniqueItems.values()) {
+        if (itemData.location) {
+          const parsed = parseLocation(itemData.location);
+          itemData.parsedLocation = parsed;
+          
+          if (!parsed.isValid) {
+            locationWarnings.push(`${itemData.code}: 위치 형식을 인식할 수 없음 "${itemData.location}"`);
+          } else {
+            // 창고 구조 데이터 수집
+            const structureKey = `${parsed.zoneName}-${parsed.subZoneName}`;
+            if (!warehouseStructures.has(structureKey)) {
+              warehouseStructures.set(structureKey, {
+                zoneName: parsed.zoneName,
+                subZoneName: parsed.subZoneName,
+                maxFloor: parsed.floor
+              });
+            } else {
+              // 기존 구조에서 최대 층수 업데이트
+              const existing = warehouseStructures.get(structureKey);
+              existing.maxFloor = Math.max(existing.maxFloor, parsed.floor);
+            }
+          }
+        }
+      }
+      
+      // 창고 구조 자동 생성
+      const createdStructures = [];
+      for (const structureData of warehouseStructures.values()) {
+        try {
+          // 기존에 같은 구조가 있는지 확인
+          const existingLayouts = await storage.getWarehouseLayout();
+          const exists = existingLayouts.some(layout => 
+            layout.zoneName === structureData.zoneName && 
+            layout.subZoneName === structureData.subZoneName
+          );
+          
+          if (!exists) {
+            const floors = Array.from({ length: structureData.maxFloor }, (_, i) => i + 1);
+            const newLayout = await storage.createWarehouseZone({
+              zoneName: structureData.zoneName,
+              subZoneName: structureData.subZoneName,
+              floors: floors
+            });
+            createdStructures.push(newLayout);
+            console.log(`자동 생성된 창고 구조: ${structureData.zoneName}구역-${structureData.subZoneName} (${structureData.maxFloor}층까지)`);
+          }
+        } catch (structureError) {
+          console.error(`창고 구조 생성 실패 ${structureData.zoneName}-${structureData.subZoneName}:`, structureError.message);
+        }
+      }
+
+      // 3단계: 모든 고유 아이템들 생성 (배치 처리로 성능 향상)
       const createdItems = [];
       const errors = [];
       let processedCount = 0;
@@ -1265,8 +1321,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         inputItems: items.length,
         processedItems: uniqueItems.size,
         createdItems: createdItems.length,
+        createdStructures: createdStructures.length,
         errors: errors.length,
-        warnings: processWarnings.length
+        warnings: processWarnings.length,
+        locationWarnings: locationWarnings.length
       });
 
       if (errors.length > 0) {
@@ -1281,10 +1339,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         synced: createdItems.length, 
         total: items.length,
         processed: uniqueItems.size,
+        createdStructures: createdStructures.length,
         errors: errors.length,
         warnings: processWarnings.length,
+        locationWarnings: locationWarnings.length,
         errorDetails: errors.slice(0, 5), // Return first 5 errors
-        warningDetails: processWarnings.slice(0, 5) // Return first 5 warnings
+        warningDetails: processWarnings.slice(0, 5), // Return first 5 warnings
+        locationWarningDetails: locationWarnings.slice(0, 5), // Return first 5 location warnings
+        structureDetails: createdStructures.map(s => `${s.zoneName}구역-${s.subZoneName}`)
       });
       
     } catch (error) {
