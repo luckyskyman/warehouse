@@ -125,16 +125,16 @@ function PermissionSettings({ formData, setFormData, onPermissionChange, onReset
           {categories.map(([categoryKey, category]) => {
             const permissions = category.permissions.map(perm => {
               const roleDefaults = ROLE_PERMISSIONS[formData.role as keyof typeof ROLE_PERMISSIONS] || {};
-              const defaultValue = roleDefaults[perm.key as keyof typeof roleDefaults] || false;
-              const currentValue = formData[perm.key as keyof typeof formData] || false;
+              const defaultValue = Boolean(roleDefaults[perm.key as keyof typeof roleDefaults]);
+              const currentValue = Boolean(formData[perm.key as keyof typeof formData]);
               
               return {
                 permission: perm.key,
                 label: perm.label,
                 description: perm.description,
-                value: Boolean(currentValue),
-                defaultValue: Boolean(defaultValue),
-                isModified: Boolean(currentValue) !== Boolean(defaultValue),
+                value: currentValue,
+                defaultValue: defaultValue,
+                isModified: currentValue !== defaultValue,
               };
             });
             
@@ -162,7 +162,7 @@ function PermissionSettings({ formData, setFormData, onPermissionChange, onReset
                           const roleDefaults = ROLE_PERMISSIONS[formData.role as keyof typeof ROLE_PERMISSIONS] || {};
                           const updates: any = {};
                           category.permissions.forEach(perm => {
-                            updates[perm.key] = roleDefaults[perm.key as keyof typeof roleDefaults] || false;
+                            updates[perm.key] = Boolean(roleDefaults[perm.key as keyof typeof roleDefaults]);
                           });
                           setFormData((prev: any) => ({ ...prev, ...updates }));
                         }}
@@ -341,14 +341,20 @@ export default function UserManagement() {
   // 기본 권한으로 초기화
   const resetPermissions = () => {
     const roleDefaults = ROLE_PERMISSIONS[formData.role] || {};
-    setFormData(prev => ({ ...prev, ...roleDefaults }));
+    const booleanDefaults = Object.fromEntries(
+      Object.entries(roleDefaults).map(([key, value]) => [key, Boolean(value)])
+    );
+    setFormData(prev => ({ ...prev, ...booleanDefaults }));
   };
 
   // 역할 변경 시 기본 권한 적용
   const handleRoleChange = (role: string) => {
     const newFormData = { ...formData, role: role as keyof typeof ROLE_PERMISSIONS };
     const roleDefaults = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] || {};
-    setFormData({ ...newFormData, ...roleDefaults });
+    const booleanDefaults = Object.fromEntries(
+      Object.entries(roleDefaults).map(([key, value]) => [key, Boolean(value)])
+    );
+    setFormData({ ...newFormData, ...booleanDefaults });
   };
 
   // 사용자 생성
