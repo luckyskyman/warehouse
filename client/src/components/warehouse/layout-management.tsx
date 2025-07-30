@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Edit2, Trash2, MapPin, Building, Layers, Package } from 'lucide-react';
-import { useWarehouseLayout, useCreateWarehouseZone, useDeleteWarehouseZone } from '@/hooks/use-inventory';
+import { useWarehouseLayout, useCreateWarehouseZone, useUpdateWarehouseZone, useDeleteWarehouseZone } from '@/hooks/use-inventory';
 import { useToast } from '@/hooks/use-toast';
 import { WarehouseLayout } from '@/types/warehouse';
 import { PermissionGuard } from '@/components/ui/permission-guard';
@@ -30,6 +30,7 @@ export function LayoutManagement() {
   const { toast } = useToast();
   const { data: layout = [] } = useWarehouseLayout();
   const createZone = useCreateWarehouseZone();
+  const updateZone = useUpdateWarehouseZone();
   const deleteZone = useDeleteWarehouseZone();
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<LayoutFormData>({
@@ -51,25 +52,40 @@ export function LayoutManagement() {
   const onSubmit = async (data: LayoutFormData) => {
     try {
       const floorsArray = data.floors.split(',').map(f => f.trim()).filter(f => f);
-      
-      await createZone.mutateAsync({
+      const zoneData = {
         zoneName: data.zoneName,
         subZoneName: data.subZoneName,
         floors: floorsArray,
-      });
+      };
 
-      toast({
-        title: "구역 추가 완료",
-        description: `${data.zoneName}-${data.subZoneName}이(가) 추가되었습니다.`,
-      });
+      if (editingZone) {
+        // 편집 모드
+        await updateZone.mutateAsync({
+          id: editingZone.id,
+          ...zoneData,
+        });
+
+        toast({
+          title: "구역 수정 완료",
+          description: `${data.zoneName}-${data.subZoneName}이(가) 수정되었습니다.`,
+        });
+      } else {
+        // 새 생성 모드
+        await createZone.mutateAsync(zoneData);
+
+        toast({
+          title: "구역 추가 완료",
+          description: `${data.zoneName}-${data.subZoneName}이(가) 추가되었습니다.`,
+        });
+      }
 
       reset();
       setIsDialogOpen(false);
       setEditingZone(null);
     } catch (error) {
       toast({
-        title: "구역 추가 실패",
-        description: "구역 추가 중 오류가 발생했습니다.",
+        title: editingZone ? "구역 수정 실패" : "구역 추가 실패",
+        description: editingZone ? "구역 수정 중 오류가 발생했습니다." : "구역 추가 중 오류가 발생했습니다.",
         variant: "destructive",
       });
     }
@@ -91,17 +107,12 @@ export function LayoutManagement() {
 
   const handleDelete = async (zoneId: number, zoneName: string, subZoneName: string) => {
     try {
-      console.log('Attempting to delete zone:', { zoneId, zoneName, subZoneName });
-      const sessionId = localStorage.getItem('warehouse_session');
-      console.log('Session check for delete:', { sessionId });
-      
       await deleteZone.mutateAsync(zoneId);
       toast({
         title: "구역 삭제 완료",
         description: `${zoneName}-${subZoneName}이(가) 삭제되었습니다.`,
       });
     } catch (error) {
-      console.log('Delete zone error details:', error);
       const errorMessage = error instanceof Error ? error.message : "구역 삭제 중 오류가 발생했습니다.";
       toast({
         title: "삭제 실패",

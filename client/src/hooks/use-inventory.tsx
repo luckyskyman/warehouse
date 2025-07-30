@@ -171,35 +171,24 @@ export function useCreateWarehouseZone() {
   });
 }
 
+export function useUpdateWarehouseZone() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, ...zone }: any) => apiRequest('PUT', `/api/warehouse/layout/${id}`, zone),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/warehouse/layout'] });
+    },
+  });
+}
+
 export function useDeleteWarehouseZone() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (id: number) => {
-      console.log('Deleting warehouse zone:', id);
-      
-      const response = await fetch(`/api/warehouse/layout/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-      });
-      
-      console.log('Delete response:', { status: response.status, statusText: response.statusText });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}: 삭제 요청이 실패했습니다.`);
-      }
-      
-      return response;
-    },
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/warehouse/layout/${id}`),
     onSuccess: () => {
-      console.log('Delete successful, invalidating cache');
       queryClient.invalidateQueries({ queryKey: ['/api/warehouse/layout'] });
-    },
-    onError: (error) => {
-      console.error('Delete failed:', error);
     },
   });
 }

@@ -270,6 +270,13 @@ Changelog:
   - 권한 보호: 핵심 권한(시스템 관리, 사용자 관리, 데이터 삭제 등) 수정 차단
   - 편집 다이얼로그: 절대관리자 특별 표시 및 보호 설명 추가
   - 시각적 피드백: Shield 아이콘과 툴팁으로 보호 상태 명확히 표시
+- July 30, 2025. **창고구조관리 CRUD 기능 완전 수정**
+  - 삭제 기능 세션 인증 문제 해결: fetch 대신 apiRequest 사용으로 세션 헤더 자동 포함
+  - 편집 기능 완전 구현: useUpdateWarehouseZone Hook 및 PUT API 엔드포인트 추가
+  - 서버 측: updateWarehouseZone 메서드를 MemStorage와 DatabaseStorage 모두에 구현
+  - 클라이언트 측: 편집 모드와 생성 모드를 구분하는 onSubmit 로직 개선
+  - 폼 중복 생성 문제 해결: editingZone 상태 기반 조건부 API 호출
+  - 절대관리자 계정에서 창고구조의 생성, 수정, 삭제 모든 기능 정상 작동 보장
 ```
 
 ## User Preferences

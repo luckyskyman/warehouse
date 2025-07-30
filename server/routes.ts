@@ -820,6 +820,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/warehouse/layout/:id", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertWarehouseLayoutSchema.parse(req.body);
+      const layout = await storage.updateWarehouseZone(parseInt(req.params.id), validatedData);
+      if (!layout) {
+        return res.status(404).json({ message: "Warehouse zone not found" });
+      }
+      res.json(layout);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid data" });
+    }
+  });
+
   app.delete("/api/warehouse/layout/:id", requireAdmin, async (req, res) => {
     try {
       const deleted = await storage.deleteWarehouseZone(parseInt(req.params.id));

@@ -49,6 +49,7 @@ export interface IStorage {
   // Warehouse layout
   getWarehouseLayout(): Promise<WarehouseLayout[]>;
   createWarehouseZone(layout: InsertWarehouseLayout): Promise<WarehouseLayout>;
+  updateWarehouseZone(id: number, updates: InsertWarehouseLayout): Promise<WarehouseLayout | undefined>;
   deleteWarehouseZone(id: number): Promise<boolean>;
 
   // Exchange queue
@@ -345,6 +346,18 @@ export class MemStorage implements IStorage {
     };
     this.warehouseLayout.push(layout);
     return layout;
+  }
+
+  async updateWarehouseZone(id: number, updates: InsertWarehouseLayout): Promise<WarehouseLayout | undefined> {
+    const index = this.warehouseLayout.findIndex(layout => layout.id === id);
+    if (index === -1) return undefined;
+    
+    const updatedLayout = {
+      ...this.warehouseLayout[index],
+      ...updates,
+    };
+    this.warehouseLayout[index] = updatedLayout;
+    return updatedLayout;
   }
 
   async deleteWarehouseZone(id: number): Promise<boolean> {
@@ -921,6 +934,14 @@ export class DatabaseStorage implements IStorage {
 
   async createWarehouseZone(insertLayout: InsertWarehouseLayout): Promise<WarehouseLayout> {
     const result = await db.insert(warehouseLayout).values(insertLayout).returning();
+    return result[0];
+  }
+
+  async updateWarehouseZone(id: number, updates: InsertWarehouseLayout): Promise<WarehouseLayout | undefined> {
+    const result = await db.update(warehouseLayout)
+      .set(updates)
+      .where(eq(warehouseLayout.id, id))
+      .returning();
     return result[0];
   }
 
