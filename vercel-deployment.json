@@ -1,17 +1,17 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "client/dist",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "framework": "vite",
-  "rewrites": [
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "@vercel/node@3.0.7"
+    }
+  },
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://warehouse-inventory-narae0008.replit.app/api/$1"
+      "src": "/api/(.*)",
+      "dest": "https://warehouse-inventory-narae0008.replit.app/api/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
