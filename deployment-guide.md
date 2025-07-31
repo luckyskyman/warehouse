@@ -76,10 +76,17 @@ GitHub package.json 103번 줄 수정 완료:
 - index.html, vercel.json 업데이트 필요
 - 404 오류 원인: 빌드 프로세스 또는 라우팅 설정 문제로 추정
 
-### 13. 권장 사항
-**우선순위 1**: Replit 메인 시스템 사용 (완전 기능)
-**우선순위 2**: GitHub + Supabase 환경은 백업/개발용으로 활용
-**향후**: Vercel 문제 해결 시 추가 배포 환경 확보
+### 13. Vercel 배포 문제 해결 시도 중
+- package.json 간소화 시도 (의존성 문제 해결)
+- vite.config.ts 오류 발생 (빌드 시스템 문제)
+- 완전 정적 HTML 방식으로 재시도 중
+
+### 14. 최종 배포 전략 변경
+**초간단 정적 페이지 방식**:
+- package.json: 최소한의 설정만
+- vercel.json: 정적 라우팅만 
+- index.html: 순수 HTML + CSS
+- 빌드 과정 완전 제거
 
 ## 예상 결과
 - 성능: Vercel이 더 빠를 가능성
