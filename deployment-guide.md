@@ -40,11 +40,19 @@
 - **현재 운영**: warehouse-inventory-narae0008.replit.app (정상 운영 중)
 - **테스트 버전**: warehouse-inventory-system-steel.vercel.app (배포 완료)
 
-### 7. 최종 테스트
-- 🔄 웹사이트 접속 테스트
-- 🔄 로그인 기능 확인
-- 🔄 데이터베이스 연결 확인
-- 🔄 성능 비교 분석
+### 7. 서버리스 환경 수정 ✅
+- ✅ 404 오류 진단 완료
+- ✅ vercel.json 설정 수정
+- ✅ api/index.ts 서버리스 환경에 맞게 수정
+- ✅ @vercel/node 패키지 설치
+- ✅ index.html 생성
+- 🔄 GitHub 업데이트 (Git 권한 문제로 수동 업데이트 필요)
+
+### 8. 수동 업데이트 필요 파일들
+**vercel.json**: API 라우팅 수정
+**api/index.ts**: 서버리스 함수로 변경
+**index.html**: 루트 페이지 추가
+**package.json**: @vercel/node 의존성 추가
 
 ## 예상 결과
 - 성능: Vercel이 더 빠를 가능성
