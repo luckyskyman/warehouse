@@ -1,17 +1,17 @@
 {
-  "functions": {
-    "api/index.ts": {
-      "runtime": "@vercel/node@3.0.7"
-    }
-  },
-  "routes": [
+  "buildCommand": "npm run build",
+  "outputDirectory": "client/dist",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.ts"
+      "source": "/api/(.*)",
+      "destination": "https://warehouse-inventory-narae0008.replit.app/api/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
