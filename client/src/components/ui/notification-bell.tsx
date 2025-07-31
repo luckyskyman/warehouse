@@ -151,11 +151,13 @@ export function NotificationBell() {
               updateSettings({ detailed: checked });
             }}
             disabled={!settings.enabled}
-            className="text-sm py-2"
+            className={`text-sm py-2 ${!settings.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              상세 음성 (작성자 포함)
+              <Settings className={`h-4 w-4 ${!settings.enabled ? 'text-gray-300' : 'text-gray-600'}`} />
+              <span className={!settings.enabled ? 'text-gray-400' : 'text-gray-900'}>
+                상세 음성 (작성자 포함)
+              </span>
             </div>
           </DropdownMenuCheckboxItem>
         </div>
