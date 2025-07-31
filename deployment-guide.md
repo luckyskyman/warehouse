@@ -86,11 +86,15 @@ GitHub package.json 103번 줄 수정 완료:
 - vite 명령어 누락으로 빌드 실패
 - 해결책: package.json에 echo 빌드 명령 추가
 
-### 15. 최종 해결 방안
-**더미 빌드 명령어 방식**:
-- `"build": "echo 'Build completed - static HTML deployment'"`
-- 빌드 성공으로 인식시키고 정적 HTML만 배포
-- 복잡한 의존성 없이 순수 정적 페이지 제공
+### 15. 빌드 성공, Output Directory 문제 해결
+- ✅ 더미 빌드 명령어 성공: "Build completed - static HTML deployment"
+- ❌ "No Output Directory named 'dist' found" 오류
+- 해결책: vercel.json에서 outputDirectory를 "."로 변경 (루트 디렉토리)
+
+### 16. 최종 Vercel 설정
+**루트 디렉토리 배포 방식**:
+- `"outputDirectory": "."` - 루트 디렉토리의 index.html 직접 사용
+- dist 폴더 없이 바로 정적 파일 배포
 
 ## 예상 결과
 - 성능: Vercel이 더 빠를 가능성
