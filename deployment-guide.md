@@ -17,18 +17,19 @@
 2. ZIP 파일 드래그 앤 드롭
 3. "Commit changes" 클릭
 
-### 3. PlanetScale 데이터베이스 설정
-1. https://planetscale.com 회원가입 (무료)
-2. 새 데이터베이스 생성: `warehouse-inventory`
-3. 연결 문자열 복사
-4. 스키마 생성: `npm run db:push` 실행
+### 3. Supabase 데이터베이스 설정 ✅
+1. ✅ Supabase 조직 생성: `warehouse-inventory`
+2. ✅ 프로젝트 생성: `warehouse-inventory-db`
+3. ✅ PostgreSQL 데이터베이스 활성화
+4. 🔄 연결 문자열 복사 (진행 중)
+5. 🔄 Vercel 환경변수 설정 (다음 단계)
 
-### 4. Vercel 배포
+### 4. Vercel 배포 (다음 단계)
 1. https://vercel.com 방문
 2. GitHub 계정으로 로그인
 3. "New Project" → GitHub 저장소 선택
 4. 환경변수 설정:
-   - `DATABASE_URL`: PlanetScale 연결 문자열
+   - `DATABASE_URL`: Supabase 연결 문자열
    - `NODE_ENV`: `production`
 5. Deploy 클릭
 
