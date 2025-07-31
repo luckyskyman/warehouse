@@ -1,10 +1,27 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".",
+  "version": 2,
+  "builds": [
+    {
+      "src": "client/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/client/$1"
     }
-  ]
+  ],
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "NODE_ENV": "production"
+  }
 }

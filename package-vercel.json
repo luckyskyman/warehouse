@@ -1,0 +1,12 @@
+{
+  "name": "warehouse-inventory-system",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "pg": "^8.11.3"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
