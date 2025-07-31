@@ -36,9 +36,15 @@
 - 🔄 API 라우팅 수정
 - 🔄 데이터베이스 스키마 동기화
 
-### 6. 테스트 비교
+### 6. 테스트 비교 ✅
 - **현재 운영**: warehouse-inventory-narae0008.replit.app (정상 운영 중)
-- **테스트 버전**: warehouse-inventory-system.vercel.app (배포 완료, 설정 조정 중)
+- **테스트 버전**: warehouse-inventory-system-steel.vercel.app (배포 완료)
+
+### 7. 최종 테스트
+- 🔄 웹사이트 접속 테스트
+- 🔄 로그인 기능 확인
+- 🔄 데이터베이스 연결 확인
+- 🔄 성능 비교 분석
 
 ## 예상 결과
 - 성능: Vercel이 더 빠를 가능성
