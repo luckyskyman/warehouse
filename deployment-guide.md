@@ -24,18 +24,21 @@
 4. 🔄 연결 문자열 복사 (진행 중)
 5. 🔄 Vercel 환경변수 설정 (다음 단계)
 
-### 4. Vercel 배포 (다음 단계)
-1. https://vercel.com 방문
-2. GitHub 계정으로 로그인
-3. "New Project" → GitHub 저장소 선택
-4. 환경변수 설정:
-   - `DATABASE_URL`: Supabase 연결 문자열
-   - `NODE_ENV`: `production`
-5. Deploy 클릭
+### 4. Vercel 배포 ✅
+1. ✅ https://vercel.com 방문
+2. ✅ GitHub 계정으로 로그인
+3. ✅ "New Project" → GitHub 저장소 선택
+4. ✅ 환경변수 설정: DATABASE_URL 입력
+5. ✅ Deploy 성공 완료
 
-### 5. 테스트 비교
-- **현재 운영**: warehouse-inventory-narae0008.replit.app
-- **테스트 버전**: yourapp.vercel.app (배포 후 생성)
+### 5. 배포 후 설정 (진행 중)
+- 🔄 서버리스 함수 설정 조정
+- 🔄 API 라우팅 수정
+- 🔄 데이터베이스 스키마 동기화
+
+### 6. 테스트 비교
+- **현재 운영**: warehouse-inventory-narae0008.replit.app (정상 운영 중)
+- **테스트 버전**: warehouse-inventory-system.vercel.app (배포 완료, 설정 조정 중)
 
 ## 예상 결과
 - 성능: Vercel이 더 빠를 가능성
