@@ -58,9 +58,11 @@
 GitHub package.json 103번 줄 수정 완료:
 - ✅ `"@vercel/node": "^3.0.0"` (쉼표 제거됨)
 
-### 10. package.json 완전 교체 필요
-GitHub의 package.json에 JSON 구문 오류 지속 발생
-해결방법: 전체 파일을 Replit의 정상 버전으로 완전 교체
+### 10. 단순화된 배포 방식 적용
+package.json 의존성 문제 우회를 위해 단순한 서버리스 함수로 변경:
+- vercel.json: functions 방식 사용
+- api/index.ts: @vercel/node 의존성 제거한 단순 버전
+- 우선 배포 성공 후 단계적 기능 추가 예정
 
 ## 예상 결과
 - 성능: Vercel이 더 빠를 가능성

@@ -1,20 +1,24 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import express from 'express';
-import { registerRoutes } from '../server/routes.js';
-
-let app: express.Express | null = null;
-
-async function getApp() {
-  if (!app) {
-    app = express();
-    await registerRoutes(app);
+// Simple serverless function without @vercel/node dependency
+export default async function handler(req: any, res: any) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
-  return app;
-}
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const expressApp = await getApp();
-  return new Promise((resolve) => {
-    expressApp(req as any, res as any, resolve);
+  
+  if (req.url === '/api/health') {
+    res.status(200).json({ status: 'healthy', message: 'API is working' });
+    return;
+  }
+  
+  // Redirect API requests to explain the setup
+  res.status(200).json({ 
+    message: 'Warehouse Management System API',
+    note: 'This is a test deployment. Full functionality requires database setup.',
+    endpoints: ['/api/health']
   });
 }
