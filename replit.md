@@ -293,6 +293,13 @@ Changelog:
   - 사용자 친화적 메시지: 알림 없을 때 설정 방법 안내 포함
   - 세션 만료 시 자동 복구 시스템: BOM 데이터 캐시 자동 prefetch
   - 상세 음성 설정 UI 개선: 비활성화 상태 시각적 구분 강화
+- July 31, 2025. **Vercel 완전 독립 시스템 구축 완료**
+  - Replit 메인 시스템은 그대로 유지하며 정상 운영 계속
+  - Vercel에 완전히 새로운 독립 창고관리시스템 구축
+  - 새로운 PostgreSQL 데이터베이스 생성 (Replit과 별도)
+  - 서버리스 아키텍처: API Functions (/api/auth.js, /api/inventory.js)
+  - 완전한 웹앱: 로그인, 대시보드, 재고관리 기능 포함
+  - 두 시스템 병렬 운영: 사용자가 원하는 플랫폼 선택 가능
 ```
 
 ## User Preferences
