@@ -51,8 +51,8 @@
 ### 8. GitHub 파일 수정 진행상황
 - ✅ **package.json**: @vercel/node 의존성 이미 추가됨
 - ✅ **vercel.json**: API 라우팅 수정 완료
-- 🔄 **api/index.ts**: 서버리스 함수로 변경 (진행 중)
-- 🔄 **index.html**: 루트 페이지 추가 (대기 중)
+- ✅ **api/index.ts**: 서버리스 함수로 변경 완료
+- 🔄 **index.html**: 루트 페이지 추가 (진행 중)
 
 ## 예상 결과
 - 성능: Vercel이 더 빠를 가능성
