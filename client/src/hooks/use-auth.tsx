@@ -41,10 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 로그인 시 권한별 캐시 무효화 (페이지 새로고침 없음)
       queryClient.clear(); // 전체 캐시 초기화로 권한 변경 즉시 반영
       
-      // 주요 데이터 다시 가져오기
+      // 주요 데이터 다시 가져오기 (BOM 데이터 포함)
       await queryClient.prefetchQuery({ queryKey: ['/api/work-diary'] });
       await queryClient.prefetchQuery({ queryKey: ['/api/users'] });
       await queryClient.prefetchQuery({ queryKey: ['/api/notifications'] });
+      await queryClient.prefetchQuery({ 
+        queryKey: ['/api/bom'],
+        queryFn: async () => {
+          const response = await fetch('/api/bom', {
+            headers: { 'x-session-id': data.sessionId }
+          });
+          if (!response.ok) return [];
+          return response.json();
+        }
+      });
     } catch (error) {
       throw error instanceof Error ? error : new Error('로그인에 실패했습니다.');
     } finally {
