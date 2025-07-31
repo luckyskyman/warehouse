@@ -5,19 +5,17 @@
 ✅ Vercel 배포 설정 파일 생성 완료
 ✅ 코드 커밋 완료
 
-## 다음 단계
+## 다음 단계 (GitHub 우회 방법)
 
-### 1. GitHub 저장소 생성
-1. https://github.com 에서 새 저장소 생성
-2. 저장소 이름: `warehouse-inventory-system`
-3. Public 또는 Private 선택
+### 1. 파일 다운로드
+1. Replit 왼쪽 파일 탐색기에서 전체 선택
+2. 우클릭 → Download
+3. ZIP 파일 저장
 
-### 2. 코드 푸시
-```bash
-git remote add origin https://github.com/YOUR_USERNAME/warehouse-inventory-system.git
-git branch -M main
-git push -u origin main
-```
+### 2. GitHub 업로드
+1. GitHub 저장소에서 "uploading an existing file" 클릭
+2. ZIP 파일 드래그 앤 드롭
+3. "Commit changes" 클릭
 
 ### 3. PlanetScale 데이터베이스 설정
 1. https://planetscale.com 회원가입 (무료)
