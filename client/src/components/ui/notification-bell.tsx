@@ -24,10 +24,7 @@ export function NotificationBell() {
   const { settings, updateSettings, announceNewDiary, announceStatusChange } = useVoiceNotifications();
   const [lastNotificationCount, setLastNotificationCount] = useState(0);
 
-  // 로그인하지 않은 경우 null 반환 (알림 벨 숨김)
-  if (!user) {
-    return null;
-  }
+  // 로그인하지 않은 경우에도 알림 벨 표시 (설정 접근을 위해)
 
   // 새 알림 감지 및 음성 재생
   useEffect(() => {
