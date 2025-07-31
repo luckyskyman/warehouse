@@ -2,11 +2,15 @@
   "name": "warehouse-inventory-system",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "build": "echo 'Build completed - static deployment' && exit 0",
+    "start": "node api/index.js"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "pg": "^8.11.3"
   },
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   }
 }
