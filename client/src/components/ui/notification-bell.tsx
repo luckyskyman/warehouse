@@ -124,12 +124,15 @@ export function NotificationBell() {
           </div>
         </DropdownMenuLabel>
         
-        {/* 음성 설정 섹션 - 항상 표시 */}
+        {/* 음성 설정 섹션 - 항상 표시하고 활성화 */}
         <div className="p-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 px-2">음성 알림 설정</div>
           <DropdownMenuCheckboxItem
             checked={settings.enabled}
-            onCheckedChange={(checked) => updateSettings({ enabled: checked })}
+            onCheckedChange={(checked) => {
+              console.log('음성 알림 설정 변경:', checked);
+              updateSettings({ enabled: checked });
+            }}
             className="text-sm py-2"
           >
             <div className="flex items-center gap-2">
@@ -143,7 +146,10 @@ export function NotificationBell() {
           </DropdownMenuCheckboxItem>
           <DropdownMenuCheckboxItem
             checked={settings.detailed}
-            onCheckedChange={(checked) => updateSettings({ detailed: checked })}
+            onCheckedChange={(checked) => {
+              console.log('상세 음성 설정 변경:', checked);
+              updateSettings({ detailed: checked });
+            }}
             disabled={!settings.enabled}
             className="text-sm py-2"
           >
@@ -162,7 +168,9 @@ export function NotificationBell() {
               <div className="p-4 text-center">
                 <Bell className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">새로운 알림이 없습니다</div>
-                <div className="text-xs text-gray-400 dark:text-gray-500">알림 설정은 위에서 변경할 수 있습니다</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">
+                  {user ? "알림 설정은 위에서 변경할 수 있습니다" : "로그인 후 알림을 받아보세요"}
+                </div>
               </div>
             ) : (
               <div className="space-y-1">

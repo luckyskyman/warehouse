@@ -97,6 +97,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setUser(JSON.parse(savedUser));
         setSessionId(savedSession);
+        
+        // 세션 복원 후 중요한 데이터 prefetch (BOM 데이터 포함)
+        setTimeout(async () => {
+          try {
+            await queryClient.prefetchQuery({ 
+              queryKey: ['/api/bom'],
+              queryFn: async () => {
+                const response = await fetch('/api/bom', {
+                  headers: { 'x-session-id': savedSession }
+                });
+                if (!response.ok) return [];
+                return response.json();
+              }
+            });
+          } catch (error) {
+            console.log('BOM 데이터 prefetch 실패:', error);
+          }
+        }, 100);
       } catch (error) {
         localStorage.removeItem('warehouse_user');
         localStorage.removeItem('warehouse_session');

@@ -23,9 +23,12 @@ export function useNotifications() {
           'x-session-id': sessionId || ''
         }
       });
+      if (!response.ok) {
+        return []; // 인증 실패 시 빈 배열 반환
+      }
       return response.json();
     },
-    enabled: !!user && !!sessionId,
+    enabled: true, // 항상 활성화 (로그인 여부와 관계없이)
     refetchInterval: 30000, // 30초마다 새 알림 확인
   });
 }
