@@ -1,0 +1,37 @@
+# GitHub 업로드할 핵심 파일들
+
+## 루트 파일들 (먼저 업로드)
+- package.json
+- vercel.json
+- tsconfig.json
+- tailwind.config.ts
+- vite.config.ts
+- drizzle.config.ts
+- components.json
+- postcss.config.js
+
+## API 폴더
+- api/index.ts
+
+## Client 폴더 (중요)
+- client/src/App.tsx
+- client/src/main.tsx
+- client/index.html
+- client/package.json (있다면)
+
+## Server 폴더 (중요)  
+- server/index.ts
+- server/routes.ts
+- server/storage.ts
+
+## Shared 폴더 (중요)
+- shared/schema.ts
+
+## 업로드 순서
+1. 루트 파일들 먼저
+2. api 폴더
+3. shared 폴더  
+4. server 폴더
+5. client 폴더 (마지막)
+
+각 단계별로 "Add file" -> "Upload files"를 반복하여 업로드합니다.
