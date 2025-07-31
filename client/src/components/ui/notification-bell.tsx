@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, Settings, Volume2, VolumeX } from 'lucide-react';
+import { Bell, Settings, Volume2, VolumeX, BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -15,12 +15,19 @@ import { useNotifications, useMarkNotificationRead, type WorkNotification } from
 import { useVoiceNotifications } from '@/hooks/use-voice-notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { useAuth } from '@/hooks/use-auth';
 
 export function NotificationBell() {
+  const { user } = useAuth();
   const { data: notifications = [], refetch } = useNotifications();
   const markAsRead = useMarkNotificationRead();
   const { settings, updateSettings, announceNewDiary, announceStatusChange } = useVoiceNotifications();
   const [lastNotificationCount, setLastNotificationCount] = useState(0);
+
+  // 로그인하지 않은 경우 null 반환 (알림 벨 숨김)
+  if (!user) {
+    return null;
+  }
 
   // 새 알림 감지 및 음성 재생
   useEffect(() => {
@@ -66,81 +73,130 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
-          <Bell className="h-5 w-5" />
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="relative hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 rounded-full p-2"
+          title="알림 및 설정"
+        >
+          {/* 알림이 있을 때는 BellRing, 없을 때는 Bell 아이콘 */}
+          {unreadCount > 0 ? (
+            <BellRing className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-pulse" />
+          ) : (
+            <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          )}
+          
+          {/* 읽지 않은 알림 개수 배지 - 항상 표시 가능하도록 개선 */}
           {unreadCount > 0 && (
             <Badge 
               variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs font-bold shadow-lg animate-bounce"
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
+          )}
+
+          {/* 음성 알림이 켜져있을 때 작은 표시점 */}
+          {settings.enabled && (
+            <div className="absolute -bottom-1 -right-1 h-2 w-2 bg-green-500 rounded-full border border-white dark:border-gray-900"></div>
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel className="flex items-center justify-between">
-          알림
+      <DropdownMenuContent align="end" className="w-80 shadow-xl border-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
+        <DropdownMenuLabel className="flex items-center justify-between py-3 px-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="font-semibold text-gray-900 dark:text-gray-100">알림 센터</span>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => updateSettings({ enabled: !settings.enabled })}
-              className="h-6 w-6 p-0"
+              className="h-8 w-8 p-0 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title={settings.enabled ? "음성 알림 끄기" : "음성 알림 켜기"}
             >
               {settings.enabled ? (
-                <Volume2 className="h-4 w-4" />
+                <Volume2 className="h-4 w-4 text-green-600 dark:text-green-400" />
               ) : (
-                <VolumeX className="h-4 w-4" />
+                <VolumeX className="h-4 w-4 text-gray-400" />
               )}
             </Button>
+            <Settings className="h-4 w-4 text-gray-400" />
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
         
-        {/* 음성 설정 */}
-        <DropdownMenuCheckboxItem
-          checked={settings.enabled}
-          onCheckedChange={(checked) => updateSettings({ enabled: checked })}
-        >
-          음성 알림 켜기
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem
-          checked={settings.detailed}
-          onCheckedChange={(checked) => updateSettings({ detailed: checked })}
-          disabled={!settings.enabled}
-        >
-          상세 음성 (작성자 포함)
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuSeparator />
-
-        {/* 알림 목록 */}
-        <div className="max-h-96 overflow-y-auto">
-          {notifications.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground text-sm">
-              새로운 알림이 없습니다
+        {/* 음성 설정 섹션 - 항상 표시 */}
+        <div className="p-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 px-2">음성 알림 설정</div>
+          <DropdownMenuCheckboxItem
+            checked={settings.enabled}
+            onCheckedChange={(checked) => updateSettings({ enabled: checked })}
+            className="text-sm py-2"
+          >
+            <div className="flex items-center gap-2">
+              {settings.enabled ? (
+                <Volume2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <VolumeX className="h-4 w-4 text-gray-400" />
+              )}
+              음성 알림 활성화
             </div>
-          ) : (
-            notifications.slice(0, 10).map((notification: WorkNotification) => (
-              <DropdownMenuItem
-                key={notification.id}
-                className={`flex flex-col items-start p-3 cursor-pointer ${
-                  !notification.read ? 'bg-blue-50 dark:bg-blue-950' : ''
-                }`}
-                onClick={() => handleNotificationClick(notification)}
-              >
-                <div className="text-sm font-medium line-clamp-2">
-                  {notification.message}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {formatDistanceToNow(new Date(notification.createdAt), {
-                    addSuffix: true,
-                    locale: ko
-                  })}
-                </div>
-              </DropdownMenuItem>
-            ))
-          )}
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={settings.detailed}
+            onCheckedChange={(checked) => updateSettings({ detailed: checked })}
+            disabled={!settings.enabled}
+            className="text-sm py-2"
+          >
+            <div className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              상세 음성 (작성자 포함)
+            </div>
+          </DropdownMenuCheckboxItem>
+        </div>
+
+        {/* 알림 목록 - 항상 접근 가능 */}
+        <div className="max-h-96 overflow-y-auto">
+          <div className="p-2">
+            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 px-2">최근 알림</div>
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center">
+                <Bell className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">새로운 알림이 없습니다</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">알림 설정은 위에서 변경할 수 있습니다</div>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {notifications.slice(0, 10).map((notification: WorkNotification) => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className={`flex flex-col items-start p-3 cursor-pointer rounded-lg transition-colors ${
+                      !notification.read 
+                        ? 'bg-blue-50 dark:bg-blue-950 border-l-2 border-blue-500' 
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex items-start justify-between w-full">
+                      <div className="text-sm font-medium line-clamp-2 flex-1">
+                        {notification.message}
+                      </div>
+                      {!notification.read && (
+                        <div className="h-2 w-2 bg-blue-500 rounded-full ml-2 mt-1"></div>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {formatDistanceToNow(new Date(notification.createdAt), {
+                        addSuffix: true,
+                        locale: ko
+                      })}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
