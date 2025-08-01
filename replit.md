@@ -44,3 +44,24 @@ Preferred communication style: Simple, everyday language.
 - **Excel Processing**: SheetJS
 - **Date Handling**: date-fns
 - **Build Tools**: Vite, esbuild, Drizzle Kit
+
+## System Status (2025-08-01)
+
+### ✅ 완전 복원 완료
+- **복원 시점**: 음성 알림 기능 포함 최신 완성 상태
+- **제거 완료**: Vercel 배포 관련 모든 파일 및 폴더 제거
+- **보존 완료**: 핵심 React 창고관리시스템 100% 보존
+- **현재 상태**: 순수한 Replit 창고물품관리시스템만 남음
+
+### 🎯 보존된 핵심 기능
+- React 18 + TypeScript 웹 애플리케이션
+- 로그인/인증 시스템 (admin/xormr, viewer/viewer123)
+- 재고 관리 (입출고, 이동, 조정)
+- BOM 체커
+- 업무일지 관리
+- 사용자 및 권한 관리
+- Excel 데이터 처리
+- 창고 레이아웃 관리
+- **음성 알림 시스템** (최신 기능)
+- 보고서 및 분석 기능
+- PostgreSQL 데이터베이스 완전 보존
