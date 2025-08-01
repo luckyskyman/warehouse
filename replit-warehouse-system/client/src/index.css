@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(240, 10%, 3.9%);
+  --muted: hsl(240, 4.8%, 95.9%);
+  --muted-foreground: hsl(240, 3.8%, 46.1%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(240, 10%, 3.9%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(240, 10%, 3.9%);
+  --border: hsl(240, 5.9%, 90%);
+  --input: hsl(240, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 4.8%, 95.9%);
+  --secondary-foreground: hsl(240, 5.9%, 10%);
+  --accent: hsl(240, 4.8%, 95.9%);
+  --accent-foreground: hsl(240, 5.9%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 5%, 64.9%);
+  --radius: 0.5rem;
+  
+  /* Warehouse specific colors */
+  --warehouse-gradient-1: hsl(240, 100%, 70%);
+  --warehouse-gradient-2: hsl(260, 60%, 65%);
+  --warehouse-card-1: hsl(168, 85%, 85%);
+  --warehouse-card-2: hsl(338, 85%, 90%);
+  --warehouse-zone: hsl(220, 16%, 96%);
+  --warehouse-zone-2: hsl(220, 20%, 87%);
+  --warehouse-success: hsl(142, 71%, 45%);
+  --warehouse-warning: hsl(48, 96%, 53%);
+  --warehouse-danger: hsl(0, 84%, 60%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background: linear-gradient(135deg, var(--warehouse-gradient-1) 0%, var(--warehouse-gradient-2) 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+}
+
+@layer components {
+  .warehouse-card {
+    background: linear-gradient(135deg, var(--warehouse-card-1) 0%, var(--warehouse-card-2) 100%);
+    @apply rounded-xl p-5 text-center shadow-lg;
+  }
+  
+  .warehouse-zone-card {
+    background: linear-gradient(135deg, var(--warehouse-zone) 0%, var(--warehouse-zone-2) 100%);
+    @apply rounded-xl p-5 shadow-md;
+  }
+
+  .btn-warehouse-primary {
+    background: linear-gradient(135deg, hsl(207, 90%, 54%) 0%, hsl(180, 100%, 50%) 100%);
+    @apply text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+  }
+  
+  .btn-warehouse-success {
+    background: linear-gradient(135deg, hsl(142, 71%, 45%) 0%, hsl(158, 64%, 52%) 100%);
+    @apply text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+  }
+  
+  .btn-warehouse-warning {
+    background: linear-gradient(135deg, hsl(338, 74%, 59%) 0%, hsl(48, 96%, 53%) 100%);
+    @apply text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+  }
+  
+  .btn-warehouse-danger {
+    background: linear-gradient(135deg, hsl(0, 84%, 60%) 0%, hsl(348, 83%, 71%) 100%);
+    @apply text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+  }
+  
+  .btn-warehouse-info {
+    background: linear-gradient(135deg, hsl(178, 70%, 64%) 0%, hsl(261, 53%, 73%) 100%);
+    @apply text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+  }
+  
+  .status-badge-in-stock {
+    @apply bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold;
+  }
+  
+  .status-badge-out-of-stock {
+    @apply bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold;
+  }
+  
+  .status-ok {
+    color: var(--warehouse-success);
+    @apply font-bold;
+  }
+  
+  .status-shortage {
+    color: var(--warehouse-danger);
+    @apply font-bold;
+  }
+
+  .warehouse-content {
+    @apply bg-white/95 backdrop-blur-sm rounded-xl p-8 shadow-lg;
+  }
+
+  .warehouse-header {
+    @apply bg-white/95 backdrop-blur-sm rounded-xl p-5 mb-5 shadow-lg;
+  }
+
+  .warehouse-search-container {
+    @apply relative mb-5;
+  }
+
+  .warehouse-search-bar {
+    @apply w-full py-4 pl-12 pr-4 border-2 border-gray-200 rounded-full text-base bg-white/90 transition-all duration-300 focus:outline-none focus:border-blue-400 focus:shadow-lg;
+  }
+
+  .warehouse-table {
+    @apply w-full border-collapse bg-white rounded-lg overflow-hidden;
+  }
+
+  .warehouse-table th {
+    background: linear-gradient(135deg, var(--warehouse-gradient-1) 0%, var(--warehouse-gradient-2) 100%);
+    @apply text-white p-3 text-left font-semibold;
+  }
+
+  .warehouse-table td {
+    @apply p-3 border-b border-gray-200;
+  }
+
+  .warehouse-table tr:hover {
+    @apply bg-blue-50;
+  }
+
+  .file-upload-zone {
+    @apply border-2 border-dashed border-blue-400 rounded-lg p-5 text-center cursor-pointer transition-all duration-300 hover:bg-blue-50;
+  }
+
+  .modal-warehouse {
+    @apply fixed inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm z-50;
+  }
+
+  .modal-content-warehouse {
+    @apply bg-white p-8 rounded-xl shadow-2xl w-11/12 max-w-2xl;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+}

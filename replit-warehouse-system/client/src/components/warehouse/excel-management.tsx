@@ -1,0 +1,599 @@
+import { useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Upload, Download, FileSpreadsheet, Database, AlertTriangle } from 'lucide-react';
+import { useInventory, useTransactions, useBomGuides, useWarehouseLayout, useExchangeQueue } from '@/hooks/use-inventory';
+import { useToast } from '@/hooks/use-toast';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { PermissionGuard } from '@/components/ui/permission-guard';
+import { 
+  exportInventoryToExcel, 
+  exportTransactionsToExcel, 
+  exportBomToExcel, 
+  exportBlankTemplate,
+  parseExcelFile,
+  backupAllData,
+  parseBackupFile
+} from '@/lib/excel-utils';
+
+export function ExcelManagement() {
+  const bomFileRef = useRef<HTMLInputElement>(null);
+  const masterFileRef = useRef<HTMLInputElement>(null);
+  const addUpdateFileRef = useRef<HTMLInputElement>(null);
+  const syncFileRef = useRef<HTMLInputElement>(null);
+  const restoreFileRef = useRef<HTMLInputElement>(null);
+
+  const { toast } = useToast();
+
+  // Debug permissions for deployment
+  const userData = localStorage.getItem('warehouse_user');
+  const sessionData = localStorage.getItem('warehouse_session');
+  console.log('Excel Management Debug:', {
+    hasUser: !!userData,
+    hasSession: !!sessionData,
+    userRole: userData ? JSON.parse(userData).role : 'none'
+  });
+
+  const { data: inventory = [] } = useInventory();
+  const { data: transactions = [] } = useTransactions();
+  const { data: bomGuides = [] } = useBomGuides();
+  const { data: warehouseLayout = [] } = useWarehouseLayout();
+  const { data: exchangeQueue = [] } = useExchangeQueue();
+
+  const handleBomUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      toast({
+        title: "BOM 업로드 시작",
+        description: "파일을 분석하고 있습니다...",
+      });
+
+      console.log('Starting BOM upload for file:', file.name);
+
+      const data = await parseExcelFile(file);
+      console.log('Parsed BOM data:', data.length, 'items');
+
+      toast({
+        title: "서버 업로드 중",
+        description: `${data.length}개 항목을 처리하고 있습니다. 잠시만 기다려주세요...`,
+      });
+
+      const response = await fetch('/api/upload/bom', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ items: data })
+      });
+
+      console.log('BOM upload response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('BOM upload failed:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: BOM 업로드가 실패했습니다.`);
+      }
+
+      const result = await response.json();
+      console.log('BOM upload result:', result);
+
+      queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
+
+      toast({
+        title: "BOM 업로드 완료",
+        description: `${result.created}개의 자재명세서가 등록되었습니다.`,
+      });
+    } catch (error) {
+      console.error('BOM upload error:', error);
+      toast({
+        title: "업로드 실패",
+        description: error instanceof Error ? error.message : "파일 형식을 확인해주세요.",
+        variant: "destructive",
+      });
+    }
+
+    if (bomFileRef.current) {
+      bomFileRef.current.value = '';
+    }
+  };
+
+  const handleMasterUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      toast({
+        title: "마스터 업로드 시작",
+        description: "파일을 분석하고 있습니다...",
+      });
+
+      console.log('Starting master upload for file:', file.name);
+
+      const data = await parseExcelFile(file);
+      console.log('Parsed master data:', data.length, 'items');
+
+      toast({
+        title: "서버 처리 중",
+        description: `${data.length}개 제품을 처리하고 있습니다. 대량 데이터의 경우 시간이 소요될 수 있습니다...`,
+      });
+
+      const response = await fetch('/api/upload/master', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ items: data })
+      });
+
+      console.log('Upload response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Upload failed:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: 업로드가 실패했습니다.`);
+      }
+
+      const result = await response.json();
+      console.log('Master upload result:', result);
+
+      // 모든 관련 쿼리 새로고침
+      await queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+
+      toast({
+        title: "마스터 업로드 완료",
+        description: `${result.created}개의 제품이 처리되었습니다.`,
+      });
+    } catch (error) {
+      console.error('Master upload error:', error);
+      toast({
+        title: "업로드 실패",
+        description: error instanceof Error ? error.message : "파일 형식을 확인해주세요.",
+        variant: "destructive",
+      });
+    }
+
+    if (masterFileRef.current) {
+      masterFileRef.current.value = '';
+    }
+  };
+
+  const handleAddUpdateUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await parseExcelFile(file);
+      let successCount = 0;
+
+      for (const row of data) {
+        if (!row['제품코드'] || !row['수량']) continue;
+
+        const quantity = parseInt(row['수량']) || 0;
+        if (quantity <= 0) continue;
+
+        const response = await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'inbound',
+            itemCode: row['제품코드'],
+            itemName: row['품명'] || row['제품코드'],
+            quantity: quantity,
+            toLocation: row['위치'] || '미지정',
+            reason: '엑셀 일괄 입고',
+            memo: row['비고'] || null
+          })
+        });
+
+        if (response.ok) successCount++;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+
+      toast({
+        title: "재고 추가 완료",
+        description: `${successCount}개 항목의 재고가 추가되었습니다.`,
+      });
+    } catch (error) {
+      toast({
+        title: "업로드 실패",
+        description: "파일 형식을 확인해주세요.",
+        variant: "destructive",
+      });
+    }
+
+    if (addUpdateFileRef.current) {
+      addUpdateFileRef.current.value = '';
+    }
+  };
+
+  const handleSyncUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      toast({
+        title: "전체 동기화 시작",
+        description: "파일을 분석하고 있습니다...",
+      });
+
+      console.log('Starting sync upload for file:', file.name);
+      
+      const data = await parseExcelFile(file);
+      console.log('Parsed sync data:', data.length, 'items');
+
+      toast({
+        title: "서버 처리 중",
+        description: `${data.length}개 항목을 동기화 중입니다. 기존 데이터는 모두 삭제되고 새로운 데이터로 교체됩니다...`,
+      });
+
+      const response = await fetch('/api/upload/inventory-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: data })
+      });
+
+      console.log('Sync response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Sync failed:', errorData);
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: 동기화가 실패했습니다.`);
+      }
+
+      const result = await response.json();
+      console.log('Sync upload result:', result);
+
+      // 모든 관련 쿼리 새로고침
+      await queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+
+      let successMessage = result.errors > 0 
+        ? `${result.synced}개 생성 완료 (${result.total}개 중 ${result.errors}개 오류)`
+        : `${result.synced}개 제품이 성공적으로 동기화되었습니다.`;
+
+      // 창고 구조 자동 생성 정보 추가
+      if (result.createdStructures > 0) {
+        successMessage += `\n🏗️ 창고 구조 ${result.createdStructures}개 자동 생성됨`;
+      }
+
+      // 위치 파싱 경고 정보 추가
+      if (result.locationWarnings > 0) {
+        successMessage += `\n⚠️ 위치 형식 인식 실패 ${result.locationWarnings}개`;
+      }
+
+      toast({
+        title: "전체 동기화 완료",
+        description: successMessage,
+      });
+
+      // 오류가 있는 경우 상세 정보도 표시
+      if (result.errors > 0 && result.errorDetails?.length > 0) {
+        console.warn('Sync errors:', result.errorDetails);
+        toast({
+          title: "처리 중 일부 오류 발생",
+          description: `첫 번째 오류: ${result.errorDetails[0]}`,
+          variant: "destructive",
+        });
+      }
+
+    } catch (error) {
+      console.error('Sync upload error:', error);
+      toast({
+        title: "동기화 실패",
+        description: error instanceof Error ? error.message : "파일 형식을 확인해주세요.",
+        variant: "destructive",
+      });
+    }
+
+    if (syncFileRef.current) {
+      syncFileRef.current.value = '';
+    }
+  };
+
+  const handleBackup = () => {
+    try {
+      backupAllData({
+        inventory,
+        transactions,
+        bomGuides,
+        warehouseLayout,
+        exchangeQueue,
+      });
+
+      toast({
+        title: "백업 완료",
+        description: "모든 데이터가 백업되었습니다.",
+      });
+    } catch (error) {
+      toast({
+        title: "백업 실패",
+        description: "백업 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRestore = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const backup = await parseBackupFile(file);
+
+      const response = await fetch('/api/restore-backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(backup)
+      });
+
+      if (!response.ok) throw new Error('복원 실패');
+
+      const result = await response.json();
+
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bom'] });
+
+      toast({
+        title: "데이터 복원 완료",
+        description: `재고 ${result.inventoryCount}개, 거래내역 ${result.transactionCount}개, BOM ${result.bomCount}개가 복원되었습니다.`,
+      });
+    } catch (error) {
+      toast({
+        title: "복원 실패",
+        description: error instanceof Error ? error.message : "복원 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+
+    if (restoreFileRef.current) {
+      restoreFileRef.current.value = '';
+    }
+  };
+
+  const handleResetData = async () => {
+    if (!confirm("⚠️ 경고: 모든 재고, 거래내역, BOM 데이터가 삭제됩니다.\n\n정말로 초기화하시겠습니까?")) {
+      return;
+    }
+
+    try {
+      console.log('Attempting system reset...');
+
+      const response = await apiRequest('POST', '/api/system/reset', {});
+
+      console.log('Reset response:', { status: response.status, statusText: response.statusText });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Reset failed:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: 초기화 요청이 실패했습니다.`);
+      }
+
+      // 모든 쿼리 데이터 새로고침
+      await queryClient.invalidateQueries();
+
+      toast({
+        title: "초기화 완료",
+        description: "모든 데이터가 초기 상태로 되돌아갔습니다.",
+      });
+    } catch (error) {
+      console.error('Reset error:', error);
+      toast({
+        title: "초기화 실패",
+        description: error instanceof Error ? error.message : "초기화 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="warehouse-content">
+      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+        📊 엑셀 관리
+      </h2>
+
+      <div className="space-y-6">
+        {/* BOM Management - Admin Only */}
+        <PermissionGuard permission="canUploadFiles">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">1. 자재 명세서(BOM) 관리</h3>
+              <div className="file-upload-zone" onClick={() => bomFileRef.current?.click()}>
+                <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+                <h4 className="font-semibold mb-1">📋 자재 명세서(BOM) 업로드</h4>
+                <p className="text-sm text-gray-600">
+                  A열: 설치가이드명, B열: 필요부품코드, C열: 필요수량 형식의 엑셀 파일을 올립니다.
+                </p>
+                <input
+                  ref={bomFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleBomUpload}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
+
+        {/* Master List Management - Admin Only */}
+        <PermissionGuard permission="canUploadFiles">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">2. 제품 마스터 관리</h3>
+              <div className="file-upload-zone" onClick={() => masterFileRef.current?.click()}>
+                <Database className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+                <h4 className="font-semibold mb-1">📋 제품 마스터 목록 업로드</h4>
+                <p className="text-sm text-gray-600">
+                  시스템에 등록할 제품의 기본 정보(제품코드, 품명, 박스당수량)를 올립니다.
+                </p>
+                <input
+                  ref={masterFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleMasterUpload}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
+
+        {/* Data Export Section - All Users */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">3. 데이터 내보내기</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <PermissionGuard permission="canDownloadInventory">
+                <div className="file-upload-zone" onClick={() => exportInventoryToExcel(inventory)}>
+                  <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  <h4 className="font-semibold mb-1">📦 재고현황 다운로드</h4>
+                  <p className="text-sm text-gray-600">
+                    현재 재고 현황을 엑셀 파일로 내보냅니다. (전체동기화용)
+                  </p>
+                </div>
+              </PermissionGuard>
+
+              <PermissionGuard permission="canDownloadTransactions">
+                <div className="file-upload-zone" onClick={() => exportTransactionsToExcel(transactions)}>
+                  <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  <h4 className="font-semibold mb-1">📊 거래내역 다운로드</h4>
+                  <p className="text-sm text-gray-600">
+                    모든 거래 내역을 엑셀 파일로 내보냅니다. (분석전용)
+                  </p>
+                </div>
+              </PermissionGuard>
+
+              <PermissionGuard permission="canDownloadBom">
+                <div className="file-upload-zone" onClick={() => exportBomToExcel(bomGuides)}>
+                  <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  <h4 className="font-semibold mb-1">📋 BOM 목록 다운로드</h4>
+                  <p className="text-sm text-gray-600">
+                    자재명세서 목록을 엑셀 파일로 내보냅니다. (분석전용)
+                  </p>
+                </div>
+              </PermissionGuard>
+
+              <PermissionGuard permission="canDownloadAll">
+                <div className="file-upload-zone" onClick={exportBlankTemplate}>
+                  <Download className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                  <h4 className="font-semibold mb-1">📄 파일로 재고추가/보충 업로드 템플릿 다운로드</h4>
+                  <p className="text-sm text-gray-600">
+                    재고 추가/보충 작업용 엑셀 템플릿을 받습니다. (샘플 데이터 포함)
+                  </p>
+                </div>
+              </PermissionGuard>
+
+              <PermissionGuard permission="canDownloadAll">
+                <div className="file-upload-zone border-yellow-400" onClick={handleBackup}>
+                  <Database className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                  <h4 className="font-semibold mb-1">💾 전체 데이터 백업</h4>
+                  <p className="text-sm text-gray-600">
+                    현재 시스템의 모든 데이터를 JSON 파일로 백업합니다.
+                  </p>
+                </div>
+              </PermissionGuard>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Inventory Add/Update - Admin Only */}
+        <PermissionGuard permission="canUploadFiles">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">4. 재고 추가 / 보충 (안전)</h3>
+              <div className="file-upload-zone" onClick={() => addUpdateFileRef.current?.click()}>
+                <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+                <h4 className="font-semibold mb-1">🚚 파일로 재고 추가/보충</h4>
+                <p className="text-sm text-gray-600">
+                  "파일로재고추가보충_업로드템플릿" 형식으로 재고를 현재고에 **더합니다.** 기존 재고는 유지됩니다.
+                </p>
+                <input
+                  ref={addUpdateFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleAddUpdateUpload}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
+
+        {/* Full Sync - Admin Only */}
+        <PermissionGuard permission="canUploadFiles">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">5. 재고 전체 동기화 (주의)</h3>
+              <div className="file-upload-zone" onClick={() => syncFileRef.current?.click()}>
+                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-500" />
+                <h4 className="font-semibold mb-1">🔄 파일로 전체 동기화</h4>
+                <p className="text-sm text-gray-600">
+                  "재고현황(파일로전체동기화용)" 파일로 재고 전체를 **덮어씁니다.** (기존 데이터 삭제 후 새로 생성)
+                </p>
+                <input
+                  ref={syncFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleSyncUpload}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
+
+        {/* System Restore - Admin Only */}
+        <PermissionGuard permission="canRestoreData">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">6. 시스템 데이터 복원</h3>
+              <div className="file-upload-zone" onClick={() => restoreFileRef.current?.click()}>
+                <Upload className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+                <h4 className="font-semibold mb-1">📂 전체 데이터 복구</h4>
+                <p className="text-sm text-gray-600">
+                  백업 파일을 선택하여 모든 데이터를 복원합니다. 현재 데이터는 모두 사라집니다.
+                </p>
+                <input
+                  ref={restoreFileRef}
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleRestore}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </PermissionGuard>
+
+        {/* System Reset - Admin Only */}
+        <PermissionGuard requiredPermission="canRestoreData">
+          <Card className="p-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-red-600">⚠️ 데이터 초기화</h3>
+                <p className="text-sm text-gray-600 mt-2">
+                  모든 재고, 거래내역, BOM 데이터를 삭제하고 초기 상태로 되돌립니다.
+                  <br />
+                  <span className="text-red-500 font-medium">이 작업은 되돌릴 수 없습니다!</span>
+                </p>
+              </div>
+
+              <Button 
+                onClick={handleResetData}
+                variant="destructive"
+                className="w-full"
+              >
+                🗑️ 모든 데이터 초기화
+              </Button>
+            </div>
+          </Card>
+        </PermissionGuard>
+      </div>
+    </div>
+  );
+}
