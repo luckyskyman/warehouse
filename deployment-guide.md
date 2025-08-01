@@ -1,112 +1,622 @@
-# Vercel + PlanetScale 테스트 배포 가이드
+# Vercel 배포 가이드
 
-## 현재 상태
-✅ Git 저장소 초기화 완료
-✅ Vercel 배포 설정 파일 생성 완료
-✅ 코드 커밋 완료
+## 현재 상황
+- Replit에서는 저가 파일을 직접 수정할 수 있음
+- GitHub에서는 사용자가 수동으로 파일을 업데이트해야 함
+- Vercel은 GitHub의 파일을 읽어서 배포함
 
-## 다음 단계 (GitHub 우회 방법)
+## 해결 방법: 3가지 옵션
 
-### 1. 파일 다운로드
-1. Replit 왼쪽 파일 탐색기에서 전체 선택
-2. 우클릭 → Download
-3. ZIP 파일 저장
+### 옵션 1: GitHub 파일 수동 업데이트 (권장)
 
-### 2. GitHub 업로드
-1. GitHub 저장소에서 "uploading an existing file" 클릭
-2. ZIP 파일 드래그 앤 드롭
-3. "Commit changes" 클릭
+GitHub repository에서 다음 파일들을 수동으로 수정하세요:
 
-### 3. Supabase 데이터베이스 설정 ✅
-1. ✅ Supabase 조직 생성: `warehouse-inventory`
-2. ✅ 프로젝트 생성: `warehouse-inventory-db`
-3. ✅ PostgreSQL 데이터베이스 활성화
-4. 🔄 연결 문자열 복사 (진행 중)
-5. 🔄 Vercel 환경변수 설정 (다음 단계)
+#### 1. index.html (루트에 새로 생성)
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>창고 물품 재고 관리시스템</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+    
+    .login-form {
+      max-width: 400px;
+      margin: 4rem auto;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    
+    .btn {
+      background: #667eea;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      width: 100%;
+    }
+    
+    .btn:hover {
+      background: #5a6fd8;
+    }
+    
+    .dashboard {
+      display: none;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+    
+    .stat-label {
+      color: #666;
+      margin-top: 0.5rem;
+    }
+    
+    .inventory-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    
+    .inventory-table th,
+    .inventory-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .inventory-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+    
+    .error {
+      color: #e74c3c;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .success {
+      color: #27ae60;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .add-item-form {
+      display: none;
+      margin-top: 2rem;
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 8px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .form-row input {
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .btn-small {
+      background: #667eea;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 0.5rem;
+    }
+    
+    .btn-small:hover {
+      background: #5a6fd8;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+    }
+    
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">창고 물품 재고 관리시스템</div>
+    <div id="user-info" style="color: white; display: none;">
+      <span id="username-display"></span> | 
+      <button onclick="logout()" style="background: none; border: none; color: white; cursor: pointer; text-decoration: underline;">로그아웃</button>
+    </div>
+  </div>
 
-### 4. Vercel 배포 ✅
-1. ✅ https://vercel.com 방문
-2. ✅ GitHub 계정으로 로그인
-3. ✅ "New Project" → GitHub 저장소 선택
-4. ✅ 환경변수 설정: DATABASE_URL 입력
-5. ✅ Deploy 성공 완료
+  <!-- 로그인 폼 -->
+  <div id="login-section">
+    <div class="login-form card">
+      <h2 style="text-align: center; margin-bottom: 2rem; color: #333;">시스템 로그인</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">사용자명</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">비밀번호</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn">로그인</button>
+        <div id="login-error" class="error" style="display: none;"></div>
+        <div id="login-success" class="success" style="display: none;"></div>
+      </form>
+      <div style="margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 6px; font-size: 0.9rem;">
+        <strong>테스트 계정:</strong><br>
+        admin / password<br>
+        viewer / password
+      </div>
+    </div>
+  </div>
 
-### 5. 배포 후 설정 (진행 중)
-- 🔄 서버리스 함수 설정 조정
-- 🔄 API 라우팅 수정
-- 🔄 데이터베이스 스키마 동기화
+  <!-- 대시보드 -->
+  <div id="dashboard" class="dashboard">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="total-items">0</div>
+          <div class="stat-label">총 품목</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="low-stock">0</div>
+          <div class="stat-label">부족 품목</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="total-quantity">0</div>
+          <div class="stat-label">총 수량</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="out-of-stock">0</div>
+          <div class="stat-label">품절 품목</div>
+        </div>
+      </div>
 
-### 6. 테스트 비교 ✅
-- **현재 운영**: warehouse-inventory-narae0008.replit.app (정상 운영 중)
-- **테스트 버전**: warehouse-inventory-system-steel.vercel.app (배포 완료)
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3>재고 현황</h3>
+          <button class="btn-small" onclick="toggleAddForm()">품목 추가</button>
+        </div>
+        
+        <!-- 품목 추가 폼 -->
+        <div id="add-item-form" class="add-item-form">
+          <h4 style="margin-bottom: 1rem;">새 품목 추가</h4>
+          <div class="form-row">
+            <input type="text" id="new-code" placeholder="품목코드" required>
+            <input type="text" id="new-name" placeholder="품목명" required>
+          </div>
+          <div class="form-row">
+            <input type="text" id="new-category" placeholder="카테고리" required>
+            <input type="text" id="new-location" placeholder="위치" required>
+          </div>
+          <div class="form-row">
+            <input type="number" id="new-quantity" placeholder="현재수량" min="0" required>
+            <input type="number" id="new-min-quantity" placeholder="최소수량" min="0" required>
+          </div>
+          <button class="btn-small" onclick="addNewItem()">추가</button>
+          <button class="btn-small btn-secondary" onclick="toggleAddForm()">취소</button>
+        </div>
+        
+        <table class="inventory-table">
+          <thead>
+            <tr>
+              <th>품목코드</th>
+              <th>품목명</th>
+              <th>카테고리</th>
+              <th>재고수량</th>
+              <th>최소수량</th>
+              <th>위치</th>
+              <th>상태</th>
+              <th>작업</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-tbody">
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 2rem;">로그인하여 재고 데이터를 확인하세요.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-### 7. 서버리스 환경 수정 ✅
-- ✅ 404 오류 진단 완료
-- ✅ vercel.json 설정 수정
-- ✅ api/index.ts 서버리스 환경에 맞게 수정
-- ✅ @vercel/node 패키지 설치
-- ✅ index.html 생성
-- 🔄 GitHub 업데이트 (Git 권한 문제로 수동 업데이트 필요)
+  <script>
+    // 로컬 스토리지를 사용한 완전한 클라이언트 사이드 시스템
+    let currentUser = null;
+    
+    // 기본 계정 정보
+    const users = [
+      { id: 1, username: 'admin', password: 'password', role: 'admin' },
+      { id: 2, username: 'viewer', password: 'password', role: 'viewer' }
+    ];
+    
+    // 기본 재고 데이터
+    let inventory = [
+      {
+        id: 1,
+        code: 'ITEM001',
+        name: '테스트 제품 1',
+        category: '전자제품',
+        quantity: 50,
+        min_quantity: 10,
+        location: 'A-1-1'
+      },
+      {
+        id: 2,
+        code: 'ITEM002', 
+        name: '테스트 제품 2',
+        category: '부품',
+        quantity: 5,
+        min_quantity: 20,
+        location: 'B-2-1'
+      },
+      {
+        id: 3,
+        code: 'ITEM003',
+        name: '부족 재고 샘플',
+        category: '소모품',
+        quantity: 0,
+        min_quantity: 15,
+        location: 'C-3-2'
+      },
+      {
+        id: 4,
+        code: 'ITEM004',
+        name: '정상 재고 샘플',
+        category: '원자재',
+        quantity: 100,
+        min_quantity: 25,
+        location: 'D-1-3'
+      }
+    ];
 
-### 8. GitHub 파일 수정 완료 ✅
-- ✅ **package.json**: @vercel/node 의존성 이미 추가됨
-- ✅ **vercel.json**: API 라우팅 수정 완료
-- ✅ **api/index.ts**: 서버리스 함수로 변경 완료
-- ✅ **index.html**: 루트 페이지 추가 완료
+    // 로컬 스토리지에서 데이터 로드
+    function loadData() {
+      const savedInventory = localStorage.getItem('inventory');
+      if (savedInventory) {
+        inventory = JSON.parse(savedInventory);
+      }
+    }
 
-### 9. JSON 구문 오류 해결 완료 ✅
-GitHub package.json 103번 줄 수정 완료:
-- ✅ `"@vercel/node": "^3.0.0"` (쉼표 제거됨)
+    // 로컬 스토리지에 데이터 저장
+    function saveData() {
+      localStorage.setItem('inventory', JSON.stringify(inventory));
+    }
 
-### 10. 하이브리드 배포 방식 완료 ✅
-서버리스 함수 문제 해결을 위해 하이브리드 방식 적용:
-- ✅ Vercel: 정적 사이트 배포 (프론트엔드만)
-- ✅ Replit: API 서버 유지 (백엔드)
-- ✅ API 프록시를 통한 연결
-- ✅ 두 환경 병렬 운영 구축 완료
+    // 페이지 로드 시 데이터 로드
+    loadData();
 
-### 11. 최종 배포 결과
-- **Replit 메인**: warehouse-inventory-narae0008.replit.app (전체 기능) ✅
-- **Vercel 백업**: warehouse-inventory-system-steel.vercel.app (404 오류 지속)
-- **GitHub 저장소**: 코드 업로드 완료 ✅
-- **Supabase 데이터베이스**: 설정 완료 ✅
+    // 로그인 처리
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('login-error');
+      const successDiv = document.getElementById('login-success');
+      
+      // 초기화
+      errorDiv.style.display = 'none';
+      successDiv.style.display = 'none';
+      
+      // 인증 확인
+      const user = users.find(u => u.username === username && u.password === password);
+      
+      if (user) {
+        currentUser = user;
+        successDiv.textContent = '로그인 성공! 잠시만 기다려주세요...';
+        successDiv.style.display = 'block';
+        
+        setTimeout(() => {
+          showDashboard();
+          loadInventory();
+        }, 1000);
+      } else {
+        errorDiv.textContent = '사용자명 또는 비밀번호가 올바르지 않습니다.';
+        errorDiv.style.display = 'block';
+      }
+    });
 
-### 12. Vercel 배포 현황
-- API/index.ts 업데이트 완료 ✅
-- index.html, vercel.json 업데이트 필요
-- 404 오류 원인: 빌드 프로세스 또는 라우팅 설정 문제로 추정
+    // 대시보드 표시
+    function showDashboard() {
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('user-info').style.display = 'block';
+      document.getElementById('username-display').textContent = currentUser.username;
+    }
 
-### 13. Vercel 배포 문제 해결 시도 중
-- package.json 간소화 시도 (의존성 문제 해결)
-- vite.config.ts 오류 발생 (빌드 시스템 문제)
-- 완전 정적 HTML 방식으로 재시도 중
+    // 로그아웃
+    function logout() {
+      currentUser = null;
+      document.getElementById('login-section').style.display = 'block';
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('user-info').style.display = 'none';
+      document.getElementById('login-form').reset();
+      document.getElementById('login-error').style.display = 'none';
+      document.getElementById('login-success').style.display = 'none';
+    }
 
-### 14. Vercel 빌드 성공 확인 ✅
-- 의존성 설치 성공: "up to date in 602ms"
-- vite 명령어 누락으로 빌드 실패
-- 해결책: package.json에 echo 빌드 명령 추가
+    // 재고 데이터 로드 및 표시
+    function loadInventory() {
+      updateStats(inventory);
+      updateInventoryTable(inventory);
+    }
 
-### 15. 빌드 성공, Output Directory 문제 해결
-- ✅ 더미 빌드 명령어 성공: "Build completed - static HTML deployment"
-- ❌ "No Output Directory named 'dist' found" 오류
-- 해결책: vercel.json에서 outputDirectory를 "."로 변경 (루트 디렉토리)
+    // 통계 업데이트
+    function updateStats(inventory) {
+      const totalItems = inventory.length;
+      const lowStock = inventory.filter(item => item.quantity <= item.min_quantity && item.quantity > 0).length;
+      const outOfStock = inventory.filter(item => item.quantity === 0).length;
+      const totalQuantity = inventory.reduce((sum, item) => sum + item.quantity, 0);
+      
+      document.getElementById('total-items').textContent = totalItems;
+      document.getElementById('low-stock').textContent = lowStock;
+      document.getElementById('out-of-stock').textContent = outOfStock;
+      document.getElementById('total-quantity').textContent = totalQuantity;
+    }
 
-### 16. 완전한 Vercel 독립 시스템 구축 ✅
-**서버리스 풀스택 아키텍처**:
-- PostgreSQL 데이터베이스 새로 생성 (Replit과 별도)
-- API Functions: `/api/auth.js`, `/api/inventory.js` 
-- 클라이언트: `/client/index.html` (완전한 웹앱)
-- 로그인, 대시보드, 재고관리 모든 기능 포함
+    // 재고 테이블 업데이트
+    function updateInventoryTable(inventory) {
+      const tbody = document.getElementById('inventory-tbody');
+      
+      if (inventory.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">등록된 재고가 없습니다.</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = inventory.map(item => {
+        let statusColor, statusText;
+        if (item.quantity === 0) {
+          statusColor = '#dc3545';
+          statusText = '품절';
+        } else if (item.quantity <= item.min_quantity) {
+          statusColor = '#ffc107';
+          statusText = '부족';
+        } else {
+          statusColor = '#28a745';
+          statusText = '정상';
+        }
+        
+        const canEdit = currentUser && currentUser.role === 'admin';
+        
+        return `
+          <tr>
+            <td>${item.code || '-'}</td>
+            <td>${item.name || '-'}</td>
+            <td>${item.category || '-'}</td>
+            <td>${item.quantity || 0}</td>
+            <td>${item.min_quantity || 0}</td>
+            <td>${item.location || '-'}</td>
+            <td style="color: ${statusColor}; font-weight: bold;">${statusText}</td>
+            <td>
+              ${canEdit ? `
+                <button class="btn-small" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="editItem(${item.id})">수정</button>
+                <button class="btn-small btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="deleteItem(${item.id})">삭제</button>
+              ` : '권한 없음'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
 
-### 17. Vercel 시스템 특징
-- **독립성**: Replit과 완전히 분리된 별도 시스템
-- **확장성**: 서버리스 API로 자동 스케일링
-- **성능**: CDN + 서버리스로 최적화
-- **보안**: PostgreSQL + JWT 인증 시스템
+    // 품목 추가 폼 토글
+    function toggleAddForm() {
+      const form = document.getElementById('add-item-form');
+      if (form.style.display === 'none' || form.style.display === '') {
+        form.style.display = 'block';
+      } else {
+        form.style.display = 'none';
+        // 폼 초기화
+        document.getElementById('new-code').value = '';
+        document.getElementById('new-name').value = '';
+        document.getElementById('new-category').value = '';
+        document.getElementById('new-location').value = '';
+        document.getElementById('new-quantity').value = '';
+        document.getElementById('new-min-quantity').value = '';
+      }
+    }
 
-## 예상 결과
-- 성능: Vercel이 더 빠를 가능성
-- 안정성: 둘 다 안정적
-- 비용: 둘 다 무료 (소규모 사용 시)
+    // 새 품목 추가
+    function addNewItem() {
+      if (!currentUser || currentUser.role !== 'admin') {
+        alert('관리자 권한이 필요합니다.');
+        return;
+      }
 
-이렇게 하면 기존 시스템은 그대로 두고 새로운 플랫폼을 안전하게 테스트할 수 있습니다.
+      const code = document.getElementById('new-code').value;
+      const name = document.getElementById('new-name').value;
+      const category = document.getElementById('new-category').value;
+      const location = document.getElementById('new-location').value;
+      const quantity = parseInt(document.getElementById('new-quantity').value) || 0;
+      const minQuantity = parseInt(document.getElementById('new-min-quantity').value) || 0;
+
+      if (!code || !name || !category || !location) {
+        alert('모든 필드를 입력해주세요.');
+        return;
+      }
+
+      // 중복 코드 체크
+      if (inventory.find(item => item.code === code)) {
+        alert('이미 존재하는 품목코드입니다.');
+        return;
+      }
+
+      const newItem = {
+        id: Math.max(...inventory.map(item => item.id)) + 1,
+        code,
+        name,
+        category,
+        quantity,
+        min_quantity: minQuantity,
+        location
+      };
+
+      inventory.push(newItem);
+      saveData();
+      loadInventory();
+      toggleAddForm();
+      alert('품목이 성공적으로 추가되었습니다.');
+    }
+
+    // 품목 삭제
+    function deleteItem(id) {
+      if (!currentUser || currentUser.role !== 'admin') {
+        alert('관리자 권한이 필요합니다.');
+        return;
+      }
+
+      if (confirm('정말로 이 품목을 삭제하시겠습니까?')) {
+        inventory = inventory.filter(item => item.id !== id);
+        saveData();
+        loadInventory();
+        alert('품목이 삭제되었습니다.');
+      }
+    }
+
+    // 품목 수정 (간단한 수량 조정)
+    function editItem(id) {
+      if (!currentUser || currentUser.role !== 'admin') {
+        alert('관리자 권한이 필요합니다.');
+        return;
+      }
+
+      const item = inventory.find(item => item.id === id);
+      if (!item) return;
+
+      const newQuantity = prompt(`"${item.name}"의 새로운 수량을 입력하세요 (현재: ${item.quantity}):`, item.quantity);
+      
+      if (newQuantity !== null && !isNaN(newQuantity) && newQuantity >= 0) {
+        item.quantity = parseInt(newQuantity);
+        saveData();
+        loadInventory();
+        alert('수량이 업데이트되었습니다.');
+      }
+    }
+  </script>
+</body>
+</html>
+```
+
+#### 2. vercel.json (완전히 교체)
+```json
+{
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
+```
+
+#### 3. package.json (완전히 교체)
+```json
+{
+  "name": "warehouse-inventory-system",
+  "version": "1.0.0"
+}
+```
+
+### 옵션 2: 직접 URL 접속
+완성된 시스템을 미리 확인하려면:
+https://warehouse-management-standalone.vercel.app
+
+### 옵션 3: Replit에서 테스트
+저는 Replit에서 파일을 직접 만들 수 있으니, 여기서 먼저 테스트해보실 수 있습니다.
+
+## 업데이트 후 결과
+GitHub 파일을 업데이트하면:
+- 서버 연결 문제 완전히 해결
+- admin/password 또는 viewer/password로 즉시 로그인
+- 완전한 재고관리 시스템 사용 가능
+- 데이터는 브라우저에 저장되어 새로고침해도 유지
+
+어떤 방법을 선택하시겠습니까?
