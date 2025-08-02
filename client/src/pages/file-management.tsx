@@ -5,7 +5,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Download, Eye, Calendar, HardDrive, Image } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Trash2, Download, Eye, Calendar, HardDrive, Image, Zap, Search, RefreshCw, Archive, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -24,7 +28,12 @@ interface FileItem {
 const FileManagement = () => {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("evidence");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [autoCleanupSettings, setAutoCleanupSettings] = useState({
+    maxAgeInDays: 30,
+    maxSizeInMB: 100,
+    dryRun: true
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -63,6 +72,53 @@ const FileManagement = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  });
+
+  // 자동 정리 뮤테이션
+  const autoCleanupMutation = useMutation({
+    mutationFn: async (options: any) => {
+      const response = await fetch('/api/files/auto-cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options)
+      });
+      if (!response.ok) throw new Error('자동 정리에 실패했습니다.');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+      toast({
+        title: data.dryRun ? "자동 정리 미리보기 완료" : "자동 정리 완료",
+        description: `${data.deletedFiles.length}개 파일, ${formatFileSize(data.savedSpace)} 절약`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "자동 정리 실패",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // 파일 시스템 상태 조회
+  const { data: fileSystemStatus } = useQuery({
+    queryKey: ['/api/files/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/files/status');
+      if (!response.ok) throw new Error('파일 시스템 상태 조회 실패');
+      return response.json();
+    }
+  });
+
+  // 중복 파일 조회
+  const { data: duplicateFiles } = useQuery({
+    queryKey: ['/api/files/duplicates'],
+    queryFn: async () => {
+      const response = await fetch('/api/files/duplicates');
+      if (!response.ok) throw new Error('중복 파일 검색 실패');
+      return response.json();
     }
   });
 
@@ -147,8 +203,18 @@ const FileManagement = () => {
     setDeleteDialogOpen(false);
   };
 
+  // 자동 정리 실행
+  const handleAutoCleanup = () => {
+    autoCleanupMutation.mutate({
+      ...autoCleanupSettings,
+      categories: ['evidence', 'temp']
+    });
+  };
+
   const categories = {
+    overview: { label: '시스템 개요', description: '파일 시스템 전체 상태를 확인합니다.' },
     evidence: { label: '증거자료 (수동 관리)', description: '직접 선택해서 삭제할 수 있습니다.' },
+    automation: { label: '자동화 관리', description: '자동 정리 및 중복 파일 관리를 설정합니다.' },
     temp: { label: '임시 파일', description: '1일 후 자동 삭제됩니다.' },
     bom: { label: 'BOM 파일', description: '최신 1개만 유지됩니다.' },
     master: { label: '제품마스터', description: '최신 1개만 유지됩니다.' },
@@ -176,7 +242,7 @@ const FileManagement = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
           {Object.entries(categories).map(([key, category]) => (
             <TabsTrigger key={key} value={key} className="text-sm">
               {category.label.split(' ')[0]}
@@ -198,6 +264,165 @@ const FileManagement = () => {
               </CardHeader>
 
               <CardContent>
+                {categoryKey === 'overview' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm text-muted-foreground">전체 파일</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{fileSystemStatus?.totalFiles || 0}</div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm text-muted-foreground">전체 용량</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{formatFileSize(fileSystemStatus?.totalSize || 0)}</div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm text-muted-foreground">중복 파일</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{duplicateFiles?.duplicates?.length || 0}</div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm text-muted-foreground">절약 가능</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{formatFileSize(duplicateFiles?.totalSize || 0)}</div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>카테고리별 분포</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {fileSystemStatus?.categoryBreakdown && Object.entries(fileSystemStatus.categoryBreakdown).map(([category, data]: [string, any]) => (
+                            <div key={category} className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="outline">{category}</Badge>
+                                <span className="text-sm text-muted-foreground">{data.count}개 파일</span>
+                              </div>
+                              <div className="text-sm font-medium">{formatFileSize(data.size)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {categoryKey === 'automation' && (
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Zap className="h-5 w-5" />
+                          자동 정리 설정
+                        </CardTitle>
+                        <CardDescription>
+                          파일을 자동으로 정리하는 조건을 설정합니다.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="maxAge">최대 보관 기간 (일)</Label>
+                            <Input
+                              id="maxAge"
+                              type="number"
+                              value={autoCleanupSettings.maxAgeInDays}
+                              onChange={(e) => setAutoCleanupSettings({
+                                ...autoCleanupSettings,
+                                maxAgeInDays: parseInt(e.target.value) || 30
+                              })}
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="maxSize">최대 파일 크기 (MB)</Label>
+                            <Input
+                              id="maxSize"
+                              type="number"
+                              value={autoCleanupSettings.maxSizeInMB}
+                              onChange={(e) => setAutoCleanupSettings({
+                                ...autoCleanupSettings,
+                                maxSizeInMB: parseInt(e.target.value) || 100
+                              })}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="dryRun"
+                              checked={autoCleanupSettings.dryRun}
+                              onCheckedChange={(checked) => setAutoCleanupSettings({
+                                ...autoCleanupSettings,
+                                dryRun: !!checked
+                              })}
+                            />
+                            <Label htmlFor="dryRun">미리보기 모드 (실제 삭제하지 않음)</Label>
+                          </div>
+                        </div>
+
+                        <Button 
+                          onClick={handleAutoCleanup}
+                          disabled={autoCleanupMutation.isPending}
+                          className="flex items-center gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          {autoCleanupSettings.dryRun ? '미리보기 실행' : '자동 정리 실행'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    {duplicateFiles?.duplicates && duplicateFiles.duplicates.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                            중복 파일 감지
+                          </CardTitle>
+                          <CardDescription>
+                            {duplicateFiles.duplicates.length}개의 중복 가능 파일이 발견되었습니다. 
+                            {formatFileSize(duplicateFiles.totalSize)} 절약 가능
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {duplicateFiles.duplicates.slice(0, 10).map((file: any, index: number) => (
+                              <div key={index} className="flex items-center justify-between p-2 border rounded">
+                                <span className="text-sm truncate">{file.name}</span>
+                                <Badge variant="secondary">{formatFileSize(file.size)}</Badge>
+                              </div>
+                            ))}
+                            {duplicateFiles.duplicates.length > 10 && (
+                              <div className="text-sm text-muted-foreground text-center">
+                                ... 및 {duplicateFiles.duplicates.length - 10}개 추가 파일
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )}
+
                 {categoryKey === 'evidence' && (
                   <div className="flex gap-4 mb-4">
                     <Button 

@@ -1723,6 +1723,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 자동 파일 정리 API
+  app.post("/api/files/auto-cleanup", requireAdmin, async (req: any, res) => {
+    try {
+      const { fileManager } = await import('./file-manager');
+      const options = req.body || {};
+      
+      const result = await fileManager.autoCleanup(options);
+      res.json(result);
+    } catch (error) {
+      console.error("자동 정리 오류:", error);
+      res.status(500).json({ message: "자동 정리에 실패했습니다." });
+    }
+  });
+
+  // 중복 파일 찾기 API
+  app.get("/api/files/duplicates", requireAdmin, async (req: any, res) => {
+    try {
+      const { fileManager } = await import('./file-manager');
+      const result = await fileManager.findDuplicateFiles();
+      res.json(result);
+    } catch (error) {
+      console.error("중복 파일 검색 오류:", error);
+      res.status(500).json({ message: "중복 파일 검색에 실패했습니다." });
+    }
+  });
+
+  // 파일 시스템 상태 API
+  app.get("/api/files/status", requireAdmin, async (req: any, res) => {
+    try {
+      const { fileManager } = await import('./file-manager');
+      const status = await fileManager.getFileSystemStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("파일 시스템 상태 조회 오류:", error);
+      res.status(500).json({ message: "파일 시스템 상태 조회에 실패했습니다." });
+    }
+  });
+
+  // 파일 백업 API
+  app.post("/api/files/backup", requireAdmin, async (req: any, res) => {
+    try {
+      const { fileManager } = await import('./file-manager');
+      const { targetFiles } = req.body;
+      
+      if (!Array.isArray(targetFiles) || targetFiles.length === 0) {
+        return res.status(400).json({ message: "백업할 파일을 선택해주세요." });
+      }
+
+      const backupName = await fileManager.backupFiles(targetFiles);
+      res.json({ 
+        message: "백업이 완료되었습니다.", 
+        backupName 
+      });
+    } catch (error) {
+      console.error("백업 오류:", error);
+      res.status(500).json({ message: "백업에 실패했습니다." });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
