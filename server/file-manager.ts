@@ -111,71 +111,55 @@ export class FileManager {
     await fs.unlink(filePath);
   }
 
-  // 중복 파일 찾기
+  // 중복 파일 찾기 (매우 보수적인 접근)
   async findDuplicateFiles(): Promise<{ duplicates: any[], totalSize: number }> {
     try {
       const files = await storage.getFiles();
       const duplicates: any[] = [];
       let totalSize = 0;
-      const processed = new Set<string>();
 
-      // 정확히 같은 파일명을 가진 파일들 찾기
-      const nameGroups = new Map<string, any[]>();
+      // 타임스탬프 제거 후 기본명으로 그룹핑
+      const baseNameGroups = new Map<string, any[]>();
+      
       files.forEach(file => {
-        const key = file.originalName.toLowerCase();
-        if (!nameGroups.has(key)) {
-          nameGroups.set(key, []);
+        const baseName = this.removeTimestamp(file.originalName);
+        // 너무 짧거나 일반적인 파일명은 제외
+        if (baseName.length > 10 && !baseName.match(/^(image|file|document)$/)) {
+          if (!baseNameGroups.has(baseName)) {
+            baseNameGroups.set(baseName, []);
+          }
+          baseNameGroups.get(baseName)!.push(file);
         }
-        nameGroups.get(key)!.push(file);
       });
 
-      // 같은 이름의 파일이 여러 개인 경우
-      nameGroups.forEach((group, name) => {
+      // 같은 기본명의 파일이 2개 이상인 경우만 처리
+      baseNameGroups.forEach((group, baseName) => {
         if (group.length > 1) {
-          // 가장 최근 파일만 남기고 나머지는 중복으로 처리
+          // 업로드 날짜 순으로 정렬 (최신이 먼저)
           group.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
           
+          // 가장 최신 파일을 제외하고 나머지는 중복으로 처리
           for (let i = 1; i < group.length; i++) {
             const duplicate = group[i];
             duplicates.push(duplicate);
             totalSize += duplicate.size;
-            processed.add(duplicate.id);
           }
+          
+          console.log(`중복 그룹 발견: ${baseName} - ${group.length}개 파일, 최신 보존: ${group[0].originalName}`);
         }
       });
 
-      // 파일명 유사도 검사 (90% 이상 매우 유사한 경우만)
-      for (let i = 0; i < files.length; i++) {
-        for (let j = i + 1; j < files.length; j++) {
-          const file1 = files[i];
-          const file2 = files[j];
-          
-          if (processed.has(file1.id) || processed.has(file2.id)) continue;
-          
-          // 기본 파일명 추출 (확장자 및 타임스탬프 제거)
-          const name1 = this.getCleanFileName(file1.originalName);
-          const name2 = this.getCleanFileName(file2.originalName);
-          
-          const similarity = this.calculateSimilarity(name1, name2);
-          
-          // 90% 이상 유사하거나 기본명이 완전히 같은 경우만 중복으로 처리
-          if (similarity > 0.9 || name1 === name2) {
-            // 더 최근 파일을 보존하고 이전 파일을 중복으로 표시
-            const older = new Date(file1.uploadDate) < new Date(file2.uploadDate) ? file1 : file2;
-            
-            duplicates.push(older);
-            totalSize += older.size;
-            processed.add(older.id);
-          }
-        }
-      }
-
-      console.log(`중복 파일 검색 완료: ${duplicates.length}개 발견, ${totalSize} bytes`);
+      console.log(`중복 파일 검색 완료: ${duplicates.length}개 발견, ${Math.round(totalSize/1024)}KB`);
       return { duplicates, totalSize };
     } catch (error) {
       console.error('중복 파일 검색 오류:', error);
       return { duplicates: [], totalSize: 0 };
     }
+  }
+
+  // 타임스탬프만 제거 (나머지는 그대로 유지)
+  private removeTimestamp(filename: string): string {
+    return filename.replace(/_\d{10,}/g, ''); // 타임스탬프만 제거 (_1234567890 형태)
   }
 
   // 깨끗한 파일명 추출 (확장자, 타임스탬프, 특수문자 제거)

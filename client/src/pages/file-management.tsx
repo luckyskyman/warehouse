@@ -417,8 +417,12 @@ const FileManagement = () => {
                             중복 파일 감지
                           </CardTitle>
                           <CardDescription>
-                            {duplicateFiles.duplicates.length}개의 중복 가능 파일이 발견되었습니다. 
+                            {duplicateFiles.duplicates.length}개의 중복 파일이 발견되었습니다. 
                             {formatFileSize(duplicateFiles.totalSize)} 절약 가능
+                            <br />
+                            <span className="text-green-600 text-sm">
+                              ✓ 안전: 최신 버전은 자동 보존됩니다
+                            </span>
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
