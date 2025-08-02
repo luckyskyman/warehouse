@@ -43,10 +43,15 @@ const FileManagement = () => {
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['/api/files'],
     queryFn: async () => {
-      const response = await fetch('/api/files');
+      const response = await fetch('/api/files', {
+        headers: {
+          'x-session-id': sessionId || ''
+        }
+      });
       if (!response.ok) throw new Error('파일 목록을 불러올 수 없습니다.');
       return response.json();
-    }
+    },
+    enabled: !!sessionId
   });
 
   // 파일 삭제 뮤테이션
