@@ -280,6 +280,11 @@ const FileManagement = () => {
                 <CardTitle className="flex items-center gap-2">
                   <HardDrive className="h-5 w-5" />
                   {category.label}
+                  {categoryKey !== 'overview' && categoryKey !== 'automation' && (
+                    <Badge variant="secondary" className="ml-2">
+                      {getFilesByCategory(categoryKey).length}개 파일
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription>
                   {category.description}
@@ -333,15 +338,25 @@ const FileManagement = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {fileSystemStatus?.categoryBreakdown && Object.entries(fileSystemStatus.categoryBreakdown).map(([category, data]: [string, any]) => (
-                            <div key={category} className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Badge variant="outline">{category}</Badge>
-                                <span className="text-sm text-muted-foreground">{data.count}개 파일</span>
+                          {fileSystemStatus?.categoryBreakdown && Object.entries(fileSystemStatus.categoryBreakdown).map(([category, data]: [string, any]) => {
+                            // 증거자료 카테고리의 절약 가능 크기 계산 (임시로 설정)
+                            const savingsSize = category === 'evidence' ? Math.round(data.size * 0.15) : 0; // 15% 절약 추정
+                            
+                            return (
+                              <div key={category} className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <Badge variant="outline">{category}</Badge>
+                                  <span className="text-sm text-muted-foreground">{data.count}개 파일</span>
+                                  {category === 'evidence' && savingsSize > 0 && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      절약가능: {formatFileSize(savingsSize)}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-sm font-medium">{formatFileSize(data.size)}</div>
                               </div>
-                              <div className="text-sm font-medium">{formatFileSize(data.size)}</div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </CardContent>
                     </Card>

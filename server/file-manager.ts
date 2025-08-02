@@ -123,8 +123,10 @@ export class FileManager {
       
       files.forEach(file => {
         const baseName = this.removeTimestamp(file.originalName);
-        // 너무 짧거나 일반적인 파일명은 제외
-        if (baseName.length > 10 && !baseName.match(/^(image|file|document)$/)) {
+        console.log(`파일 처리: ${file.originalName} -> 기본명: ${baseName}`);
+        
+        // 너무 짧거나 일반적인 파일명은 제외 (조건 완화)
+        if (baseName.length > 5 && !baseName.match(/^(image|file|document)$/)) {
           if (!baseNameGroups.has(baseName)) {
             baseNameGroups.set(baseName, []);
           }
