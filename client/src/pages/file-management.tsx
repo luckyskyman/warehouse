@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, Download, Eye, Calendar, HardDrive, Image, Zap, Search, RefreshCw, Archive, AlertTriangle, CheckSquare, Shield } from "lucide-react";
+import { Trash2, Download, Eye, Calendar, HardDrive, Image, Zap, Search, RefreshCw, Archive, AlertTriangle, CheckSquare, Shield, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -283,6 +283,11 @@ const FileManagement = () => {
                   {categoryKey !== 'overview' && categoryKey !== 'automation' && (
                     <Badge variant="secondary" className="ml-2">
                       {getFilesByCategory(categoryKey).length}개 파일
+                      {categoryKey === 'evidence' && duplicateFiles?.duplicates && (
+                        ` (중복 ${duplicateFiles.duplicates.filter(d => 
+                          getFilesByCategory('evidence').some(f => f.id === d.id)
+                        ).length}개)`
+                      )}
                     </Badge>
                   )}
                 </CardTitle>
@@ -294,7 +299,7 @@ const FileManagement = () => {
               <CardContent>
                 {categoryKey === 'overview' && (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                       <Card>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm text-muted-foreground">전체 파일</CardTitle>
@@ -319,6 +324,22 @@ const FileManagement = () => {
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{duplicateFiles?.duplicates?.length || 0}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {fileSystemStatus?.totalFiles && duplicateFiles?.duplicates?.length 
+                              ? `${Math.round((duplicateFiles.duplicates.length / fileSystemStatus.totalFiles) * 100)}% 중복률`
+                              : ''}
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm text-muted-foreground">고유 파일</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">
+                            {(fileSystemStatus?.totalFiles || 0) - (duplicateFiles?.duplicates?.length || 0)}
+                          </div>
                         </CardContent>
                       </Card>
                       
@@ -339,17 +360,26 @@ const FileManagement = () => {
                       <CardContent>
                         <div className="space-y-4">
                           {fileSystemStatus?.categoryBreakdown && Object.entries(fileSystemStatus.categoryBreakdown).map(([category, data]: [string, any]) => {
-                            // 증거자료 카테고리의 절약 가능 크기 계산 (임시로 설정)
-                            const savingsSize = category === 'evidence' ? Math.round(data.size * 0.15) : 0; // 15% 절약 추정
+                            // 카테고리별 중복 파일 개수 계산
+                            const categoryDuplicates = duplicateFiles?.duplicates?.filter(d => 
+                              files.find(f => f.id === d.id)?.category === category
+                            ) || [];
+                            
+                            const duplicateSize = categoryDuplicates.reduce((sum, d) => sum + d.size, 0);
                             
                             return (
                               <div key={category} className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                   <Badge variant="outline">{category}</Badge>
-                                  <span className="text-sm text-muted-foreground">{data.count}개 파일</span>
-                                  {category === 'evidence' && savingsSize > 0 && (
+                                  <span className="text-sm text-muted-foreground">
+                                    {data.count}개 파일
+                                    {categoryDuplicates.length > 0 && (
+                                      ` (중복 ${categoryDuplicates.length}개)`
+                                    )}
+                                  </span>
+                                  {duplicateSize > 0 && (
                                     <Badge variant="secondary" className="text-xs">
-                                      절약가능: {formatFileSize(savingsSize)}
+                                      절약가능: {formatFileSize(duplicateSize)}
                                     </Badge>
                                   )}
                                 </div>
@@ -544,6 +574,28 @@ const FileManagement = () => {
                       >
                         <HardDrive className="h-4 w-4" />
                         대용량 파일 선택 (1MB+)
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          if (duplicateFiles?.duplicates) {
+                            const evidenceDuplicates = duplicateFiles.duplicates.filter(d => 
+                              getFilesByCategory('evidence').some(f => f.id === d.id)
+                            ).map(d => d.id);
+                            setSelectedFiles(prev => [...new Set([...prev, ...evidenceDuplicates])]);
+                          }
+                        }}
+                        disabled={!duplicateFiles?.duplicates || duplicateFiles.duplicates.filter(d => 
+                          getFilesByCategory('evidence').some(f => f.id === d.id)
+                        ).length === 0}
+                        className="flex items-center gap-2"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        중복 파일 선택 ({duplicateFiles?.duplicates?.filter(d => 
+                          getFilesByCategory('evidence').some(f => f.id === d.id)
+                        ).length || 0}개)
                       </Button>
                       
                       <Button 
