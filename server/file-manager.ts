@@ -113,42 +113,63 @@ export class FileManager {
 
   // 중복 파일 찾기
   async findDuplicateFiles(): Promise<{ duplicates: any[], totalSize: number }> {
-    const files = await storage.getFiles();
-    const sizeGroups = new Map<number, any[]>();
-    
-    // 크기별로 그룹핑
-    for (const file of files) {
-      if (!sizeGroups.has(file.size)) {
-        sizeGroups.set(file.size, []);
-      }
-      sizeGroups.get(file.size)!.push(file);
-    }
+    try {
+      const files = await storage.getFiles();
+      const duplicates: any[] = [];
+      let totalSize = 0;
+      const processed = new Set<string>();
 
-    const duplicates: any[] = [];
-    let totalDuplicateSize = 0;
+      // 정확히 같은 파일명을 가진 파일들 찾기
+      const nameGroups = new Map<string, any[]>();
+      files.forEach(file => {
+        const key = file.originalName.toLowerCase();
+        if (!nameGroups.has(key)) {
+          nameGroups.set(key, []);
+        }
+        nameGroups.get(key)!.push(file);
+      });
 
-    // 같은 크기의 파일들 중 중복 가능성 체크
-    for (const [size, fileGroup] of sizeGroups) {
-      if (fileGroup.length > 1) {
-        // 파일명 유사성 체크
-        const nameGroups = this.groupBySimilarNames(fileGroup);
-        
-        for (const similarFiles of nameGroups) {
-          if (similarFiles.length > 1) {
-            // 가장 최근 파일 제외하고 나머지를 중복으로 표시
-            const sortedFiles = similarFiles.sort((a, b) => 
-              new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
-            );
+      // 같은 이름의 파일이 여러 개인 경우
+      nameGroups.forEach((group, name) => {
+        if (group.length > 1) {
+          // 가장 최근 파일만 남기고 나머지는 중복으로 처리
+          group.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+          
+          for (let i = 1; i < group.length; i++) {
+            const duplicate = group[i];
+            duplicates.push(duplicate);
+            totalSize += duplicate.size;
+            processed.add(duplicate.id);
+          }
+        }
+      });
+
+      // 파일명 유사도 검사 (70% 이상 유사)
+      for (let i = 0; i < files.length; i++) {
+        for (let j = i + 1; j < files.length; j++) {
+          const file1 = files[i];
+          const file2 = files[j];
+          
+          if (processed.has(file1.id) || processed.has(file2.id)) continue;
+          
+          const similarity = this.calculateSimilarity(file1.originalName, file2.originalName);
+          if (similarity > 0.7) {
+            // 더 최근 파일을 보존하고 이전 파일을 중복으로 표시
+            const older = new Date(file1.uploadDate) < new Date(file2.uploadDate) ? file1 : file2;
             
-            const duplicateFiles = sortedFiles.slice(1);
-            duplicates.push(...duplicateFiles);
-            totalDuplicateSize += duplicateFiles.reduce((sum, f) => sum + f.size, 0);
+            duplicates.push(older);
+            totalSize += older.size;
+            processed.add(older.id);
           }
         }
       }
-    }
 
-    return { duplicates, totalSize: totalDuplicateSize };
+      console.log(`중복 파일 검색 완료: ${duplicates.length}개 발견, ${totalSize} bytes`);
+      return { duplicates, totalSize };
+    } catch (error) {
+      console.error('중복 파일 검색 오류:', error);
+      return { duplicates: [], totalSize: 0 };
+    }
   }
 
   // 파일명 유사성으로 그룹핑

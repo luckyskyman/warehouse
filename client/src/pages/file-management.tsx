@@ -422,18 +422,52 @@ const FileManagement = () => {
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-2 max-h-64 overflow-y-auto">
-                            {duplicateFiles.duplicates.slice(0, 10).map((file: any, index: number) => (
-                              <div key={index} className="flex items-center justify-between p-2 border rounded">
-                                <span className="text-sm truncate">{file.name}</span>
-                                <Badge variant="secondary">{formatFileSize(file.size)}</Badge>
-                              </div>
-                            ))}
-                            {duplicateFiles.duplicates.length > 10 && (
-                              <div className="text-sm text-muted-foreground text-center">
-                                ... 및 {duplicateFiles.duplicates.length - 10}개 추가 파일
-                              </div>
-                            )}
+                          <div className="space-y-3">
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  const duplicateIds = duplicateFiles.duplicates.map((file: FileItem) => file.id);
+                                  setSelectedFiles(duplicateIds);
+                                }}
+                              >
+                                모든 중복 파일 선택
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm"
+                                disabled={selectedFiles.length === 0 || deleteFilesMutation.isPending}
+                                onClick={handleDeleteSelected}
+                              >
+                                선택된 중복 파일 삭제 ({selectedFiles.filter(id => 
+                                  duplicateFiles.duplicates.some((file: FileItem) => file.id === id)
+                                ).length})
+                              </Button>
+                            </div>
+                            
+                            <div className="space-y-2 max-h-80 overflow-y-auto">
+                              {duplicateFiles.duplicates.map((file: FileItem, index: number) => (
+                                <div key={index} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50">
+                                  <Checkbox
+                                    checked={selectedFiles.includes(file.id)}
+                                    onCheckedChange={(checked) => toggleFileSelection(file.id, !!checked)}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium truncate">{file.originalName || file.name}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {formatDate(file.uploadDate)} • {file.category}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary">{formatFileSize(file.size)}</Badge>
+                                    <Badge variant="outline" className="text-xs text-yellow-600">
+                                      중복 파일
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
