@@ -157,7 +157,7 @@ export interface WorkDiaryFormData {
   visibility?: "private" | "department" | "public";
 }
 
-export type TabName = "bomCheck" | "inventory" | "inbound" | "outbound" | "move" | "warehouse" | "layout" | "excel" | "workDiary" | "users";
+export type TabName = "bomCheck" | "inventory" | "inbound" | "outbound" | "move" | "warehouse" | "layout" | "excel" | "workDiary" | "users" | "files";
 
 export interface InboundFormData {
   code: string;

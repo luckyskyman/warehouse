@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
 import WarehouseManagement from "@/pages/warehouse-management";
 import UserManagement from "@/pages/user-management";
+import FileManagement from "@/pages/file-management";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -13,6 +14,7 @@ function Router() {
     <Switch>
       <Route path="/" component={WarehouseManagement} />
       <Route path="/users" component={UserManagement} />
+      <Route path="/files" component={FileManagement} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -73,6 +73,10 @@ export interface IStorage {
   getWorkNotifications(userId: number): Promise<WorkNotification[]>;
   createWorkNotification(notification: InsertWorkNotification): Promise<WorkNotification>;
   markNotificationAsRead(id: number): Promise<boolean>;
+
+  // File management
+  getFiles(): Promise<any[]>;
+  deleteFiles(fileIds: string[]): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -784,6 +788,15 @@ export class MemStorage implements IStorage {
     console.log('모든 데이터 초기화 완료');
     return true;
   }
+
+  // File management - MemStorage용 더미 구현
+  async getFiles(): Promise<any[]> {
+    return [];
+  }
+
+  async deleteFiles(fileIds: string[]): Promise<number> {
+    return 0;
+  }
 }
 
 // 데이터베이스 기반 저장소 클래스
@@ -1155,6 +1168,86 @@ export class DatabaseStorage implements IStorage {
       console.error('데이터 초기화 실패:', error);
       return false;
     }
+  }
+
+  // File management - attached_assets 폴더 기반
+  async getFiles(): Promise<any[]> {
+    const fs = await import('fs').then(m => m.promises);
+    const path = await import('path');
+    
+    try {
+      const attachedAssetsDir = path.resolve('attached_assets');
+      const files = await fs.readdir(attachedAssetsDir);
+      
+      const fileList = await Promise.all(
+        files.map(async (filename) => {
+          const filePath = path.join(attachedAssetsDir, filename);
+          const stats = await fs.stat(filePath);
+          
+          // 파일 카테고리 분류
+          let category = 'evidence';
+          if (filename.includes('BOM') || filename.includes('bom')) category = 'bom';
+          else if (filename.includes('백업') || filename.includes('backup')) category = 'backup';
+          else if (filename.includes('동기화') || filename.includes('sync')) category = 'sync';
+          else if (filename.includes('제품') || filename.includes('master')) category = 'master';
+          else if (filename.includes('temp') || filename.includes('임시')) category = 'temp';
+          
+          return {
+            id: filename,
+            name: filename,
+            originalName: filename,
+            size: stats.size,
+            type: this.getFileType(filename),
+            category,
+            uploadDate: stats.birthtime.toISOString(),
+            url: `/attached_assets/${filename}`
+          };
+        })
+      );
+      
+      return fileList.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+    } catch (error) {
+      console.error('파일 목록 조회 오류:', error);
+      return [];
+    }
+  }
+
+  async deleteFiles(fileIds: string[]): Promise<number> {
+    const fs = await import('fs').then(m => m.promises);
+    const path = await import('path');
+    
+    let deletedCount = 0;
+    
+    for (const fileId of fileIds) {
+      try {
+        const filePath = path.resolve('attached_assets', fileId);
+        await fs.unlink(filePath);
+        deletedCount++;
+        console.log(`파일 삭제 완료: ${fileId}`);
+      } catch (error) {
+        console.error(`파일 삭제 실패: ${fileId}`, error);
+      }
+    }
+    
+    return deletedCount;
+  }
+
+  private getFileType(filename: string): string {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
+      return 'image/' + (ext === 'jpg' ? 'jpeg' : ext);
+    } else if (['xlsx', 'xls'].includes(ext || '')) {
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    } else if (ext === 'pdf') {
+      return 'application/pdf';
+    } else if (ext === 'txt') {
+      return 'text/plain';
+    } else if (ext === 'json') {
+      return 'application/json';
+    }
+    
+    return 'application/octet-stream';
   }
 }
 

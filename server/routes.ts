@@ -1694,6 +1694,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // File management API
+  app.get("/api/files", async (req: any, res) => {
+    try {
+      const files = await storage.getFiles();
+      res.json(files);
+    } catch (error) {
+      console.error("파일 목록 조회 오류:", error);
+      res.status(500).json({ message: "파일 목록을 불러올 수 없습니다." });
+    }
+  });
+
+  app.post("/api/files/delete", requireAdmin, async (req: any, res) => {
+    try {
+      const { fileIds } = req.body;
+      if (!Array.isArray(fileIds) || fileIds.length === 0) {
+        return res.status(400).json({ message: "삭제할 파일을 선택해주세요." });
+      }
+
+      const deletedCount = await storage.deleteFiles(fileIds);
+      res.json({ 
+        message: "파일이 삭제되었습니다.", 
+        deletedCount 
+      });
+    } catch (error) {
+      console.error("파일 삭제 오류:", error);
+      res.status(500).json({ message: "파일 삭제에 실패했습니다." });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

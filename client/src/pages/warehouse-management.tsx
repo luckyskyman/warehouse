@@ -13,6 +13,7 @@ import { LayoutManagement } from '@/components/warehouse/layout-management';
 import { ExcelManagement } from '@/components/warehouse/excel-management';
 import { WorkDiaryManagement } from '@/components/warehouse/work-diary';
 import UserManagement from '@/pages/user-management';
+import FileManagement from '@/pages/file-management';
 import { Button } from '@/components/ui/button';
 import { TabName } from '@/types/warehouse';
 import { useQuery } from '@tanstack/react-query';
@@ -169,6 +170,11 @@ export default function WarehouseManagement() {
       label: '👥 사용자 관리', 
       permission: () => permissions.canManageUsers 
     },
+    { 
+      id: 'files', 
+      label: '📁 파일 관리', 
+      permission: () => permissions.canManageUsers 
+    },
   ] as const;
 
   const filteredTabs = tabs.filter(tab => tab.permission());
@@ -203,6 +209,8 @@ export default function WarehouseManagement() {
         );
       case 'users':
         return permissions.canManageUsers ? <UserManagement /> : null;
+      case 'files':
+        return permissions.canManageUsers ? <FileManagement /> : null;
       default:
         return <BomCheck />;
     }
