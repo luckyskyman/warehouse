@@ -144,7 +144,7 @@ export class FileManager {
         }
       });
 
-      // 파일명 유사도 검사 (70% 이상 유사)
+      // 파일명 유사도 검사 (90% 이상 매우 유사한 경우만)
       for (let i = 0; i < files.length; i++) {
         for (let j = i + 1; j < files.length; j++) {
           const file1 = files[i];
@@ -152,8 +152,14 @@ export class FileManager {
           
           if (processed.has(file1.id) || processed.has(file2.id)) continue;
           
-          const similarity = this.calculateSimilarity(file1.originalName, file2.originalName);
-          if (similarity > 0.7) {
+          // 기본 파일명 추출 (확장자 및 타임스탬프 제거)
+          const name1 = this.getCleanFileName(file1.originalName);
+          const name2 = this.getCleanFileName(file2.originalName);
+          
+          const similarity = this.calculateSimilarity(name1, name2);
+          
+          // 90% 이상 유사하거나 기본명이 완전히 같은 경우만 중복으로 처리
+          if (similarity > 0.9 || name1 === name2) {
             // 더 최근 파일을 보존하고 이전 파일을 중복으로 표시
             const older = new Date(file1.uploadDate) < new Date(file2.uploadDate) ? file1 : file2;
             
@@ -172,17 +178,27 @@ export class FileManager {
     }
   }
 
+  // 깨끗한 파일명 추출 (확장자, 타임스탬프, 특수문자 제거)
+  private getCleanFileName(filename: string): string {
+    return filename
+      .toLowerCase()
+      .replace(/\.\w+$/, '') // 확장자 제거
+      .replace(/_\d{10,}/g, '') // 타임스탬프 제거 (_1234567890 형태)
+      .replace(/[_\-\s]+/g, '') // 언더스코어, 하이픈, 공백 제거
+      .replace(/[^\w가-힣]/g, ''); // 특수문자 제거, 한글/영숫자만 유지
+  }
+
   // 파일명 유사성으로 그룹핑
   private groupBySimilarNames(files: any[]): any[][] {
     const groups: any[][] = [];
     
     for (const file of files) {
-      const baseName = this.getBaseName(file.name);
+      const baseName = this.getCleanFileName(file.originalName);
       let foundGroup = false;
       
       for (const group of groups) {
-        const groupBaseName = this.getBaseName(group[0].name);
-        if (this.areSimilarNames(baseName, groupBaseName)) {
+        const groupBaseName = this.getCleanFileName(group[0].originalName);
+        if (baseName === groupBaseName) { // 정확히 같은 경우만
           group.push(file);
           foundGroup = true;
           break;
@@ -195,19 +211,6 @@ export class FileManager {
     }
     
     return groups;
-  }
-
-  // 기본 파일명 추출 (타임스탬프 제거)
-  private getBaseName(filename: string): string {
-    // 타임스탬프 패턴 제거 (_1234567890 형태)
-    return filename.replace(/_\d{10,}/, '').replace(/\.\w+$/, '');
-  }
-
-  // 파일명 유사성 판단
-  private areSimilarNames(name1: string, name2: string): boolean {
-    // 70% 이상 유사하면 같은 파일로 판단
-    const similarity = this.calculateSimilarity(name1, name2);
-    return similarity > 0.7;
   }
 
   // 문자열 유사도 계산 (Levenshtein distance 기반)
