@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Trash2, Download, Eye, Calendar, HardDrive, Image, Zap, Search, RefreshCw, Archive, AlertTriangle } from "lucide-react";
+import { Trash2, Download, Eye, Calendar, HardDrive, Image, Zap, Search, RefreshCw, Archive, AlertTriangle, CheckSquare, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -480,34 +480,75 @@ const FileManagement = () => {
                 )}
 
                 {categoryKey === 'evidence' && (
-                  <div className="flex gap-4 mb-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={selectOldFiles}
-                      className="flex items-center gap-2"
-                    >
-                      <Calendar className="h-4 w-4" />
-                      30일 이전 파일 선택
-                    </Button>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const evidenceFiles = getFilesByCategory('evidence');
+                          const allSelected = evidenceFiles.every(file => selectedFiles.includes(file.id));
+                          if (allSelected) {
+                            // 모두 선택된 상태면 해제
+                            setSelectedFiles(prev => prev.filter(id => !evidenceFiles.some(file => file.id === id)));
+                          } else {
+                            // 전체 선택
+                            const evidenceIds = evidenceFiles.map(file => file.id);
+                            setSelectedFiles(prev => [...new Set([...prev, ...evidenceIds])]);
+                          }
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <CheckSquare className="h-4 w-4" />
+                        {getFilesByCategory('evidence').every(file => selectedFiles.includes(file.id)) && getFilesByCategory('evidence').length > 0 
+                          ? '전체 선택 해제' 
+                          : '전체 선택'
+                        }
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={selectOldFiles}
+                        className="flex items-center gap-2"
+                      >
+                        <Calendar className="h-4 w-4" />
+                        30일 이전 파일 선택
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={selectLargeFiles}
+                        className="flex items-center gap-2"
+                      >
+                        <HardDrive className="h-4 w-4" />
+                        대용량 파일 선택 (1MB+)
+                      </Button>
+                      
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        disabled={selectedFiles.length === 0 || deleteFilesMutation.isPending}
+                        onClick={handleDeleteSelected}
+                        className="flex items-center gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        선택된 파일 삭제 ({selectedFiles.filter(id => 
+                          getFilesByCategory('evidence').some(file => file.id === id)
+                        ).length})
+                      </Button>
+                    </div>
                     
-                    <Button 
-                      variant="outline" 
-                      onClick={selectLargeFiles}
-                      className="flex items-center gap-2"
-                    >
-                      <HardDrive className="h-4 w-4" />
-                      대용량 파일 선택 (1MB+)
-                    </Button>
-                    
-                    <Button 
-                      variant="destructive" 
-                      disabled={selectedFiles.length === 0 || deleteFilesMutation.isPending}
-                      onClick={handleDeleteSelected}
-                      className="flex items-center gap-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      선택된 파일 삭제 ({selectedFiles.length})
-                    </Button>
+                    {selectedFiles.filter(id => getFilesByCategory('evidence').some(file => file.id === id)).length > 0 && (
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+                          <Shield className="h-4 w-4" />
+                          <span className="font-medium">안전한 삭제:</span>
+                          삭제된 파일은 30일간 휴지통에 보관되며, 필요시 복구할 수 있습니다.
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
