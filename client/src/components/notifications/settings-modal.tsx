@@ -42,6 +42,7 @@ export function SettingsModal({ children }: SettingsModalProps) {
   const [open, setOpen] = useState(false);
   const [inventorySettings, setInventorySettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
   const [activeTab, setActiveTab] = useState<string>('voice');
+  const [userHasChangedTab, setUserHasChangedTab] = useState(false);
   const { settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceNotifications();
   const { toast } = useToast();
 
@@ -57,9 +58,9 @@ export function SettingsModal({ children }: SettingsModalProps) {
     }
   }, []);
 
-  // 재고 알림 설정을 스마트하게 분석하여 기본 탭 결정
+  // 모달이 처음 열릴 때만 스마트 탭 선택 (사용자가 수동으로 탭을 변경하지 않은 경우에만)
   useEffect(() => {
-    if (open) {
+    if (open && !userHasChangedTab) {
       const hasInventoryIssues = !inventorySettings.lowStockEnabled && 
                                  !inventorySettings.outOfStockEnabled && 
                                  !inventorySettings.overstockEnabled;
@@ -70,7 +71,14 @@ export function SettingsModal({ children }: SettingsModalProps) {
         setActiveTab('voice');
       }
     }
-  }, [open, inventorySettings]);
+  }, [open]);
+
+  // 모달이 닫힐 때 사용자 탭 변경 상태 리셋
+  useEffect(() => {
+    if (!open) {
+      setUserHasChangedTab(false);
+    }
+  }, [open]);
 
   const saveInventorySettings = (newSettings: NotificationSettings) => {
     localStorage.setItem('inventory-notification-settings', JSON.stringify(newSettings));
@@ -161,7 +169,10 @@ export function SettingsModal({ children }: SettingsModalProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={(tab) => {
+          setActiveTab(tab);
+          setUserHasChangedTab(true);
+        }} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="voice" className="flex items-center gap-2">
               {voiceSettings.enabled ? (
