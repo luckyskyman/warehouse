@@ -16,6 +16,7 @@ import { useVoiceNotifications } from '@/hooks/use-voice-notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useAuth } from '@/hooks/use-auth';
+import { SettingsModal } from '@/components/notifications/settings-modal';
 
 export function NotificationBell() {
   const { user } = useAuth();
@@ -120,7 +121,9 @@ export function NotificationBell() {
                 <VolumeX className="h-4 w-4 text-gray-400" />
               )}
             </Button>
-            <Settings className="h-4 w-4 text-gray-400" />
+            <SettingsModal>
+              <Settings className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600 transition-colors" />
+            </SettingsModal>
           </div>
         </DropdownMenuLabel>
         

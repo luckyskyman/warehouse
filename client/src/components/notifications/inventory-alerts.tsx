@@ -9,6 +9,8 @@ import { useInventory } from "@/hooks/use-inventory";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { SettingsModal } from '@/components/notifications/settings-modal';
+import type { InventoryItem } from '@/types/warehouse';
 
 interface InventoryAlert {
   id: string;
@@ -46,7 +48,7 @@ export default function InventoryAlerts() {
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
   const [lastCheck, setLastCheck] = useState<Date>(new Date());
-  const { data: inventory = [] } = useInventory();
+  const { data: inventory = [] } = useInventory() as { data: InventoryItem[] };
   const { toast } = useToast();
 
   // Load settings from localStorage
@@ -85,7 +87,7 @@ export default function InventoryAlerts() {
         });
       }
       
-      // Check for out of stock
+      // Check for out of stock  
       if (settings.outOfStockEnabled && item.stock === 0) {
         newAlerts.push({
           id: alertId + '-out',
@@ -137,7 +139,7 @@ export default function InventoryAlerts() {
       // Play sound if enabled
       if (settings.soundEnabled && filteredNewAlerts.length > 0) {
         // Create a simple beep sound
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
@@ -242,13 +244,14 @@ export default function InventoryAlerts() {
                 <strong>{unacknowledgedAlerts.length}개의 재고 알림</strong>이 있습니다.
               </span>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSettings(!showSettings)}
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
+                <SettingsModal>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </SettingsModal>
                 <Button
                   variant="outline"
                   size="sm"
