@@ -13,6 +13,7 @@ import { Trash2, Download, Eye, Calendar, HardDrive, Image, Zap, Search, Refresh
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 interface FileItem {
   id: string;
@@ -36,6 +37,7 @@ const FileManagement = () => {
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { sessionId } = useAuth();
 
   // 파일 목록 조회
   const { data: files = [], isLoading } = useQuery({
@@ -52,7 +54,10 @@ const FileManagement = () => {
     mutationFn: async (fileIds: string[]) => {
       const response = await fetch('/api/files/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-session-id': sessionId || ''
+        },
         body: JSON.stringify({ fileIds })
       });
       if (!response.ok) throw new Error('파일 삭제에 실패했습니다.');
@@ -80,7 +85,10 @@ const FileManagement = () => {
     mutationFn: async (options: any) => {
       const response = await fetch('/api/files/auto-cleanup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-session-id': sessionId || ''
+        },
         body: JSON.stringify(options)
       });
       if (!response.ok) throw new Error('자동 정리에 실패했습니다.');
@@ -106,20 +114,30 @@ const FileManagement = () => {
   const { data: fileSystemStatus } = useQuery({
     queryKey: ['/api/files/status'],
     queryFn: async () => {
-      const response = await fetch('/api/files/status');
+      const response = await fetch('/api/files/status', {
+        headers: {
+          'x-session-id': sessionId || ''
+        }
+      });
       if (!response.ok) throw new Error('파일 시스템 상태 조회 실패');
       return response.json();
-    }
+    },
+    enabled: !!sessionId
   });
 
   // 중복 파일 조회
   const { data: duplicateFiles } = useQuery({
     queryKey: ['/api/files/duplicates'],
     queryFn: async () => {
-      const response = await fetch('/api/files/duplicates');
+      const response = await fetch('/api/files/duplicates', {
+        headers: {
+          'x-session-id': sessionId || ''
+        }
+      });
       if (!response.ok) throw new Error('중복 파일 검색 실패');
       return response.json();
-    }
+    },
+    enabled: !!sessionId
   });
 
   // 파일 크기 포맷팅
