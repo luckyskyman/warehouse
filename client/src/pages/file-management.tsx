@@ -69,7 +69,10 @@ const FileManagement = () => {
       return response.json();
     },
     onSuccess: (data) => {
+      // 모든 관련 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/files/duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/files/status'] });
       setSelectedFiles([]);
       toast({
         title: "삭제 완료",
@@ -100,7 +103,10 @@ const FileManagement = () => {
       return response.json();
     },
     onSuccess: (data) => {
+      // 모든 관련 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/files/duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/files/status'] });
       toast({
         title: data.dryRun ? "자동 정리 미리보기 완료" : "자동 정리 완료",
         description: `${data.deletedFiles.length}개 파일, ${formatFileSize(data.savedSpace)} 절약`,
