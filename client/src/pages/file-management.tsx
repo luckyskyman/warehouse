@@ -282,8 +282,8 @@ const FileManagement = () => {
         {Object.entries(categories).map(([categoryKey, category]) => (
           <TabsContent key={categoryKey} value={categoryKey} className="mt-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+              <CardHeader className="pb-6">
+                <CardTitle className="flex items-center gap-2 text-lg mb-3">
                   <HardDrive className="h-5 w-5" />
                   {category.label}
                   {categoryKey !== 'overview' && categoryKey !== 'automation' && (
@@ -297,7 +297,7 @@ const FileManagement = () => {
                     </Badge>
                   )}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm leading-relaxed">
                   {category.description}
                 </CardDescription>
               </CardHeader>
