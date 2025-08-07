@@ -67,7 +67,7 @@ export function LayoutManagement() {
 
         toast({
           title: "구역 수정 완료",
-          description: `${data.zoneName}-${data.subZoneName}이(가) 수정되었습니다.`,
+          description: `${data.zoneName}이(가) 수정되었습니다.`,
         });
       } else {
         // 새 생성 모드
@@ -75,7 +75,7 @@ export function LayoutManagement() {
 
         toast({
           title: "구역 추가 완료",
-          description: `${data.zoneName}-${data.subZoneName}이(가) 추가되었습니다.`,
+          description: `${data.zoneName}이(가) 추가되었습니다.`,
         });
       }
 
@@ -110,7 +110,7 @@ export function LayoutManagement() {
       await deleteZone.mutateAsync(zoneId);
       toast({
         title: "구역 삭제 완료",
-        description: `${zoneName}-${subZoneName}이(가) 삭제되었습니다.`,
+        description: `${zoneName}이(가) 삭제되었습니다.`,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "구역 삭제 중 오류가 발생했습니다.";
@@ -218,7 +218,7 @@ export function LayoutManagement() {
                   <MapPin className="w-5 h-5 text-blue-600" />
                   {zoneName}
                   <Badge variant="secondary" className="ml-2">
-                    {zones.length}개 세부구역
+                    {zones.length}개 항목
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -231,7 +231,7 @@ export function LayoutManagement() {
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h4 className="font-semibold text-lg">{zone.subZoneName}</h4>
+                          <h4 className="font-semibold text-lg">{zone.subZoneName || '기본'}</h4>
                           <p className="text-sm text-gray-600">
                             위치: {zone.zoneName}
                           </p>

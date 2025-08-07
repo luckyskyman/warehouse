@@ -87,15 +87,15 @@ export function parseLocation(location: string): ParsedLocation {
   };
 }
 
-// 위치 문자열 정규화 (표시용)
+// 위치 문자열 정규화 (표시용) - 원본 입력값을 그대로 반환
 export function normalizeLocationDisplay(parsed: ParsedLocation): string {
   if (!parsed.isValid) {
     return parsed.original;
   }
   
-  // 단순히 zoneName만 반환 (이미 "구역"이 포함됨)
+  // 사용자 요구사항: 입력한 원본값을 그대로 표시
   const floorSuffix = parsed.floor > 1 ? ` (${parsed.floor}층)` : '';
-  return `${parsed.zoneName}${floorSuffix}`;
+  return `${parsed.original}${floorSuffix}`;
 }
 
 // 창고 레이아웃 생성을 위한 유틸리티
