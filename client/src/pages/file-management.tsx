@@ -306,57 +306,39 @@ const FileManagement = () => {
                 {categoryKey === 'overview' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-                      <Card className="min-h-[120px]">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="text-sm text-muted-foreground">전체 파일</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-3 pb-6">
-                          <div className="text-lg sm:text-xl font-bold leading-relaxed">{fileSystemStatus?.totalFiles || 0}</div>
-                        </CardContent>
-                      </Card>
+                      <div className="bg-white border rounded-lg p-4 min-h-[140px] flex flex-col justify-between">
+                        <div className="text-sm text-muted-foreground mb-3">전체 파일</div>
+                        <div className="text-base sm:text-lg font-bold">{fileSystemStatus?.totalFiles || 0}</div>
+                      </div>
                       
-                      <Card className="min-h-[120px]">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="text-sm text-muted-foreground">전체 용량</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-3 pb-6">
-                          <div className="text-lg sm:text-xl font-bold leading-relaxed">{formatFileSize(fileSystemStatus?.totalSize || 0)}</div>
-                        </CardContent>
-                      </Card>
+                      <div className="bg-white border rounded-lg p-4 min-h-[140px] flex flex-col justify-between">
+                        <div className="text-sm text-muted-foreground mb-3">전체 용량</div>
+                        <div className="text-base sm:text-lg font-bold">{formatFileSize(fileSystemStatus?.totalSize || 0)}</div>
+                      </div>
                       
-                      <Card className="min-h-[120px]">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="text-sm text-muted-foreground">중복 파일</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-3 pb-6">
-                          <div className="text-lg sm:text-xl font-bold leading-relaxed">{duplicateFiles?.duplicates?.length || 0}</div>
-                          <div className="text-xs text-muted-foreground mt-2">
+                      <div className="bg-white border rounded-lg p-4 min-h-[140px] flex flex-col justify-between">
+                        <div className="text-sm text-muted-foreground mb-3">중복 파일</div>
+                        <div className="space-y-1">
+                          <div className="text-base sm:text-lg font-bold">{duplicateFiles?.duplicates?.length || 0}</div>
+                          <div className="text-xs text-muted-foreground">
                             {fileSystemStatus?.totalFiles && duplicateFiles?.duplicates?.length 
                               ? `${Math.round((duplicateFiles.duplicates.length / fileSystemStatus.totalFiles) * 100)}% 중복률`
                               : ''}
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                       
-                      <Card className="min-h-[120px]">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="text-sm text-muted-foreground">고유 파일</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-3 pb-6">
-                          <div className="text-lg sm:text-xl font-bold leading-relaxed">
-                            {(fileSystemStatus?.totalFiles || 0) - (duplicateFiles?.duplicates?.length || 0)}
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <div className="bg-white border rounded-lg p-4 min-h-[140px] flex flex-col justify-between">
+                        <div className="text-sm text-muted-foreground mb-3">고유 파일</div>
+                        <div className="text-base sm:text-lg font-bold">
+                          {(fileSystemStatus?.totalFiles || 0) - (duplicateFiles?.duplicates?.length || 0)}
+                        </div>
+                      </div>
                       
-                      <Card className="min-h-[120px]">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="text-sm text-muted-foreground">절약 가능</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-3 pb-6">
-                          <div className="text-lg sm:text-xl font-bold leading-relaxed">{formatFileSize(duplicateFiles?.totalSize || 0)}</div>
-                        </CardContent>
-                      </Card>
+                      <div className="bg-white border rounded-lg p-4 min-h-[140px] flex flex-col justify-between">
+                        <div className="text-sm text-muted-foreground mb-3">절약 가능</div>
+                        <div className="text-base sm:text-lg font-bold">{formatFileSize(duplicateFiles?.totalSize || 0)}</div>
+                      </div>
                     </div>
 
                     <Card>
