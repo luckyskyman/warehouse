@@ -23,55 +23,52 @@ export function parseLocation(location: string): ParsedLocation {
 
   const trimmedLocation = location.trim();
   
-  // 다양한 위치 형식 패턴 매칭
+  // 새로운 유연한 위치 형식 패턴 매칭
   const patterns = [
-    // 패턴 1: "d-101번 팔레트", "D-102", "f-23"
-    /^([a-zA-Z])-(.+)$/,
+    // 패턴 1: 이미 "구역"이 포함된 경우 - 그대로 사용
+    /^(.+구역)$/,
     
-    // 패턴 2: "D구역-A-1-1층", "A구역-B-2-3층"
-    /^([a-zA-Z])구역-([^-]+)-(\d+)-(\d+)층$/,
+    // 패턴 2: 숫자만 (예: "3", "12")
+    /^(\d+)$/,
     
-    // 패턴 3: "D구역-101번팔레트", "A구역-창고1"
-    /^([a-zA-Z])구역-(.+)$/,
+    // 패턴 3: 숫자-숫자 (예: "3-1", "12-5")
+    /^(\d+-\d+)$/,
     
-    // 패턴 4: "D-101-2" (구역-세부구역-층수)
-    /^([a-zA-Z])-([^-]+)-(\d+)$/,
+    // 패턴 4: 영문자만 (예: "A", "BC")
+    /^([a-zA-Z]+)$/,
     
-    // 패턴 5: "A1", "B2" (구역+숫자)
-    /^([a-zA-Z])(\d+)$/,
+    // 패턴 5: 영문자-숫자 (예: "A-1", "BC-12")
+    /^([a-zA-Z]+-\d+)$/,
     
-    // 패턴 6: "D101번팔레트", "F23"
-    /^([a-zA-Z])(.+)$/
+    // 패턴 6: 영문자+숫자 (예: "A1", "BC12")
+    /^([a-zA-Z]+\d+)$/,
+    
+    // 패턴 7: 한글 포함 (예: "창고1", "팔레트A")
+    /^([가-힣]+.*)$/,
+    
+    // 패턴 8: 기타 모든 형식 (최후 패턴)
+    /^(.+)$/
   ];
 
   for (const pattern of patterns) {
     const match = trimmedLocation.match(pattern);
     if (match) {
-      const zoneName = match[1].toUpperCase();
+      let zoneName = match[1];
       
-      if (pattern === patterns[1]) {
-        // 패턴 2: "D구역-A-1-1층"
+      if (pattern === patterns[0]) {
+        // 패턴 1: 이미 "구역"이 포함된 경우 - 그대로 사용
         return {
-          zoneName,
-          subZoneName: `${match[2]}-${match[3]}`,
-          floor: parseInt(match[4]) || 1,
-          original: trimmedLocation,
-          isValid: true
-        };
-      } else if (pattern === patterns[3]) {
-        // 패턴 4: "D-101-2"
-        return {
-          zoneName,
-          subZoneName: match[2],
-          floor: parseInt(match[3]) || 1,
+          zoneName: zoneName,
+          subZoneName: '',
+          floor: 1,
           original: trimmedLocation,
           isValid: true
         };
       } else {
-        // 나머지 패턴들
+        // 패턴 2-8: "구역" 추가
         return {
-          zoneName,
-          subZoneName: match[2] || match[1] + (match[2] || ''),
+          zoneName: `${zoneName}구역`,
+          subZoneName: '',
           floor: 1,
           original: trimmedLocation,
           isValid: true
@@ -80,13 +77,13 @@ export function parseLocation(location: string): ParsedLocation {
     }
   }
 
-  // 패턴 매칭 실패 시 기본값 반환
+  // 패턴 매칭 실패 시 기본값 반환 (실제로는 패턴 8에서 모든 것을 잡아냄)
   return {
-    zoneName: '',
-    subZoneName: trimmedLocation,
+    zoneName: `${trimmedLocation}구역`,
+    subZoneName: '',
     floor: 1,
     original: trimmedLocation,
-    isValid: false
+    isValid: true
   };
 }
 
@@ -96,8 +93,9 @@ export function normalizeLocationDisplay(parsed: ParsedLocation): string {
     return parsed.original;
   }
   
+  // 단순히 zoneName만 반환 (이미 "구역"이 포함됨)
   const floorSuffix = parsed.floor > 1 ? ` (${parsed.floor}층)` : '';
-  return `${parsed.zoneName}구역-${parsed.subZoneName}${floorSuffix}`;
+  return `${parsed.zoneName}${floorSuffix}`;
 }
 
 // 창고 레이아웃 생성을 위한 유틸리티
@@ -106,7 +104,7 @@ export function generateWarehouseLayoutData(parsed: ParsedLocation) {
   
   return {
     zoneName: parsed.zoneName,
-    subZoneName: parsed.subZoneName,
+    subZoneName: parsed.subZoneName || '',
     floors: Array.from({ length: parsed.floor }, (_, i) => i + 1)
   };
 }
@@ -122,19 +120,14 @@ export function validateLocation(location: string): { isValid: boolean; message?
     };
   }
   
-  if (!parsed.zoneName || parsed.zoneName.length !== 1) {
+  if (!parsed.zoneName) {
     return {
       isValid: false,
-      message: `구역명이 올바르지 않습니다. 단일 알파벳을 사용해주세요: "${parsed.zoneName}"`
+      message: `구역명이 필요합니다.`
     };
   }
   
-  if (!parsed.subZoneName) {
-    return {
-      isValid: false,
-      message: `세부구역명이 필요합니다.`
-    };
-  }
+  // 세부구역명은 선택사항으로 변경
   
   return { isValid: true };
 }
@@ -142,18 +135,16 @@ export function validateLocation(location: string): { isValid: boolean; message?
 // 테스트용 함수 (개발 시에만 사용)
 export function testLocationParsing() {
   const testCases = [
-    "d-101번 팔레트",
-    "D-102",
-    "f-23",
-    "D구역-A-1-1층", 
-    "A구역-B-2-3층",
-    "D구역-101번팔레트",
-    "A구역-창고1",
-    "D-101-2",
-    "A1",
-    "B2",
-    "D101번팔레트",
-    "F23"
+    "3",           // 숫자만
+    "3-1",         // 숫자-숫자  
+    "3구역",       // 이미 구역 포함
+    "A",           // 영문자만
+    "A-1",         // 영문자-숫자
+    "A1",          // 영문자+숫자
+    "창고1",       // 한글+숫자
+    "팔레트A",     // 한글+영문자
+    "D-101번 팔레트", // 기존 복잡 형식
+    "저장소"       // 한글만
   ];
   
   return testCases.map(location => ({

@@ -1235,12 +1235,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!parsed.isValid) {
             locationWarnings.push(`${itemData.code}: 위치 형식을 인식할 수 없음 "${itemData.location}"`);
           } else {
-            // 창고 구조 데이터 수집
-            const structureKey = `${parsed.zoneName}-${parsed.subZoneName}`;
+            // 창고 구조 데이터 수집 (새로운 방식: zoneName이 이미 "구역" 포함)
+            const structureKey = parsed.zoneName;
             if (!warehouseStructures.has(structureKey)) {
               warehouseStructures.set(structureKey, {
                 zoneName: parsed.zoneName,
-                subZoneName: parsed.subZoneName,
+                subZoneName: parsed.subZoneName || '',
                 maxFloor: parsed.floor
               });
             } else {
@@ -1256,11 +1256,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createdStructures = [];
       for (const structureData of warehouseStructures.values()) {
         try {
-          // 기존에 같은 구조가 있는지 확인
+          // 기존에 같은 구조가 있는지 확인 (새로운 방식)
           const existingLayouts = await storage.getWarehouseLayout();
           const exists = existingLayouts.some(layout => 
-            layout.zoneName === structureData.zoneName && 
-            layout.subZoneName === structureData.subZoneName
+            layout.zoneName === structureData.zoneName
           );
           
           if (!exists) {
@@ -1271,10 +1270,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               floors: floors
             });
             createdStructures.push(newLayout);
-            console.log(`자동 생성된 창고 구조: ${structureData.zoneName}구역-${structureData.subZoneName} (${structureData.maxFloor}층까지)`);
+            console.log(`자동 생성된 창고 구조: ${structureData.zoneName} (${structureData.maxFloor}층까지)`);
           }
         } catch (structureError) {
-          console.error(`창고 구조 생성 실패 ${structureData.zoneName}-${structureData.subZoneName}:`, structureError.message);
+          console.error(`창고 구조 생성 실패 ${structureData.zoneName}:`, structureError.message);
         }
       }
 

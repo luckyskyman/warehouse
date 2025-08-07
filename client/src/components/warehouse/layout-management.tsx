@@ -233,7 +233,7 @@ export function LayoutManagement() {
                         <div>
                           <h4 className="font-semibold text-lg">{zone.subZoneName}</h4>
                           <p className="text-sm text-gray-600">
-                            위치: {zone.zoneName}-{zone.subZoneName}
+                            위치: {zone.zoneName}
                           </p>
                         </div>
                         <PermissionGuard permission="canManageWarehouse" showViewerMessage={false}>
@@ -255,7 +255,7 @@ export function LayoutManagement() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>구역 삭제</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    {zone.zoneName}-{zone.subZoneName}을(를) 삭제하시겠습니까?
+                                    {zone.zoneName}을(를) 삭제하시겠습니까?
                                     이 작업은 되돌릴 수 없습니다.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
