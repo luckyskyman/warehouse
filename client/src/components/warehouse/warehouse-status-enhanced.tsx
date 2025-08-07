@@ -281,21 +281,21 @@ export function WarehouseStatusEnhanced() {
                                   {items.length}개 제품
                                 </Badge>
                               </div>
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                              <div className="space-y-2">
                                 {items.slice(0, 6).map(item => (
-                                  <div key={item.id} className="flex items-center justify-between bg-white rounded p-2 text-sm">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium truncate">{item.code}</div>
-                                      <div className="text-xs text-gray-500 truncate">{item.name}</div>
+                                  <div key={item.id} className="bg-white rounded p-3 text-sm space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <div className="font-medium">{item.code}</div>
+                                      <div className={`${getStockStatusColor(item)} text-right`}>
+                                        <div className="font-medium">{item.stock.toLocaleString()}</div>
+                                        <div className="text-xs">{item.unit}</div>
+                                      </div>
                                     </div>
-                                    <div className={`text-right ${getStockStatusColor(item)}`}>
-                                      <div className="font-medium">{item.stock.toLocaleString()}</div>
-                                      <div className="text-xs">{item.unit}</div>
-                                    </div>
+                                    <div className="text-xs text-gray-500">{item.name}</div>
                                   </div>
                                 ))}
                                 {items.length > 6 && (
-                                  <div className="col-span-2 text-center text-xs text-gray-500 py-1">
+                                  <div className="text-center text-xs text-gray-500 py-1">
                                     +{items.length - 6}개 제품 더 있음
                                   </div>
                                 )}

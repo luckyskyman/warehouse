@@ -305,13 +305,13 @@ const FileManagement = () => {
               <CardContent>
                 {categoryKey === 'overview' && (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                       <Card>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm text-muted-foreground">전체 파일</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold">{fileSystemStatus?.totalFiles || 0}</div>
+                        <CardContent className="pt-2 pb-4">
+                          <div className="text-xl sm:text-2xl font-bold leading-none">{fileSystemStatus?.totalFiles || 0}</div>
                         </CardContent>
                       </Card>
                       
@@ -319,8 +319,8 @@ const FileManagement = () => {
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm text-muted-foreground">전체 용량</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold">{formatFileSize(fileSystemStatus?.totalSize || 0)}</div>
+                        <CardContent className="pt-2 pb-4">
+                          <div className="text-xl sm:text-2xl font-bold leading-none">{formatFileSize(fileSystemStatus?.totalSize || 0)}</div>
                         </CardContent>
                       </Card>
                       
@@ -328,8 +328,8 @@ const FileManagement = () => {
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm text-muted-foreground">중복 파일</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold">{duplicateFiles?.duplicates?.length || 0}</div>
+                        <CardContent className="pt-2 pb-4">
+                          <div className="text-xl sm:text-2xl font-bold leading-none">{duplicateFiles?.duplicates?.length || 0}</div>
                           <div className="text-xs text-muted-foreground mt-1">
                             {fileSystemStatus?.totalFiles && duplicateFiles?.duplicates?.length 
                               ? `${Math.round((duplicateFiles.duplicates.length / fileSystemStatus.totalFiles) * 100)}% 중복률`
@@ -342,8 +342,8 @@ const FileManagement = () => {
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm text-muted-foreground">고유 파일</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold">
+                        <CardContent className="pt-2 pb-4">
+                          <div className="text-xl sm:text-2xl font-bold leading-none">
                             {(fileSystemStatus?.totalFiles || 0) - (duplicateFiles?.duplicates?.length || 0)}
                           </div>
                         </CardContent>
@@ -353,8 +353,8 @@ const FileManagement = () => {
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm text-muted-foreground">절약 가능</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold">{formatFileSize(duplicateFiles?.totalSize || 0)}</div>
+                        <CardContent className="pt-2 pb-4">
+                          <div className="text-xl sm:text-2xl font-bold leading-none">{formatFileSize(duplicateFiles?.totalSize || 0)}</div>
                         </CardContent>
                       </Card>
                     </div>
