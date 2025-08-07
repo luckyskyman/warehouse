@@ -7,15 +7,28 @@ import { ChevronDown, ChevronRight, Package, MapPin, BarChart3 } from 'lucide-re
 import { parseLocation } from '@shared/location-utils';
 import type { InventoryItem } from '@shared/schema';
 
-// 구역별 이모티콘 매핑 함수
+// 구역별 이모티콘 매핑 함수 (구역명에서 첫 글자 추출)
 const getZoneEmoji = (zoneName: string): string => {
+  // zoneName이 "3구역", "A구역" 등일 때 첫 글자 추출
+  const firstChar = zoneName.charAt(0).toUpperCase();
+  
   const zoneEmojiMap: { [key: string]: string } = {
     'A': '🅰️',
     'B': '🅱️', 
     'C': '🅲️',
-    'D': '🅳️'
+    'D': '🅳️',
+    '1': '1️⃣',
+    '2': '2️⃣',
+    '3': '3️⃣',
+    '4': '4️⃣',
+    '5': '5️⃣',
+    '6': '6️⃣',
+    '7': '7️⃣',
+    '8': '8️⃣',
+    '9': '9️⃣',
+    '0': '0️⃣'
   };
-  return zoneEmojiMap[zoneName] || '📦';
+  return zoneEmojiMap[firstChar] || '📦';
 };
 
 interface GroupedInventory {
@@ -211,7 +224,7 @@ export function WarehouseStatusEnhanced() {
                   <ChevronRight className="w-4 h-4" />
                 }
                 <h3 className="text-lg font-semibold">
-                  {getZoneEmoji(zone.zoneName)} {zone.zoneName}구역
+                  {getZoneEmoji(zone.zoneName)} {zone.zoneName}
                 </h3>
                 <Badge variant="outline">
                   {Object.keys(zone.subZones).length}개 세부구역
