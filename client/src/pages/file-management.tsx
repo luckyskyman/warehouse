@@ -271,13 +271,15 @@ const FileManagement = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
-          {Object.entries(categories).map(([key, category]) => (
-            <TabsTrigger key={key} value={key} className="text-sm">
-              {category.label.split(' ')[0]}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="w-full min-w-max flex justify-start">
+            {Object.entries(categories).map(([key, category]) => (
+              <TabsTrigger key={key} value={key} className="text-sm min-w-[80px] px-3">
+                {category.label.split(' ')[0]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         {Object.entries(categories).map(([categoryKey, category]) => (
           <TabsContent key={categoryKey} value={categoryKey} className="mt-6">
