@@ -6,7 +6,8 @@ const app = express();
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Warehouse Inventory API is running!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
