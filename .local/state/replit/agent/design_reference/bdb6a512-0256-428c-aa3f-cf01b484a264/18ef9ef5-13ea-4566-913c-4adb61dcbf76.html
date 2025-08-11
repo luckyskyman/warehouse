@@ -1,0 +1,1054 @@
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>창고 물품재고관리시스템</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+        }
+        .hidden { display: none !important; }
+        
+        /* Login Styles */
+        #login-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            z-index: 1000; display: flex; align-items: center; justify-content: center; 
+        }
+        .login-box { 
+            background: rgba(255,255,255,0.95); padding: 40px; border-radius: 15px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); text-align: center; 
+            width: 90%; max-width: 400px; 
+        }
+        .login-box h2 { margin-bottom: 20px; color: #333; }
+        .login-box .form-group { text-align: left; margin-bottom: 15px; }
+        .login-box input { 
+            width: 100%; padding: 12px; border: 2px solid #e1e5e9; 
+            border-radius: 8px; font-size: 14px; 
+        }
+        .login-box button { 
+            width: 100%; padding: 12px; border: none; border-radius: 8px; 
+            font-size: 16px; font-weight: 600; cursor: pointer; 
+        }
+        #login-error { color: #ff4757; margin-top: 10px; height: 1.2em; font-size: 14px; }
+        
+        /* Main Layout */
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { 
+            position: relative; background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(10px); border-radius: 15px; padding: 20px; 
+            margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); 
+        }
+        .header h1 { 
+            color: #333; text-align: center; font-size: 2.2em; 
+            margin-bottom: 10px; 
+        }
+        #logout-button { position: absolute; top: 15px; right: 20px; }
+        
+        /* Stats Grid */
+        .stats-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 20px; margin-bottom: 20px; 
+        }
+        .stat-card { 
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); 
+            padding: 20px; border-radius: 15px; text-align: center; 
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
+        }
+        .stat-number { font-size: 2em; font-weight: 700; color: #333; }
+        .stat-label { font-size: 0.9em; color: #666; margin-top: 5px; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { 
+            padding: 10px 20px; background: rgba(255, 255, 255, 0.8); 
+            border: none; border-radius: 25px; cursor: pointer; 
+            font-weight: 600; transition: all 0.3s ease; backdrop-filter: blur(5px); 
+        }
+        .tab:hover { 
+            background: rgba(255, 255, 255, 0.9); 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
+        }
+        .tab.active { 
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+            color: white; box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4); 
+        }
+        
+        /* Content Areas */
+        .content { 
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); 
+            border-radius: 15px; padding: 30px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); margin-bottom: 20px; 
+        }
+        
+        /* Forms */
+        .form-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+            gap: 20px; margin-bottom: 20px; 
+        }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-group input, .form-group select, .form-group button, .form-group textarea { 
+            padding: 12px; border: 2px solid #e1e5e9; border-radius: 8px; 
+            font-size: 14px; transition: all 0.3s ease; 
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { 
+            outline: none; border-color: #4facfe; 
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1); 
+        }
+        
+        /* Buttons */
+        .btn { 
+            padding: 12px 24px; border: none; border-radius: 8px; 
+            cursor: pointer; font-weight: 600; font-size: 14px; 
+            transition: all 0.3s ease; margin: 5px; display: inline-block;
+            text-decoration: none; text-align: center;
+        }
+        .btn-primary, .btn-success, .btn-warning, .btn-danger, .btn-info { color: white; }
+        .btn-primary { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .btn-success { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .btn-info { background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%); }
+        .btn-warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .btn-danger { background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+        
+        /* Search */
+        .search-container { position: relative; margin-bottom: 20px; }
+        .search-icon { 
+            position: absolute; left: 15px; top: 50%; transform: translateY(-50%); 
+            color: #aaa; width: 20px; height: 20px; 
+        }
+        .search-bar { 
+            width: 100%; padding: 15px 15px 15px 45px; border: 2px solid #e1e5e9; 
+            border-radius: 25px; font-size: 16px; background: rgba(255, 255, 255, 0.9); 
+            transition: all 0.3s ease; 
+        }
+        .search-bar:focus { 
+            outline: none; border-color: #4facfe; 
+            box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.2); 
+        }
+        
+        /* Tables */
+        .table-container { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e5e9; }
+        th { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; font-weight: 600;
+        }
+        tr:hover { background: rgba(79, 172, 254, 0.05); }
+        
+        /* Status Badges */
+        .status-badge { 
+            padding: 4px 12px; border-radius: 20px; font-size: 12px; 
+            font-weight: 600; display: inline-block;
+        }
+        .status-in-stock { background: #d4edda; color: #155724; }
+        .status-out-of-stock { background: #f8d7da; color: #721c24; }
+        .status-ok { color: #28a745; font-weight: bold; }
+        .status-shortage { color: #dc3545; font-weight: bold; }
+        
+        /* File Upload */
+        .file-upload { 
+            border: 2px dashed #4facfe; border-radius: 10px; padding: 20px; 
+            text-align: center; margin: 10px 0; cursor: pointer; 
+            transition: all 0.3s ease; 
+        }
+        .file-upload:hover { background: rgba(79, 172, 254, 0.1); }
+        .file-upload h3 { margin-bottom: 8px; color: #333; }
+        .file-upload p { font-size: 0.9em; color: #666; }
+        
+        /* Warehouse Layout */
+        .warehouse-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
+            gap: 20px; margin-bottom: 20px; 
+        }
+        .zone-card { 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
+            border-radius: 15px; padding: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        }
+        .zone-title { 
+            font-size: 1.4em; font-weight: 700; margin-bottom: 20px; 
+            color: #333; padding-bottom: 10px; border-bottom: 2px solid #ddd; 
+        }
+        
+        /* Modals */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.6); z-index: 2000; display: flex; 
+            align-items: center; justify-content: center; backdrop-filter: blur(5px); 
+        }
+        .modal-content { 
+            background: white; padding: 30px; border-radius: 15px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); width: 90%; max-width: 600px; 
+        }
+        .modal-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 20px; 
+        }
+        .modal-header h2 { margin: 0; color: #333; }
+        .modal-close { 
+            font-size: 1.5em; font-weight: 300; cursor: pointer; 
+            border: none; background: none; color: #666;
+            width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+        }
+        .modal-close:hover { color: #333; }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .header h1 { font-size: 1.8em; }
+            .tabs { flex-direction: column; }
+            .tab { margin-bottom: 5px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .warehouse-grid { grid-template-columns: 1fr; }
+            #logout-button { position: static; text-align: right; margin-top: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Overlay -->
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>재고관리시스템 로그인</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">아이디</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <input type="password" id="password" required>
+                </div>
+                <div id="login-error"></div>
+                <button type="submit" class="btn btn-primary">로그인</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container hidden" id="main-container">
+        <div class="header">
+            <h1>🏭 창고 물품재고관리시스템</h1>
+            <div id="logout-button">
+                <button class="btn btn-danger" onclick="logout()">로그아웃</button>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalItems">0</div>
+                    <div class="stat-label">총 재고량 (ea)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="inStockItems">0</div>
+                    <div class="stat-label">총 품목 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="shortageItems">0</div>
+                    <div class="stat-label">부족 품목</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="warehouseZones">4</div>
+                    <div class="stat-label">창고 구역</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab active" data-tab="bomCheck" data-role="admin viewer">⚙️ 설치가이드별 자재 확인</button>
+            <button class="tab" data-tab="inventory" data-role="admin viewer">📦 재고관리</button>
+            <button class="tab" data-tab="inbound" data-role="admin">📥 입고관리</button>
+            <button class="tab" data-tab="outbound" data-role="admin">📤 출고관리</button>
+            <button class="tab" data-tab="move" data-role="admin">🔄 이동관리</button>
+            <button class="tab" data-tab="warehouse" data-role="admin viewer">🏪 창고현황</button>
+            <button class="tab" data-tab="layout" data-role="admin">🔧 창고 구조 관리</button>
+            <button class="tab" data-tab="excel" data-role="admin viewer">📊 엑셀관리</button>
+        </div>
+        
+        <!-- BOM Check Tab -->
+        <div id="bomCheck" class="content">
+            <h2>⚙️ 설치가이드별 자재 확인</h2>
+            <div class="form-group">
+                <label for="guideSelect">설치가이드 선택</label>
+                <select id="guideSelect" onchange="checkBom()">
+                    <option value="">선택하세요</option>
+                    <option value="guide1">가정용 태양광 설치 가이드</option>
+                    <option value="guide2">상업용 태양광 설치 가이드</option>
+                    <option value="guide3">산업용 태양광 설치 가이드</option>
+                </select>
+            </div>
+            <div class="table-container">
+                <table id="bomTable">
+                    <thead>
+                        <tr>
+                            <th>필요 부품코드</th>
+                            <th>품명</th>
+                            <th>필요수량</th>
+                            <th>현재고</th>
+                            <th>상태</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bomBody">
+                        <!-- BOM 데이터가 여기에 표시됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Inventory Tab -->
+        <div id="inventory" class="content hidden">
+            <h2>📦 재고 현황</h2>
+            <div class="search-container">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10,18a8,8,0,1,1,8-8A8,8,0,0,1,10,18ZM10,4a6,6,0,1,0,6,6A6,6,0,0,0,10,4Z"/>
+                    <path d="M21,22a1,1,0,0,1-.71-.29l-4-4a1,1,0,0,1,1.42-1.42l4,4a1,1,0,0,1,0,1.42A1,1,0,0,1,21,22Z"/>
+                </svg>
+                <input type="text" class="search-bar" id="searchInput" placeholder="제품코드, 품명, 제조사 검색...">
+            </div>
+            <div class="table-container">
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(0)">제품코드 ↕</th>
+                            <th onclick="sortTable(1)">품명 ↕</th>
+                            <th onclick="sortTable(2)">제조사 ↕</th>
+                            <th onclick="sortTable(3)">현재고 ↕</th>
+                            <th onclick="sortTable(4)">최소재고 ↕</th>
+                            <th onclick="sortTable(5)">단위 ↕</th>
+                            <th onclick="sortTable(6)">위치 ↕</th>
+                            <th>상태</th>
+                            <th>액션</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryBody">
+                        <!-- 재고 데이터가 여기에 표시됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Inbound Tab -->
+        <div id="inbound" class="content hidden">
+            <h2>📥 입고 관리</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="inProductCode">제품코드</label>
+                    <input type="text" id="inProductCode" placeholder="제품코드 입력">
+                </div>
+                <div class="form-group">
+                    <label for="inProductName">품명</label>
+                    <input type="text" id="inProductName" placeholder="품명 입력">
+                </div>
+                <div class="form-group">
+                    <label for="inManufacturer">제조사</label>
+                    <input type="text" id="inManufacturer" placeholder="제조사 입력">
+                </div>
+                <div class="form-group">
+                    <label for="inQuantity">입고수량</label>
+                    <input type="number" id="inQuantity" min="1" placeholder="수량 입력">
+                </div>
+                <div class="form-group">
+                    <label for="inMinStock">최소재고</label>
+                    <input type="number" id="inMinStock" min="0" placeholder="최소재고 입력">
+                </div>
+                <div class="form-group">
+                    <label for="inUnit">단위</label>
+                    <select id="inUnit">
+                        <option value="ea">개 (ea)</option>
+                        <option value="box">박스 (box)</option>
+                        <option value="set">세트 (set)</option>
+                        <option value="roll">롤 (roll)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inLocation">저장위치</label>
+                    <select id="inLocation">
+                        <option value="">위치 선택</option>
+                        <option value="A-1-1">A구역-1열-1층</option>
+                        <option value="A-1-2">A구역-1열-2층</option>
+                        <option value="B-1-1">B구역-1열-1층</option>
+                        <option value="B-1-2">B구역-1열-2층</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inMemo">메모</label>
+                    <textarea id="inMemo" placeholder="입고 메모 (선택사항)" rows="3"></textarea>
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="addInbound()">입고 등록</button>
+        </div>
+
+        <!-- Outbound Tab -->
+        <div id="outbound" class="content hidden">
+            <h2>📤 출고 관리</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="outProductCode">제품코드</label>
+                    <input type="text" id="outProductCode" placeholder="제품코드 입력" onchange="loadProductInfo('out')">
+                </div>
+                <div class="form-group">
+                    <label for="outProductName">품명</label>
+                    <input type="text" id="outProductName" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="outCurrentStock">현재고</label>
+                    <input type="text" id="outCurrentStock" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="outQuantity">출고수량</label>
+                    <input type="number" id="outQuantity" min="1" placeholder="출고할 수량">
+                </div>
+                <div class="form-group">
+                    <label for="outPurpose">출고목적</label>
+                    <select id="outPurpose">
+                        <option value="설치">설치</option>
+                        <option value="수리">수리</option>
+                        <option value="교체">교체</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="outMemo">메모</label>
+                    <textarea id="outMemo" placeholder="출고 메모 (선택사항)" rows="3"></textarea>
+                </div>
+            </div>
+            <button class="btn btn-warning" onclick="addOutbound()">출고 등록</button>
+        </div>
+
+        <!-- Move Tab -->
+        <div id="move" class="content hidden">
+            <h2>🔄 위치 이동 관리</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="moveProductCode">제품코드</label>
+                    <input type="text" id="moveProductCode" placeholder="제품코드 입력" onchange="loadProductInfo('move')">
+                </div>
+                <div class="form-group">
+                    <label for="moveProductName">품명</label>
+                    <input type="text" id="moveProductName" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="moveCurrentLocation">현재 위치</label>
+                    <input type="text" id="moveCurrentLocation" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="moveNewLocation">새 위치</label>
+                    <select id="moveNewLocation">
+                        <option value="">새 위치 선택</option>
+                        <option value="A-1-1">A구역-1열-1층</option>
+                        <option value="A-1-2">A구역-1열-2층</option>
+                        <option value="B-1-1">B구역-1열-1층</option>
+                        <option value="B-1-2">B구역-1열-2층</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="moveQuantity">이동수량</label>
+                    <input type="number" id="moveQuantity" min="1" placeholder="이동할 수량">
+                </div>
+                <div class="form-group">
+                    <label for="moveReason">이동사유</label>
+                    <textarea id="moveReason" placeholder="이동 사유" rows="3"></textarea>
+                </div>
+            </div>
+            <button class="btn btn-info" onclick="moveInventory()">위치 이동</button>
+        </div>
+
+        <!-- Warehouse Tab -->
+        <div id="warehouse" class="content hidden">
+            <h2>🏪 창고 현황</h2>
+            <div class="warehouse-grid">
+                <div class="zone-card">
+                    <div class="zone-title">A구역 (태양광 패널)</div>
+                    <div id="zoneA-content">
+                        <!-- 구역 내용이 여기에 표시됩니다 -->
+                    </div>
+                </div>
+                <div class="zone-card">
+                    <div class="zone-title">B구역 (인버터)</div>
+                    <div id="zoneB-content">
+                        <!-- 구역 내용이 여기에 표시됩니다 -->
+                    </div>
+                </div>
+                <div class="zone-card">
+                    <div class="zone-title">C구역 (케이블/전선)</div>
+                    <div id="zoneC-content">
+                        <!-- 구역 내용이 여기에 표시됩니다 -->
+                    </div>
+                </div>
+                <div class="zone-card">
+                    <div class="zone-title">D구역 (기타 부품)</div>
+                    <div id="zoneD-content">
+                        <!-- 구역 내용이 여기에 표시됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layout Tab -->
+        <div id="layout" class="content hidden">
+            <h2>🔧 창고 구조 관리</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="newZone">새 구역명</label>
+                    <input type="text" id="newZone" placeholder="구역명 입력">
+                </div>
+                <div class="form-group">
+                    <label for="newRow">행 수</label>
+                    <input type="number" id="newRow" min="1" max="10" placeholder="행 수">
+                </div>
+                <div class="form-group">
+                    <label for="newFloor">층 수</label>
+                    <input type="number" id="newFloor" min="1" max="5" placeholder="층 수">
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="addWarehouseZone()">구역 추가</button>
+                </div>
+            </div>
+            <div id="warehouseLayoutContainer">
+                <!-- 창고 레이아웃이 여기에 표시됩니다 -->
+            </div>
+        </div>
+
+        <!-- Excel Tab -->
+        <div id="excel" class="content hidden">
+            <h2>📊 엑셀 관리</h2>
+            <div class="excel-section">
+                <h3>데이터 가져오기</h3>
+                <div class="file-upload" onclick="document.getElementById('excelFile').click()">
+                    <h3>📁 엑셀 파일 업로드</h3>
+                    <p>재고 데이터가 포함된 엑셀 파일을 선택하세요</p>
+                    <input type="file" id="excelFile" accept=".xlsx,.xls" style="display: none;" onchange="handleExcelUpload(event)">
+                </div>
+            </div>
+            <div class="excel-section">
+                <h3>데이터 내보내기</h3>
+                <button class="btn btn-success" onclick="exportToExcel()">재고 데이터 다운로드</button>
+                <button class="btn btn-info" onclick="exportHistory()">입출고 내역 다운로드</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Item History -->
+    <div id="historyModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>입출고 내역</h2>
+                <button class="modal-close" onclick="closeHistoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <ul id="historyList">
+                    <!-- 내역이 여기에 표시됩니다 -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let inventory = [];
+        let bomGuides = {
+            guide1: [
+                {code: "SP-300W", name: "300W 태양광 패널", needed: 12, current: 15},
+                {code: "INV-5KW", name: "5KW 인버터", needed: 1, current: 3},
+                {code: "CABLE-4MM", name: "4mm² DC 케이블", needed: 50, current: 25}
+            ],
+            guide2: [
+                {code: "SP-500W", name: "500W 태양광 패널", needed: 20, current: 18},
+                {code: "INV-10KW", name: "10KW 인버터", needed: 2, current: 1},
+                {code: "CABLE-6MM", name: "6mm² DC 케이블", needed: 100, current: 80}
+            ],
+            guide3: [
+                {code: "SP-500W", name: "500W 태양광 패널", needed: 100, current: 18},
+                {code: "INV-50KW", name: "50KW 인버터", needed: 2, current: 0},
+                {code: "CABLE-10MM", name: "10mm² DC 케이블", needed: 500, current: 200}
+            ]
+        };
+        let transactionHistory = [];
+
+        // Initialize system
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSampleData();
+            setupEventListeners();
+            updateStats();
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            
+            // Tab switching
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+            
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', filterInventory);
+        }
+
+        // Authentication functions
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            // Simple authentication (in real app, this would be server-side)
+            const validUsers = {
+                'admin': {password: 'admin123', role: 'admin'},
+                'viewer': {password: 'view123', role: 'viewer'}
+            };
+
+            if (validUsers[username] && validUsers[username].password === password) {
+                currentUser = {username, role: validUsers[username].role};
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('main-container').classList.remove('hidden');
+                setupUserPermissions();
+                errorDiv.textContent = '';
+            } else {
+                errorDiv.textContent = '아이디 또는 비밀번호가 잘못되었습니다.';
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('login-overlay').classList.remove('hidden');
+            document.getElementById('main-container').classList.add('hidden');
+            document.getElementById('loginForm').reset();
+        }
+
+        function setupUserPermissions() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                const allowedRoles = tab.dataset.role.split(' ');
+                if (!allowedRoles.includes(currentUser.role)) {
+                    tab.style.display = 'none';
+                } else {
+                    tab.style.display = 'block';
+                }
+            });
+        }
+
+        // Tab management
+        function switchTab(tabName) {
+            // Hide all content divs
+            document.querySelectorAll('.content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected content and activate tab
+            document.getElementById(tabName).classList.remove('hidden');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // Load data for specific tabs
+            if (tabName === 'inventory') {
+                displayInventory();
+            } else if (tabName === 'warehouse') {
+                displayWarehouseStatus();
+            }
+        }
+
+        // Sample data loading
+        function loadSampleData() {
+            inventory = [
+                {code: "SP-300W", name: "300W 태양광 패널", manufacturer: "SolarTech", stock: 15, minStock: 10, unit: "ea", location: "A-1-1"},
+                {code: "SP-500W", name: "500W 태양광 패널", manufacturer: "SolarTech", stock: 18, minStock: 8, unit: "ea", location: "A-1-2"},
+                {code: "INV-5KW", name: "5KW 인버터", manufacturer: "PowerCorp", stock: 3, minStock: 2, unit: "ea", location: "B-1-1"},
+                {code: "INV-10KW", name: "10KW 인버터", manufacturer: "PowerCorp", stock: 1, minStock: 1, unit: "ea", location: "B-1-2"},
+                {code: "INV-50KW", name: "50KW 인버터", manufacturer: "PowerCorp", stock: 0, minStock: 1, unit: "ea", location: "B-2-1"},
+                {code: "CABLE-4MM", name: "4mm² DC 케이블", manufacturer: "CableCo", stock: 25, minStock: 20, unit: "roll", location: "C-1-1"},
+                {code: "CABLE-6MM", name: "6mm² DC 케이블", manufacturer: "CableCo", stock: 80, minStock: 50, unit: "roll", location: "C-1-2"},
+                {code: "CABLE-10MM", name: "10mm² DC 케이블", manufacturer: "CableCo", stock: 200, minStock: 100, unit: "roll", location: "C-2-1"}
+            ];
+        }
+
+        // BOM Check functions
+        function checkBom() {
+            const selectedGuide = document.getElementById('guideSelect').value;
+            const bomBody = document.getElementById('bomBody');
+            
+            if (!selectedGuide) {
+                bomBody.innerHTML = '';
+                return;
+            }
+            
+            const bomData = bomGuides[selectedGuide];
+            bomBody.innerHTML = '';
+            
+            bomData.forEach(item => {
+                const row = document.createElement('tr');
+                const status = item.current >= item.needed ? 
+                    '<span class="status-ok">충분</span>' : 
+                    '<span class="status-shortage">부족</span>';
+                
+                row.innerHTML = `
+                    <td>${item.code}</td>
+                    <td>${item.name}</td>
+                    <td>${item.needed}</td>
+                    <td>${item.current}</td>
+                    <td>${status}</td>
+                `;
+                bomBody.appendChild(row);
+            });
+        }
+
+        // Inventory management functions
+        function displayInventory() {
+            const tbody = document.getElementById('inventoryBody');
+            tbody.innerHTML = '';
+            
+            inventory.forEach(item => {
+                const row = document.createElement('tr');
+                const status = item.stock <= item.minStock ? 
+                    '<span class="status-badge status-out-of-stock">부족</span>' : 
+                    '<span class="status-badge status-in-stock">정상</span>';
+                
+                row.innerHTML = `
+                    <td>${item.code}</td>
+                    <td>${item.name}</td>
+                    <td>${item.manufacturer}</td>
+                    <td>${item.stock}</td>
+                    <td>${item.minStock}</td>
+                    <td>${item.unit}</td>
+                    <td>${item.location}</td>
+                    <td>${status}</td>
+                    <td>
+                        <button class="btn btn-info" onclick="showHistory('${item.code}')">내역</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function filterInventory() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#inventoryBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        function sortTable(column) {
+            // TODO: Implement table sorting functionality
+            console.log('Sorting by column:', column);
+        }
+
+        // Inbound/Outbound functions
+        function addInbound() {
+            const code = document.getElementById('inProductCode').value;
+            const name = document.getElementById('inProductName').value;
+            const manufacturer = document.getElementById('inManufacturer').value;
+            const quantity = parseInt(document.getElementById('inQuantity').value);
+            const minStock = parseInt(document.getElementById('inMinStock').value);
+            const unit = document.getElementById('inUnit').value;
+            const location = document.getElementById('inLocation').value;
+            const memo = document.getElementById('inMemo').value;
+
+            if (!code || !name || !manufacturer || !quantity || !location) {
+                alert('필수 정보를 모두 입력해주세요.');
+                return;
+            }
+
+            // Check if item exists
+            const existingItem = inventory.find(item => item.code === code);
+            
+            if (existingItem) {
+                existingItem.stock += quantity;
+            } else {
+                inventory.push({
+                    code, name, manufacturer, 
+                    stock: quantity, minStock, unit, location
+                });
+            }
+
+            // Add to transaction history
+            transactionHistory.push({
+                type: '입고',
+                code,
+                name,
+                quantity,
+                date: new Date().toLocaleString('ko-KR'),
+                memo
+            });
+
+            // Clear form
+            document.getElementById('inProductCode').value = '';
+            document.getElementById('inProductName').value = '';
+            document.getElementById('inManufacturer').value = '';
+            document.getElementById('inQuantity').value = '';
+            document.getElementById('inMinStock').value = '';
+            document.getElementById('inUnit').value = 'ea';
+            document.getElementById('inLocation').value = '';
+            document.getElementById('inMemo').value = '';
+
+            updateStats();
+            alert('입고가 완료되었습니다.');
+        }
+
+        function addOutbound() {
+            const code = document.getElementById('outProductCode').value;
+            const quantity = parseInt(document.getElementById('outQuantity').value);
+            const purpose = document.getElementById('outPurpose').value;
+            const memo = document.getElementById('outMemo').value;
+
+            if (!code || !quantity) {
+                alert('제품코드와 출고수량을 입력해주세요.');
+                return;
+            }
+
+            const item = inventory.find(item => item.code === code);
+            if (!item) {
+                alert('존재하지 않는 제품코드입니다.');
+                return;
+            }
+
+            if (item.stock < quantity) {
+                alert('재고가 부족합니다.');
+                return;
+            }
+
+            item.stock -= quantity;
+
+            // Add to transaction history
+            transactionHistory.push({
+                type: '출고',
+                code,
+                name: item.name,
+                quantity,
+                purpose,
+                date: new Date().toLocaleString('ko-KR'),
+                memo
+            });
+
+            // Clear form
+            document.getElementById('outProductCode').value = '';
+            document.getElementById('outProductName').value = '';
+            document.getElementById('outCurrentStock').value = '';
+            document.getElementById('outQuantity').value = '';
+            document.getElementById('outMemo').value = '';
+
+            updateStats();
+            alert('출고가 완료되었습니다.');
+        }
+
+        function loadProductInfo(type) {
+            const codeInput = document.getElementById(`${type}ProductCode`);
+            const nameInput = document.getElementById(`${type}ProductName`);
+            const code = codeInput.value;
+
+            const item = inventory.find(item => item.code === code);
+            if (item) {
+                nameInput.value = item.name;
+                if (type === 'out') {
+                    document.getElementById('outCurrentStock').value = item.stock;
+                } else if (type === 'move') {
+                    document.getElementById('moveCurrentLocation').value = item.location;
+                }
+            } else {
+                nameInput.value = '';
+                if (type === 'out') {
+                    document.getElementById('outCurrentStock').value = '';
+                } else if (type === 'move') {
+                    document.getElementById('moveCurrentLocation').value = '';
+                }
+            }
+        }
+
+        // Move inventory function
+        function moveInventory() {
+            const code = document.getElementById('moveProductCode').value;
+            const newLocation = document.getElementById('moveNewLocation').value;
+            const quantity = parseInt(document.getElementById('moveQuantity').value);
+            const reason = document.getElementById('moveReason').value;
+
+            if (!code || !newLocation || !quantity || !reason) {
+                alert('모든 정보를 입력해주세요.');
+                return;
+            }
+
+            const item = inventory.find(item => item.code === code);
+            if (!item) {
+                alert('존재하지 않는 제품코드입니다.');
+                return;
+            }
+
+            if (item.stock < quantity) {
+                alert('이동할 수량이 재고보다 많습니다.');
+                return;
+            }
+
+            const oldLocation = item.location;
+            item.location = newLocation;
+
+            // Add to transaction history
+            transactionHistory.push({
+                type: '이동',
+                code,
+                name: item.name,
+                quantity,
+                from: oldLocation,
+                to: newLocation,
+                reason,
+                date: new Date().toLocaleString('ko-KR')
+            });
+
+            // Clear form
+            document.getElementById('moveProductCode').value = '';
+            document.getElementById('moveProductName').value = '';
+            document.getElementById('moveCurrentLocation').value = '';
+            document.getElementById('moveNewLocation').value = '';
+            document.getElementById('moveQuantity').value = '';
+            document.getElementById('moveReason').value = '';
+
+            alert('위치 이동이 완료되었습니다.');
+        }
+
+        // Warehouse status functions
+        function displayWarehouseStatus() {
+            const zones = ['A', 'B', 'C', 'D'];
+            zones.forEach(zone => {
+                const container = document.getElementById(`zone${zone}-content`);
+                const zoneItems = inventory.filter(item => item.location.startsWith(zone));
+                
+                container.innerHTML = '';
+                if (zoneItems.length === 0) {
+                    container.innerHTML = '<p>저장된 품목이 없습니다.</p>';
+                } else {
+                    zoneItems.forEach(item => {
+                        const div = document.createElement('div');
+                        div.style.marginBottom = '10px';
+                        div.innerHTML = `
+                            <strong>${item.code}</strong> - ${item.name}<br>
+                            <small>재고: ${item.stock}${item.unit} | 위치: ${item.location}</small>
+                        `;
+                        container.appendChild(div);
+                    });
+                }
+            });
+        }
+
+        // Excel functions
+        function handleExcelUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // Process the imported data
+                    processImportedData(jsonData);
+                    alert('엑셀 파일이 성공적으로 업로드되었습니다.');
+                } catch (error) {
+                    alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
+                    console.error(error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processImportedData(data) {
+            // TODO: Process imported Excel data
+            console.log('Imported data:', data);
+        }
+
+        function exportToExcel() {
+            const ws = XLSX.utils.json_to_sheet(inventory);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "재고현황");
+            XLSX.writeFile(wb, "재고현황.xlsx");
+        }
+
+        function exportHistory() {
+            const ws = XLSX.utils.json_to_sheet(transactionHistory);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "입출고내역");
+            XLSX.writeFile(wb, "입출고내역.xlsx");
+        }
+
+        // History modal functions
+        function showHistory(productCode) {
+            const history = transactionHistory.filter(record => record.code === productCode);
+            const historyList = document.getElementById('historyList');
+            
+            historyList.innerHTML = '';
+            if (history.length === 0) {
+                historyList.innerHTML = '<li>내역이 없습니다.</li>';
+            } else {
+                history.forEach(record => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <strong>${record.type}</strong> - ${record.date}<br>
+                        수량: ${record.quantity} | ${record.memo || record.purpose || record.reason || ''}
+                    `;
+                    historyList.appendChild(li);
+                });
+            }
+            
+            document.getElementById('historyModal').classList.remove('hidden');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+        }
+
+        // Warehouse layout management
+        function addWarehouseZone() {
+            const zoneName = document.getElementById('newZone').value;
+            const rows = parseInt(document.getElementById('newRow').value);
+            const floors = parseInt(document.getElementById('newFloor').value);
+
+            if (!zoneName || !rows || !floors) {
+                alert('모든 정보를 입력해주세요.');
+                return;
+            }
+
+            // TODO: Implement warehouse zone addition
+            alert(`${zoneName} 구역이 추가되었습니다. (${rows}행 x ${floors}층)`);
+            
+            // Clear form
+            document.getElementById('newZone').value = '';
+            document.getElementById('newRow').value = '';
+            document.getElementById('newFloor').value = '';
+        }
+
+        // Statistics update
+        function updateStats() {
+            const totalStock = inventory.reduce((sum, item) => sum + item.stock, 0);
+            const totalItems = inventory.length;
+            const shortageItems = inventory.filter(item => item.stock <= item.minStock).length;
+
+            document.getElementById('totalItems').textContent = totalStock.toLocaleString();
+            document.getElementById('inStockItems').textContent = totalItems;
+            document.getElementById('shortageItems').textContent = shortageItems;
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
