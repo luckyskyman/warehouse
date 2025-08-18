@@ -8,12 +8,12 @@ import {
   type WorkDiary, type InsertWorkDiary,
   type WorkDiaryComment, type InsertWorkDiaryComment,
   type WorkNotification, type InsertWorkNotification
-} from "@shared/schema";
+} from "../shared/schema";
 import { db } from "./db";
 import { 
   users, inventoryItems, transactions, bomGuides, warehouseLayout, 
   exchangeQueue, workDiary, workDiaryComments, workNotifications 
-} from "@shared/schema";
+} from "../shared/schema";
 import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
